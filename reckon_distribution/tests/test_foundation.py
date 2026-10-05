@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -33,7 +32,7 @@ class TestFoundation(FrappeTestCase):
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission
 
-        with patch("frappe.session.user", "field@example.com"):
+        with patch("reckon_distribution.api.frappe.session", frappe._dict(user="field@example.com")):
             with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
                 self.assertTrue(check_app_permission())
             with patch("frappe.get_roles", return_value=["Accounts User"]):
@@ -44,7 +43,7 @@ class TestFoundation(FrappeTestCase):
         self.assertEqual(hooks.role_home_page["Reckon Distribution Manager"], "app/distribution")
         self.assertEqual(hooks.role_home_page["Reckon Distribution Admin"], "app/distribution")
 
-    def test_distribution_page_is_role_restricted(self):
+    def test_no_desk_page_conflicts_with_distribution_workspace_route(self):
         page_path = (
             Path(__file__).parents[1]
             / "distribution"
@@ -52,14 +51,8 @@ class TestFoundation(FrappeTestCase):
             / "distribution"
             / "distribution.json"
         )
-        page = json.loads(page_path.read_text(encoding="utf-8"))
-        page_roles = {row["role"] for row in page["roles"]}
 
-        self.assertEqual(page["page_name"], "distribution")
-        self.assertIn("Reckon Distribution User", page_roles)
-        self.assertIn("Reckon Distribution Manager", page_roles)
-        self.assertIn("Reckon Distribution Admin", page_roles)
-        self.assertNotIn("Reckon Vendor Superuser", page_roles)
+        self.assertFalse(page_path.exists())
 
 
 class TestCompatibilityHelpers(unittest.TestCase):

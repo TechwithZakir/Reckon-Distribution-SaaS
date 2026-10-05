@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  frappe-tests:
+    name: Frappe ${{ matrix.frappe-branch }} / ERPNext ${{ matrix.erpnext-branch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - frappe-branch: version-15
+            erpnext-branch: version-15
+            python-version: "3.10"
+          - frappe-branch: version-16
+            erpnext-branch: version-16
+            python-version: "3.11"
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+        with:
+          path: frappe-bench/apps/reckon_distribution
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install bench
+        run: pip install frappe-bench
+
+      - name: Initialize bench
+        run: |
+          bench init frappe-bench --skip-redis-config-generation --frappe-branch ${{ matrix.frappe-branch }} --python "$(which python)"
+          cd frappe-bench
+          bench get-app erpnext --branch ${{ matrix.erpnext-branch }}
+
+      - name: Create test site and install apps
+        working-directory: frappe-bench
+        run: |
+          bench new-site test_site --mariadb-root-password root --admin-password admin --no-mariadb-socket
+          bench --site test_site install-app erpnext
+          bench --site test_site install-app reckon_distribution
+
+      - name: Lint Python
+        working-directory: frappe-bench/apps/reckon_distribution
+        run: |
+          python -m pip install ruff
+          ruff check .
+
+      - name: Run app tests
+        working-directory: frappe-bench
+        run: bench --site test_site run-tests --app reckon_distribution

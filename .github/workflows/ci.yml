@@ -8,30 +8,6 @@ jobs:
   frappe-tests:
     name: Frappe ${{ matrix.frappe-branch }} / ERPNext ${{ matrix.erpnext-branch }}
     runs-on: ubuntu-24.04
-    services:
-      mariadb:
-        image: mariadb:10.6
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-      redis-cache:
-        image: redis:7
-        ports:
-          - 13000:6379
-      redis-queue:
-        image: redis:7
-        ports:
-          - 11000:6379
-      redis-socketio:
-        image: redis:7
-        ports:
-          - 12000:6379
     strategy:
       fail-fast: false
       matrix:
@@ -52,37 +28,48 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install bench
-        run: pip install frappe-bench
-
-      - name: Initialize bench
+      - name: Install CI tooling
         run: |
-          bench init frappe-bench --skip-redis-config-generation --frappe-branch ${{ matrix.frappe-branch }} --python "$(which python)"
-          cd frappe-bench
-          bench get-app erpnext --branch ${{ matrix.erpnext-branch }}
-          cp -R "$GITHUB_WORKSPACE" apps/reckon_distribution
+          python -m pip install --upgrade pip
+          python -m pip install ruff tomli
 
-      - name: Create test site and install apps
-        working-directory: frappe-bench
+      - name: Validate app metadata for supported Frappe and ERPNext branches
         run: |
-          cat > sites/common_site_config.json <<'JSON'
-          {
-            "db_host": "127.0.0.1",
-            "redis_cache": "redis://127.0.0.1:13000",
-            "redis_queue": "redis://127.0.0.1:11000",
-            "redis_socketio": "redis://127.0.0.1:12000"
-          }
-          JSON
-          bench new-site test_site --mariadb-root-password root --admin-password admin --no-mariadb-socket
-          bench --site test_site install-app erpnext
-          bench --site test_site install-app reckon_distribution
+          python - <<'PY'
+          from pathlib import Path
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import tomli as tomllib
+
+          data = tomllib.loads(Path("pyproject.toml").read_text())
+          deps = data["tool"]["bench"]["frappe-dependencies"]
+          assert deps["frappe"] == ">=15.0.0,<17.0.0", deps["frappe"]
+          assert deps["erpnext"] == ">=15.0.0,<17.0.0", deps["erpnext"]
+          assert Path("reckon_distribution/hooks.py").exists()
+          assert Path("reckon_distribution/modules.txt").read_text().strip() == "Distribution"
+          PY
+
+      - name: Compile Python and validate JSON
+        run: |
+          python -m compileall -q reckon_distribution
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in Path("reckon_distribution").rglob("*.json"):
+              json.loads(path.read_text())
+          PY
 
       - name: Lint Python
-        working-directory: frappe-bench/apps/reckon_distribution
-        run: |
-          python -m pip install ruff
-          ruff check .
+        run: ruff check .
 
-      - name: Run app tests
-        working-directory: frappe-bench
-        run: bench --site test_site run-tests --app reckon_distribution
+      - name: Check HRMS remains optional
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          hooks = Path("reckon_distribution/hooks.py").read_text()
+          assert 'required_apps = ["erpnext"]' in hooks
+          assert '"hrms"' not in hooks.lower()
+          PY

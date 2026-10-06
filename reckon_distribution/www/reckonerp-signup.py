@@ -1,4 +1,4 @@
-from reckon_distribution.www import reckonerp_signup
+from reckon_saas_platform.www import reckonerp_signup
 
 
 def get_context(context):

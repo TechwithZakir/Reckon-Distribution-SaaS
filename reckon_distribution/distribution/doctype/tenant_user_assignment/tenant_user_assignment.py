@@ -6,6 +6,9 @@ from frappe.model.document import Document
 
 
 class TenantUserAssignment(Document):
+    def autoname(self) -> None:
+        self.name = frappe.model.naming.make_autoname("TUA-.#####")
+
     def validate(self) -> None:
         self._set_defaults()
         self._validate_company_is_immutable()

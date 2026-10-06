@@ -33,6 +33,14 @@ add_to_apps_screen = [
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
 
+permission_query_conditions = {
+    "Tenant User Assignment": "reckon_distribution.tenant_security.get_tenant_user_assignment_query",
+}
+
+has_permission = {
+    "Tenant User Assignment": "reckon_distribution.tenant_security.has_tenant_user_assignment_permission",
+}
+
 role_home_page = {
     "Reckon Distribution User": "app/distribution",
     "Reckon Distribution Manager": "app/distribution",

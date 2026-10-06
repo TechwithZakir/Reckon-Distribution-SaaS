@@ -20,3 +20,5 @@ OPERATIONAL_ROLES = (
 )
 
 HRMS_APP_NAME = "hrms"
+
+TENANT_BYPASS_ROLES = frozenset({"Administrator", "System Manager", "Reckon Vendor Superuser"})

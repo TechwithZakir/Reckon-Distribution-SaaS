@@ -15,6 +15,7 @@ and accounting system of record. The app must stay independent of Frappe HRMS.
 - Version compatibility helpers for Frappe/ERPNext v15/v16
 - Bangladesh Bangla translation and glossary seed
 - CI matrix for Frappe/ERPNext v15 and v16
+- Tenant User Assignment and server-side tenant resolver foundation
 
 Business transactions, tenant isolation DocTypes, stock postings, accounting postings,
 offline sync, and PWA workflows are intentionally deferred to later phases.

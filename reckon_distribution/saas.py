@@ -5,6 +5,8 @@ from frappe import _
 from frappe.utils import add_days, getdate, nowdate
 
 from reckon_distribution.constants import CURRENT_SEED_VERSION, SAAS_ACTIVE_STATUSES
+from reckon_distribution.saas_security import is_vendor_user
+from reckon_distribution.tenant_security import get_user_companies, resolve_tenant
 
 
 class SubscriptionGateError(frappe.PermissionError):
@@ -31,6 +33,76 @@ def public_signup(
         plan=plan,
         billing_cycle=billing_cycle,
     ).name
+
+
+@frappe.whitelist()
+def verify_payment_manual(payment: str, reference: str | None = None):
+    _require_vendor()
+    return verify_payment(payment, reference=reference).name
+
+
+@frappe.whitelist()
+def retry_tenant_seed_job(company: str):
+    _require_vendor()
+    return run_tenant_seed_job(company).name
+
+
+@frappe.whitelist()
+def get_subscription_summary():
+    tenant = resolve_tenant()
+    subscription = get_company_subscription(tenant.company)
+    if not subscription:
+        return {"company": tenant.company, "status": "Missing"}
+
+    payment = frappe.db.get_value(
+        "SaaS Payment",
+        {"subscription": subscription.name},
+        ["name", "status", "amount", "currency", "gateway_reference"],
+        as_dict=True,
+    )
+    job = frappe.db.get_value(
+        "Tenant Provisioning Job",
+        {"company": tenant.company, "seed_version": CURRENT_SEED_VERSION},
+        ["name", "status", "current_step", "error"],
+        as_dict=True,
+    )
+    return {
+        "company": tenant.company,
+        "subscription": subscription.name,
+        "status": subscription.status,
+        "plan": subscription.plan,
+        "price": subscription.price,
+        "currency": subscription.currency,
+        "end_date": subscription.end_date,
+        "grace_until": subscription.grace_until,
+        "payment": payment,
+        "provisioning": job,
+        "operational_access": _has_operational_access(tenant.company),
+    }
+
+
+@frappe.whitelist()
+def get_vendor_saas_summary():
+    _require_vendor()
+    return {
+        "plans": frappe.db.count("SaaS Plan"),
+        "registrations": frappe.db.count("SaaS Registration"),
+        "subscriptions": frappe.db.count("SaaS Subscription"),
+        "payments_pending": frappe.db.count("SaaS Payment", {"status": "Pending Verification"}),
+        "seed_jobs_pending": frappe.db.count("Tenant Provisioning Job", {"status": ["!=", "Complete"]}),
+    }
+
+
+def get_user_home_page(user: str):
+    if not user or user == "Guest":
+        return "reckonerp-signup"
+    if is_vendor_user(user):
+        return "reckon-saas-admin"
+
+    companies = get_user_companies(user)
+    if len(companies) != 1:
+        return "reckonerp-subscription"
+    return "distribution" if _has_operational_access(companies[0]) else "reckonerp-subscription"
 
 
 def create_registration(
@@ -177,6 +249,14 @@ def assert_operational_access(company: str) -> None:
         raise SubscriptionGateError(_("Subscription is not active."))
 
 
+def _has_operational_access(company: str) -> bool:
+    try:
+        assert_operational_access(company)
+    except SubscriptionGateError:
+        return False
+    return True
+
+
 def get_company_subscription(company: str):
     name = frappe.db.get_value(
         "SaaS Subscription",
@@ -239,3 +319,8 @@ def _assign_company_admin(user: str, company: str):
 def _abbr(company_name: str) -> str:
     letters = "".join(part[:1] for part in company_name.split() if part).upper()[:5]
     return letters or "RDS"
+
+
+def _require_vendor() -> None:
+    if not is_vendor_user():
+        frappe.throw(_("Only vendor administrators can perform this action."), frappe.PermissionError)

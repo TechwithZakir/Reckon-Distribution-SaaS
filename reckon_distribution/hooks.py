@@ -32,6 +32,7 @@ add_to_apps_screen = [
 
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
+get_website_user_home_page = "reckon_distribution.saas.get_user_home_page"
 
 permission_query_conditions = {
     "SaaS Payment": "reckon_distribution.saas_security.get_vendor_only_query",

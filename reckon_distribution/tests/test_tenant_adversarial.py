@@ -5,13 +5,14 @@ from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.tenant_security import (
     CrossCompanyAccessError,
+    TenantResolutionError,
     assert_file_belongs_to_tenant,
     get_tenant_doc,
     get_tenant_owned_query,
+    guard_api_company,
     guarded_background_job_company,
     guarded_export_rows,
     guarded_link_search,
-    guard_api_company,
     has_tenant_owned_permission,
     validate_tenant_owned_doc,
 )
@@ -100,7 +101,7 @@ class TestTenantAdversarialAccess(FrappeTestCase):
             validate_tenant_owned_doc(doc_b, user=self.user_a)
 
     def test_api_guard_rejects_cross_company_payload(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(TenantResolutionError):
             guard_api_company(company=self.company_b, user=self.user_a)
 
     def test_link_search_returns_only_assigned_company_records(self):
@@ -122,7 +123,7 @@ class TestTenantAdversarialAccess(FrappeTestCase):
         self.assertEqual({row.name for row in rows}, {self.record_a})
 
     def test_background_job_guard_rejects_cross_company_payload(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(TenantResolutionError):
             guarded_background_job_company(self.company_b, user=self.user_a)
 
     def test_file_access_guard_rejects_cross_company_attachment_target(self):

@@ -35,10 +35,12 @@ after_migrate = "reckon_distribution.install.after_migrate"
 
 permission_query_conditions = {
     "Tenant User Assignment": "reckon_distribution.tenant_security.get_tenant_user_assignment_query",
+    "Tenant Security Test Record": "reckon_distribution.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
     "Tenant User Assignment": "reckon_distribution.tenant_security.has_tenant_user_assignment_permission",
+    "Tenant Security Test Record": "reckon_distribution.tenant_security.has_tenant_owned_permission",
 }
 
 role_home_page = {

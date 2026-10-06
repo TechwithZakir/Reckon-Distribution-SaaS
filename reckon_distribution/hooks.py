@@ -16,7 +16,7 @@ app_icon_url = app_logo_url
 app_icon_title = app_title
 app_icon_route = "/app/distribution"
 
-required_apps = ["erpnext"]
+required_apps = ["erpnext", "reckon_saas_platform"]
 
 add_to_apps_screen = [
     {
@@ -39,28 +39,13 @@ reckon_saas_modules = [
 ]
 
 website_route_rules = [
-    {"from_route": "/reckonerp-signup", "to_route": "reckonerp_signup"},
-    {"from_route": "/reckon-saas-admin", "to_route": "reckon_saas_admin"},
-    {"from_route": "/reckonerp-subscription", "to_route": "reckonerp_subscription"},
 ]
 
 permission_query_conditions = {
-    "SaaS Payment": "reckon_saas_platform.saas_security.get_vendor_only_query",
-    "SaaS Plan": "reckon_saas_platform.saas_security.get_vendor_only_query",
-    "SaaS Registration": "reckon_saas_platform.saas_security.get_vendor_only_query",
-    "SaaS Subscription": "reckon_saas_platform.saas_security.get_vendor_only_query",
-    "Tenant Provisioning Job": "reckon_saas_platform.saas_security.get_vendor_only_query",
-    "Tenant User Assignment": "reckon_saas_platform.tenant_security.get_tenant_user_assignment_query",
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
-    "SaaS Payment": "reckon_saas_platform.saas_security.has_vendor_only_permission",
-    "SaaS Plan": "reckon_saas_platform.saas_security.has_vendor_only_permission",
-    "SaaS Registration": "reckon_saas_platform.saas_security.has_vendor_only_permission",
-    "SaaS Subscription": "reckon_saas_platform.saas_security.has_vendor_only_permission",
-    "Tenant Provisioning Job": "reckon_saas_platform.saas_security.has_vendor_only_permission",
-    "Tenant User Assignment": "reckon_saas_platform.tenant_security.has_tenant_user_assignment_permission",
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
 }
 

@@ -24,3 +24,25 @@ apps must stay independent of Frappe HRMS.
 
 Business transactions, stock postings, accounting postings, offline sync, and PWA
 workflows are intentionally deferred to later phases.
+
+## Bench Install Order
+
+Install the reusable platform app before the Distribution module.
+
+This repository currently ships both apps from one checkout. On a bench, expose
+the platform as its own app directory with a sibling symlink:
+
+```bash
+cd ~/frappe-bench
+ln -sfn apps/reckon_distribution apps/reckon_saas_platform
+bench setup requirements
+bench --site distribution.reckon.tech install-app reckon_saas_platform
+bench --site distribution.reckon.tech install-app reckon_distribution
+```
+
+For an existing site that already has `reckon_distribution`, pull the code first,
+create the sibling symlink, run `bench setup requirements`, install
+`reckon_saas_platform`, then migrate. The SaaS DocTypes are owned by
+`reckon_saas_platform`; `reckon_distribution` depends on it and registers itself
+as a SaaS module. A future repository split can move `reckon_saas_platform` to
+its own Git remote without changing the app contract.

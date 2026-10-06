@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "reckon_distribution"
 version = "0.1.0"
 authors = [{name = "Reckon Technologies Ltd."}]
-description = "Reckon SaaS platform and Bangla-first FMCG distribution workflows for ERPNext"
+description = "Bangla-first FMCG distribution workflows for ERPNext"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
 dependencies = []
@@ -16,7 +16,7 @@ frappe = ">=15.0.0,<17.0.0"
 erpnext = ">=15.0.0,<17.0.0"
 
 [tool.setuptools.packages.find]
-include = ["reckon_distribution*", "reckon_saas_platform*"]
+include = ["reckon_distribution*"]
 
 [tool.ruff]
 line-length = 100

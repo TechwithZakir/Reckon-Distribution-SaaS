@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import frappe
-
 from reckon_saas_platform.saas import get_vendor_saas_summary
 from reckon_saas_platform.saas_security import is_vendor_user
 

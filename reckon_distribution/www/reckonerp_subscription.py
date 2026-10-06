@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import frappe
-
 from reckon_saas_platform.saas import get_subscription_summary
 from reckon_saas_platform.tenant_security import TenantResolutionError
 

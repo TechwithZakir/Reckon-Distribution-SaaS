@@ -91,6 +91,15 @@ class TestSaaSRegistrationAndGate(FrappeTestCase):
         )
 
     def test_seed_job_is_idempotent_once_per_company_and_version(self):
+        frappe.get_doc(
+            {
+                "doctype": "Company",
+                "company_name": self.company,
+                "abbr": "TST",
+                "default_currency": "BDT",
+                "country": "Bangladesh",
+            }
+        ).insert(ignore_permissions=True)
         first = ensure_tenant_seed_job(self.company)
         second = ensure_tenant_seed_job(self.company)
 

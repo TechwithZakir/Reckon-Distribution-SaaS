@@ -97,7 +97,7 @@ class TestTenantAdversarialAccess(FrappeTestCase):
     def test_company_a_cannot_save_company_b_record(self):
         doc_b = frappe.get_doc("Tenant Security Test Record", self.record_b)
 
-        with self.assertRaises(CrossCompanyAccessError):
+        with self.assertRaises(TenantResolutionError):
             validate_tenant_owned_doc(doc_b, user=self.user_a)
 
     def test_api_guard_rejects_cross_company_payload(self):

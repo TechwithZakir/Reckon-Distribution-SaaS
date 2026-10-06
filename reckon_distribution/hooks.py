@@ -34,6 +34,12 @@ after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
 get_website_user_home_page = "reckon_distribution.saas.get_user_home_page"
 
+website_route_rules = [
+    {"from_route": "/reckonerp-signup", "to_route": "reckonerp_signup"},
+    {"from_route": "/reckon-saas-admin", "to_route": "reckon_saas_admin"},
+    {"from_route": "/reckonerp-subscription", "to_route": "reckonerp_subscription"},
+]
+
 permission_query_conditions = {
     "SaaS Payment": "reckon_distribution.saas_security.get_vendor_only_query",
     "SaaS Plan": "reckon_distribution.saas_security.get_vendor_only_query",

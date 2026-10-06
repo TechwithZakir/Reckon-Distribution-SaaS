@@ -34,11 +34,21 @@ after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
 
 permission_query_conditions = {
+    "SaaS Payment": "reckon_distribution.saas_security.get_vendor_only_query",
+    "SaaS Plan": "reckon_distribution.saas_security.get_vendor_only_query",
+    "SaaS Registration": "reckon_distribution.saas_security.get_vendor_only_query",
+    "SaaS Subscription": "reckon_distribution.saas_security.get_vendor_only_query",
+    "Tenant Provisioning Job": "reckon_distribution.saas_security.get_vendor_only_query",
     "Tenant User Assignment": "reckon_distribution.tenant_security.get_tenant_user_assignment_query",
     "Tenant Security Test Record": "reckon_distribution.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
+    "SaaS Payment": "reckon_distribution.saas_security.has_vendor_only_permission",
+    "SaaS Plan": "reckon_distribution.saas_security.has_vendor_only_permission",
+    "SaaS Registration": "reckon_distribution.saas_security.has_vendor_only_permission",
+    "SaaS Subscription": "reckon_distribution.saas_security.has_vendor_only_permission",
+    "Tenant Provisioning Job": "reckon_distribution.saas_security.has_vendor_only_permission",
     "Tenant User Assignment": "reckon_distribution.tenant_security.has_tenant_user_assignment_permission",
     "Tenant Security Test Record": "reckon_distribution.tenant_security.has_tenant_owned_permission",
 }

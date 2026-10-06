@@ -22,3 +22,7 @@ OPERATIONAL_ROLES = (
 HRMS_APP_NAME = "hrms"
 
 TENANT_BYPASS_ROLES = frozenset({"Administrator", "System Manager", "Reckon Vendor Superuser"})
+
+SAAS_ACTIVE_STATUSES = frozenset({"Active", "Trial", "Grace"})
+SAAS_BLOCKED_STATUSES = frozenset({"Pending", "Due", "Expired", "Suspended", "Cancelled"})
+CURRENT_SEED_VERSION = "2026.10.06"

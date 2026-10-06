@@ -32,7 +32,11 @@ add_to_apps_screen = [
 
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
-get_website_user_home_page = "reckon_distribution.saas.get_user_home_page"
+get_website_user_home_page = "reckon_saas_platform.saas.get_user_home_page"
+
+reckon_saas_modules = [
+    "reckon_distribution.saas_module.get_module_definition",
+]
 
 website_route_rules = [
     {"from_route": "/reckonerp-signup", "to_route": "reckonerp_signup"},
@@ -41,23 +45,23 @@ website_route_rules = [
 ]
 
 permission_query_conditions = {
-    "SaaS Payment": "reckon_distribution.saas_security.get_vendor_only_query",
-    "SaaS Plan": "reckon_distribution.saas_security.get_vendor_only_query",
-    "SaaS Registration": "reckon_distribution.saas_security.get_vendor_only_query",
-    "SaaS Subscription": "reckon_distribution.saas_security.get_vendor_only_query",
-    "Tenant Provisioning Job": "reckon_distribution.saas_security.get_vendor_only_query",
-    "Tenant User Assignment": "reckon_distribution.tenant_security.get_tenant_user_assignment_query",
-    "Tenant Security Test Record": "reckon_distribution.tenant_security.get_tenant_owned_query",
+    "SaaS Payment": "reckon_saas_platform.saas_security.get_vendor_only_query",
+    "SaaS Plan": "reckon_saas_platform.saas_security.get_vendor_only_query",
+    "SaaS Registration": "reckon_saas_platform.saas_security.get_vendor_only_query",
+    "SaaS Subscription": "reckon_saas_platform.saas_security.get_vendor_only_query",
+    "Tenant Provisioning Job": "reckon_saas_platform.saas_security.get_vendor_only_query",
+    "Tenant User Assignment": "reckon_saas_platform.tenant_security.get_tenant_user_assignment_query",
+    "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
-    "SaaS Payment": "reckon_distribution.saas_security.has_vendor_only_permission",
-    "SaaS Plan": "reckon_distribution.saas_security.has_vendor_only_permission",
-    "SaaS Registration": "reckon_distribution.saas_security.has_vendor_only_permission",
-    "SaaS Subscription": "reckon_distribution.saas_security.has_vendor_only_permission",
-    "Tenant Provisioning Job": "reckon_distribution.saas_security.has_vendor_only_permission",
-    "Tenant User Assignment": "reckon_distribution.tenant_security.has_tenant_user_assignment_permission",
-    "Tenant Security Test Record": "reckon_distribution.tenant_security.has_tenant_owned_permission",
+    "SaaS Payment": "reckon_saas_platform.saas_security.has_vendor_only_permission",
+    "SaaS Plan": "reckon_saas_platform.saas_security.has_vendor_only_permission",
+    "SaaS Registration": "reckon_saas_platform.saas_security.has_vendor_only_permission",
+    "SaaS Subscription": "reckon_saas_platform.saas_security.has_vendor_only_permission",
+    "Tenant Provisioning Job": "reckon_saas_platform.saas_security.has_vendor_only_permission",
+    "Tenant User Assignment": "reckon_saas_platform.tenant_security.has_tenant_user_assignment_permission",
+    "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
 }
 
 role_home_page = {

@@ -47,19 +47,23 @@ jobs:
           assert deps["frappe"] == ">=15.0.0,<17.0.0", deps["frappe"]
           assert deps["erpnext"] == ">=15.0.0,<17.0.0", deps["erpnext"]
           assert Path("reckon_distribution/hooks.py").exists()
+          assert Path("reckon_saas_platform/hooks.py").exists()
           assert Path("reckon_distribution/patches.txt").exists()
+          assert Path("reckon_saas_platform/patches.txt").exists()
           assert Path("reckon_distribution/modules.txt").read_text().strip() == "Distribution"
+          assert Path("reckon_saas_platform/modules.txt").read_text().strip() == "SaaS Platform"
           PY
 
       - name: Compile Python and validate JSON
         run: |
-          python -m compileall -q reckon_distribution
+          python -m compileall -q reckon_distribution reckon_saas_platform
           python - <<'PY'
           import json
           from pathlib import Path
 
-          for path in Path("reckon_distribution").rglob("*.json"):
-              json.loads(path.read_text())
+          for root in ["reckon_distribution", "reckon_saas_platform"]:
+              for path in Path(root).rglob("*.json"):
+                  json.loads(path.read_text())
           PY
 
       - name: Lint Python
@@ -70,7 +74,9 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          hooks = Path("reckon_distribution/hooks.py").read_text()
-          assert 'required_apps = ["erpnext"]' in hooks
-          assert '"hrms"' not in hooks.lower()
+          distribution_hooks = Path("reckon_distribution/hooks.py").read_text()
+          platform_hooks = Path("reckon_saas_platform/hooks.py").read_text()
+          assert 'required_apps = ["erpnext"]' in distribution_hooks
+          assert '"hrms"' not in distribution_hooks.lower()
+          assert '"hrms"' not in platform_hooks.lower()
           PY

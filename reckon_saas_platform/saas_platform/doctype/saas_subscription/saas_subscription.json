@@ -1,0 +1,31 @@
+{
+ "actions": [],
+ "autoname": "",
+ "creation": "2026-10-06 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": ["registration", "company", "company_admin", "plan", "plan_version", "billing_cycle", "status", "price", "currency", "start_date", "end_date", "grace_until"],
+ "fields": [
+  {"fieldname": "registration", "fieldtype": "Link", "label": "Registration", "options": "SaaS Registration"},
+  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "company_admin", "fieldtype": "Link", "label": "Company Admin", "options": "User"},
+  {"fieldname": "plan", "fieldtype": "Link", "label": "Plan", "options": "SaaS Plan", "reqd": 1},
+  {"fieldname": "plan_version", "fieldtype": "Data", "label": "Plan Version", "reqd": 1},
+  {"fieldname": "billing_cycle", "fieldtype": "Select", "label": "Billing Cycle", "options": "Monthly\nQuarterly\nYearly", "default": "Monthly"},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Pending\nTrial\nActive\nDue\nGrace\nExpired\nSuspended\nCancelled", "default": "Pending", "in_list_view": 1},
+  {"fieldname": "price", "fieldtype": "Currency", "label": "Price", "reqd": 1},
+  {"fieldname": "currency", "fieldtype": "Link", "label": "Currency", "options": "Currency", "default": "BDT"},
+  {"fieldname": "start_date", "fieldtype": "Date", "label": "Start Date"},
+  {"fieldname": "end_date", "fieldtype": "Date", "label": "End Date"},
+  {"fieldname": "grace_until", "fieldtype": "Date", "label": "Grace Until"}
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-10-06 00:00:00.000000",
+ "module": "SaaS Platform",
+ "name": "SaaS Subscription",
+ "naming_rule": "Set by controller",
+ "permissions": [{"role": "Reckon Vendor Superuser", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}, {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

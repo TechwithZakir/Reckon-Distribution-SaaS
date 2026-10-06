@@ -1,0 +1,26 @@
+{
+ "actions": [],
+ "autoname": "",
+ "creation": "2026-10-06 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": ["company", "seed_version", "idempotency_key", "status", "current_step", "completed_on", "error"],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "seed_version", "fieldtype": "Data", "label": "Seed Version", "reqd": 1},
+  {"fieldname": "idempotency_key", "fieldtype": "Data", "label": "Idempotency Key", "unique": 1},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Pending\nRunning\nComplete\nFailed", "default": "Pending", "in_list_view": 1},
+  {"fieldname": "current_step", "fieldtype": "Data", "label": "Current Step"},
+  {"fieldname": "completed_on", "fieldtype": "Date", "label": "Completed On"},
+  {"fieldname": "error", "fieldtype": "Small Text", "label": "Error"}
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-10-06 00:00:00.000000",
+ "module": "SaaS Platform",
+ "name": "Tenant Provisioning Job",
+ "naming_rule": "Set by controller",
+ "permissions": [{"role": "Reckon Vendor Superuser", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}, {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,30 @@
+{
+ "actions": [],
+ "autoname": "",
+ "creation": "2026-10-06 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": ["business_name", "owner_email", "owner_name", "plan", "billing_cycle", "status", "company", "company_admin", "subscription", "payment", "provisioning_job"],
+ "fields": [
+  {"fieldname": "business_name", "fieldtype": "Data", "label": "Business Name", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "owner_email", "fieldtype": "Data", "label": "Owner Email", "reqd": 1},
+  {"fieldname": "owner_name", "fieldtype": "Data", "label": "Owner Name"},
+  {"fieldname": "plan", "fieldtype": "Link", "label": "Plan", "options": "SaaS Plan", "reqd": 1},
+  {"fieldname": "billing_cycle", "fieldtype": "Select", "label": "Billing Cycle", "options": "Monthly\nQuarterly\nYearly", "default": "Monthly"},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Pending Payment\nActive\nRejected\nCancelled", "default": "Pending Payment"},
+  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company", "read_only": 1},
+  {"fieldname": "company_admin", "fieldtype": "Link", "label": "Company Admin", "options": "User", "read_only": 1},
+  {"fieldname": "subscription", "fieldtype": "Link", "label": "Subscription", "options": "SaaS Subscription", "read_only": 1},
+  {"fieldname": "payment", "fieldtype": "Link", "label": "Payment", "options": "SaaS Payment", "read_only": 1},
+  {"fieldname": "provisioning_job", "fieldtype": "Link", "label": "Provisioning Job", "options": "Tenant Provisioning Job", "read_only": 1}
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-10-06 00:00:00.000000",
+ "module": "SaaS Platform",
+ "name": "SaaS Registration",
+ "naming_rule": "Set by controller",
+ "permissions": [{"role": "Reckon Vendor Superuser", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}, {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

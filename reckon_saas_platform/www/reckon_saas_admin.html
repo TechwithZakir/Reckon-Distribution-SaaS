@@ -1,0 +1,30 @@
+{% extends "templates/web.html" %}
+
+{% block title %}SaaS Admin{% endblock %}
+
+{% block page_content %}
+<main class="reckon-distribution-shell">
+  <section class="rd-hero">
+    <p class="rd-kicker">Vendor Control</p>
+    <h1>SaaS Admin</h1>
+    <p>Plans: {{ summary.plans }} • Registrations: {{ summary.registrations }} • Subscriptions: {{ summary.subscriptions }}</p>
+    <p>Pending payments: {{ summary.payments_pending }} • Pending seed jobs: {{ summary.seed_jobs_pending }}</p>
+  </section>
+  <section class="rd-hero">
+    <h2>Pending Payments</h2>
+    {% for payment in pending_payments %}
+    <p>{{ payment.name }} • {{ payment.company }} • {{ payment.currency }} {{ payment.amount }} • {{ payment.gateway_reference or "No reference" }}</p>
+    {% else %}
+    <p>No pending payments.</p>
+    {% endfor %}
+  </section>
+  <section class="rd-hero">
+    <h2>Provisioning Jobs</h2>
+    {% for job in seed_jobs %}
+    <p>{{ job.name }} • {{ job.company }} • {{ job.status }} • {{ job.current_step or "" }}</p>
+    {% else %}
+    <p>No provisioning jobs.</p>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

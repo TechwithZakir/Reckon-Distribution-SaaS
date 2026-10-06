@@ -1,0 +1,25 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Subscription and Payment{% endblock %}
+
+{% block page_content %}
+<main class="reckon-distribution-shell">
+  <section class="rd-hero">
+    <p class="rd-kicker">Subscription</p>
+    <h1>Payment and activation status</h1>
+    <p>Company: {{ summary.company or "Not assigned" }}</p>
+    <p>Status: <strong>{{ summary.status }}</strong></p>
+    {% if summary.payment %}
+    <p>Payment: {{ summary.payment.status }} • {{ summary.payment.currency }} {{ summary.payment.amount }}</p>
+    {% endif %}
+    {% if summary.provisioning %}
+    <p>Provisioning: {{ summary.provisioning.status }} • {{ summary.provisioning.current_step or "" }}</p>
+    {% endif %}
+    {% if summary.operational_access %}
+    <a class="btn btn-primary" href="/app/distribution">Open Distribution</a>
+    {% else %}
+    <p>Your operational workspace is locked until payment is verified and provisioning is complete.</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

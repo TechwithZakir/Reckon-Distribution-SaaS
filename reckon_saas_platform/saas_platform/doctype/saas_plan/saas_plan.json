@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "autoname": "field:plan_name",
+ "creation": "2026-10-06 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": ["plan_name", "plan_version", "enabled", "currency", "price", "billing_cycle", "trial_days", "grace_days", "features"],
+ "fields": [
+  {"fieldname": "plan_name", "fieldtype": "Data", "label": "Plan Name", "reqd": 1, "unique": 1, "in_list_view": 1},
+  {"fieldname": "plan_version", "fieldtype": "Data", "label": "Plan Version", "default": "1", "reqd": 1},
+  {"fieldname": "enabled", "fieldtype": "Check", "label": "Enabled", "default": "1"},
+  {"fieldname": "currency", "fieldtype": "Link", "label": "Currency", "options": "Currency", "default": "BDT", "reqd": 1},
+  {"fieldname": "price", "fieldtype": "Currency", "label": "Price", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "billing_cycle", "fieldtype": "Select", "label": "Billing Cycle", "options": "Monthly\nQuarterly\nYearly", "default": "Monthly"},
+  {"fieldname": "trial_days", "fieldtype": "Int", "label": "Trial Days", "default": "0"},
+  {"fieldname": "grace_days", "fieldtype": "Int", "label": "Grace Days", "default": "0"},
+  {"fieldname": "features", "fieldtype": "Small Text", "label": "Features"}
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-10-06 00:00:00.000000",
+ "module": "SaaS Platform",
+ "name": "SaaS Plan",
+ "naming_rule": "By fieldname",
+ "permissions": [{"role": "Reckon Vendor Superuser", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}, {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

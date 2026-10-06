@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "autoname": "",
+ "creation": "2026-10-06 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": ["subscription", "company", "amount", "currency", "status", "gateway_provider", "gateway_reference", "verified_on", "notes"],
+ "fields": [
+  {"fieldname": "subscription", "fieldtype": "Link", "label": "Subscription", "options": "SaaS Subscription", "reqd": 1},
+  {"fieldname": "company", "fieldtype": "Link", "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "amount", "fieldtype": "Currency", "label": "Amount", "reqd": 1},
+  {"fieldname": "currency", "fieldtype": "Link", "label": "Currency", "options": "Currency", "default": "BDT"},
+  {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Pending Verification\nVerified\nRejected\nRefunded", "default": "Pending Verification"},
+  {"fieldname": "gateway_provider", "fieldtype": "Data", "label": "Gateway Provider"},
+  {"fieldname": "gateway_reference", "fieldtype": "Data", "label": "Gateway Reference"},
+  {"fieldname": "verified_on", "fieldtype": "Date", "label": "Verified On"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-10-06 00:00:00.000000",
+ "module": "SaaS Platform",
+ "name": "SaaS Payment",
+ "naming_rule": "Set by controller",
+ "permissions": [{"role": "Reckon Vendor Superuser", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}, {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "export": 1}],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -79,6 +79,17 @@ class TestPurchaseReceiptControls(FrappeTestCase):
         user = "purchase-tenant-a@example.com"
         company_a = "_Test Tenant Company A"
         company_b = "_Test Tenant Company B"
+        for company, abbr in [(company_a, "TCA"), (company_b, "TCB")]:
+            if not frappe.db.exists("Company", company):
+                frappe.get_doc(
+                    {
+                        "doctype": "Company",
+                        "company_name": company,
+                        "abbr": abbr,
+                        "default_currency": "BDT",
+                        "country": "Bangladesh",
+                    }
+                ).insert(ignore_permissions=True)
         item = frappe.db.get_value("Item", {}, "name")
         supplier = frappe.db.get_value("Supplier", {}, "name")
         if not item or not supplier:

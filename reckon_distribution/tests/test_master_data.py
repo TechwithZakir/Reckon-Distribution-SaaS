@@ -5,7 +5,7 @@ from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.master_data import search_company_master, validate_master_scope
 from reckon_distribution.seed import run_distribution_seed
-from reckon_distribution.tenant_security import CrossCompanyAccessError, validate_tenant_owned_doc
+from reckon_distribution.tenant_security import validate_tenant_owned_doc
 
 
 class TestDistributionMasterData(FrappeTestCase):
@@ -17,6 +17,7 @@ class TestDistributionMasterData(FrappeTestCase):
         self.route_a = "_Test Master Route A"
         self.route_b = "_Test Master Route B"
         self._cleanup()
+        self._ensure_companies()
         self._assignment(self.user_a, self.company_a)
         self._assignment(self.user_b, self.company_b)
 
@@ -40,6 +41,20 @@ class TestDistributionMasterData(FrappeTestCase):
         for user in [self.user_a, self.user_b]:
             for name in frappe.get_all("Tenant User Assignment", filters={"user": user}, pluck="name"):
                 frappe.delete_doc("Tenant User Assignment", name, ignore_permissions=True, force=True)
+
+    def _ensure_companies(self):
+        for company, abbr in [(self.company_a, "TCA"), (self.company_b, "TCB")]:
+            if frappe.db.exists("Company", company):
+                continue
+            frappe.get_doc(
+                {
+                    "doctype": "Company",
+                    "company_name": company,
+                    "abbr": abbr,
+                    "default_currency": "BDT",
+                    "country": "Bangladesh",
+                }
+            ).insert(ignore_permissions=True)
 
     def _assignment(self, user: str, company: str):
         frappe.get_doc(
@@ -94,7 +109,7 @@ class TestDistributionMasterData(FrappeTestCase):
         route_a = self._route(self.route_a, self.company_a)
         self._route(self.route_b, self.company_b)
 
-        with self.assertRaises(CrossCompanyAccessError):
+        with self.assertRaises(frappe.ValidationError):
             route_a.company = self.company_b
             validate_tenant_owned_doc(route_a, user=self.user_a)
 

@@ -1,0 +1,24 @@
+{
+ "doctype":"DocType",
+ "name":"Company Retailer Profile",
+ "module":"Distribution",
+ "autoname":"format:{company}-{customer}",
+ "field_order":["company","customer","outlet_code","route","territory","credit_limit","payment_terms","active"],
+ "fields":[
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"ERPNext Customer","options":"Customer","reqd":1,"in_list_view":1},
+  {"fieldname":"outlet_code","fieldtype":"Data","label":"Company Outlet Code","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Primary Route","options":"Distribution Route"},
+  {"fieldname":"territory","fieldtype":"Link","label":"Territory","options":"Territory"},
+  {"fieldname":"credit_limit","fieldtype":"Currency","label":"Company Credit Limit"},
+  {"fieldname":"payment_terms","fieldtype":"Link","label":"Payment Terms","options":"Payment Terms Template"},
+  {"fieldname":"active","fieldtype":"Check","label":"Active","default":1,"in_list_view":1}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1,"create":1},
+  {"role":"Reckon Master Data Manager","read":1,"write":1,"create":1},
+  {"role":"Reckon Distribution User","read":1}
+ ],
+ "track_changes":1
+}

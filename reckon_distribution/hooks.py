@@ -69,6 +69,18 @@ doc_events = {
     "DSR Day Settlement": {
         "validate": "reckon_distribution.settlement.validate_day_settlement",
     },
+    "Company Item Profile": {
+        "validate": "reckon_distribution.master_profiles.validate_profile",
+    },
+    "Company Retailer Profile": {
+        "validate": "reckon_distribution.master_profiles.validate_profile",
+    },
+    "Company Supplier Profile": {
+        "validate": "reckon_distribution.master_profiles.validate_profile",
+    },
+    "Company Item Price Profile": {
+        "validate": "reckon_distribution.master_profiles.validate_company_item_price_profile",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -99,6 +111,10 @@ permission_query_conditions = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company Item Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company Retailer Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company Supplier Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company Item Price Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
@@ -119,6 +135,10 @@ has_permission = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company Item Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company Retailer Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company Supplier Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company Item Price Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
 }
 
 override_whitelisted_methods = {

@@ -85,18 +85,44 @@ class TestDistributionMasterData(FrappeTestCase):
             validate_tenant_owned_doc(route_a, user=self.user_a)
 
     def test_master_scope_lookup_requires_explicit_company_scope(self):
-        frappe.get_doc(
+        self._scope(self.company_a)
+        self._scope(self.company_b)
+
+        rows_a = search_company_master("Item Group", user=self.user_a)
+        rows_b = search_company_master("Item Group", user=self.user_b)
+        self.assertEqual({row.company for row in rows_a}, {self.company_a})
+        self.assertEqual({row.company for row in rows_b}, {self.company_b})
+
+        with self.assertRaises(frappe.ValidationError):
+            self._scope(self.company_a)
+
+        validate_master_scope(self.company_a, "Item Group", "All Item Groups", user=self.user_a)
+
+    def test_standard_erpnext_masters_can_be_scoped_per_company(self):
+        for master_type in ["Item", "Supplier", "Customer", "Price List", "Item Price"]:
+            master_name = frappe.db.get_value(master_type, {}, "name")
+            if not master_name:
+                continue
+
+            self._scope_for(self.company_a, master_type, master_name)
+            self._scope_for(self.company_b, master_type, master_name)
+
+            rows_a = search_company_master(master_type, user=self.user_a)
+            rows_b = search_company_master(master_type, user=self.user_b)
+            self.assertEqual({row.company for row in rows_a}, {self.company_a})
+            self.assertEqual({row.company for row in rows_b}, {self.company_b})
+
+    def _scope(self, company: str):
+        return self._scope_for(company, "Item Group", "All Item Groups")
+
+    def _scope_for(self, company: str, master_type: str, master_name: str):
+        return frappe.get_doc(
             {
                 "doctype": "Distribution Master Scope",
-                "company": self.company_a,
-                "master_type": "Item Group",
-                "master_name": "All Item Groups",
+                "company": company,
+                "master_type": master_type,
+                "master_name": master_name,
                 "access_scope": "Read",
                 "active": 1,
             }
         ).insert(ignore_permissions=True)
-
-        rows = search_company_master("Item Group", user=self.user_a)
-        self.assertEqual({row.master_name for row in rows}, {"All Item Groups"})
-        with self.assertRaises(frappe.PermissionError):
-            validate_master_scope(self.company_b, "Item Group", "All Item Groups", user=self.user_b)

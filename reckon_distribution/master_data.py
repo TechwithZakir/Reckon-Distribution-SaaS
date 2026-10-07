@@ -27,6 +27,21 @@ def validate_master_reference(doc) -> None:
         frappe.throw(_("Unsupported distribution master type: {0}").format(doc.master_type))
     if not frappe.db.exists(doc.master_type, doc.master_name):
         frappe.throw(_("{0} {1} does not exist.").format(doc.master_type, doc.master_name))
+    duplicate = frappe.db.exists(
+        "Distribution Master Scope",
+        {
+            "company": doc.company,
+            "master_type": doc.master_type,
+            "master_name": doc.master_name,
+            "name": ["!=", doc.name],
+        },
+    )
+    if duplicate:
+        frappe.throw(
+            _("{0} {1} is already enabled for company {2}.").format(
+                doc.master_type, doc.master_name, doc.company
+            )
+        )
 
 
 def validate_master_scope(
@@ -63,7 +78,9 @@ def search_company_master(
     tenant = require_tenant(user=user)
     if master_type not in SUPPORTED_MASTER_TYPES:
         frappe.throw(_("Unsupported distribution master type: {0}").format(master_type))
-    selected_fields = list(fields or ["master_name", "master_type", "access_scope"])
+    selected_fields = list(fields or ["company", "master_name", "master_type", "access_scope"])
+    if "company" not in selected_fields:
+        selected_fields.insert(0, "company")
     if "master_name" not in selected_fields:
         selected_fields.insert(0, "master_name")
     return frappe.get_all(

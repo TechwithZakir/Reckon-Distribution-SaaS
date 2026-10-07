@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.purchase_receipt import validate_purchase_receipt
+from reckon_distribution.purchase_receipt import (
+    reconcile_purchase_receipt_stock,
+    validate_purchase_receipt,
+)
 
 
 class TestPurchaseReceiptControls(FrappeTestCase):
@@ -119,3 +124,21 @@ class TestPurchaseReceiptControls(FrappeTestCase):
             frappe.delete_doc(
                 "Tenant User Assignment", assignment.name, ignore_permissions=True, force=True
             )
+
+    def test_stock_reconciliation_compares_source_and_ledger_quantities(self):
+        submitted = frappe._dict(
+            {
+                "docstatus": 1,
+                "items": [frappe._dict({"stock_qty": 20})],
+            }
+        )
+        with patch(
+            "reckon_distribution.purchase_receipt.get_tenant_doc", return_value=submitted
+        ), patch(
+            "reckon_distribution.purchase_receipt.frappe.db.sql", return_value=[[20]]
+        ):
+            result = reconcile_purchase_receipt_stock("PRE-TEST-001")
+
+        self.assertEqual(result["source_stock_qty"], 20)
+        self.assertEqual(result["ledger_stock_qty"], 20)
+        self.assertTrue(result["reconciled"])

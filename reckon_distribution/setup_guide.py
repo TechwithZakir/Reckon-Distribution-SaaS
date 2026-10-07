@@ -25,6 +25,7 @@ def get_setup_status(company: str) -> dict:
     return {
         "company": tenant.company,
         "settings": count("Distribution Settings", {"company": tenant.company}),
+        "users": count("Tenant User Assignment", {"company": tenant.company, "active": 1}),
         "routes": count("Distribution Route", {"company": tenant.company, "active": 1}),
         "retailers": count("Distribution Master Scope", {"company": tenant.company, "master_type": "Customer", "active": 1}),
         "products": count("Distribution Master Scope", {"company": tenant.company, "master_type": "Item", "active": 1}),

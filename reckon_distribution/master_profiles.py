@@ -6,7 +6,6 @@ from frappe import _
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import validate_tenant_owned_doc
 
-
 PROFILE_MASTERS = {
     "Company Item Profile": "Item",
     "Company Retailer Profile": "Customer",

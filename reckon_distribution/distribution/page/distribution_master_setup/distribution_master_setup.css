@@ -12,6 +12,12 @@
 .rd-setup-copy p { color: var(--text-muted); margin: 0; }
 .rd-setup-action { align-items: center; display: flex; gap: 10px; }
 .rd-setup-action strong { color: var(--green, #2e9b69); white-space: nowrap; }
+.rd-inline-form { background: var(--card-bg); border: 2px solid var(--primary); border-radius: 8px; margin-top: 18px; padding: 20px; }
+.rd-inline-form h3 { margin-top: 0; }
+.rd-inline-fields { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px; }
+.rd-inline-fields label { display: grid; gap: 6px; font-weight: 600; }
+.rd-inline-fields input { min-height: 44px; padding: 8px 10px; }
+.rd-inline-form button { margin-right: 8px; min-height: 44px; }
 .rd-master-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
 .rd-master-hero h2 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
 .rd-master-hero p { margin: 0; color: var(--text-muted); max-width: 680px; }
@@ -35,4 +41,5 @@
   .rd-company-picker select { min-width: 0; }
   .rd-setup-step { align-items: flex-start; flex-wrap: wrap; }
   .rd-setup-action { margin-left: 52px; width: calc(100% - 52px); }
+  .rd-inline-fields { grid-template-columns: 1fr; }
 }

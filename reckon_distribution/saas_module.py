@@ -5,7 +5,7 @@ def get_module_definition() -> dict:
     return {
         "key": "distribution",
         "label": "Distribution SaaS",
-        "workspace": "distribution",
+        "workspace": "app/distribution",
         "roles": [
             "Reckon Distribution Admin",
             "Reckon Distribution Manager",

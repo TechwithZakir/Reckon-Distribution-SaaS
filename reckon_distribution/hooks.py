@@ -32,7 +32,6 @@ add_to_apps_screen = [
 
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
-get_website_user_home_page = "reckon_saas_platform.saas.get_user_home_page"
 
 reckon_saas_modules = [
     "reckon_distribution.saas_module.get_module_definition",
@@ -47,12 +46,6 @@ permission_query_conditions = {
 
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
-}
-
-role_home_page = {
-    "Reckon Distribution User": "app/distribution",
-    "Reckon Distribution Manager": "app/distribution",
-    "Reckon Distribution Admin": "app/distribution",
 }
 
 fixtures = [

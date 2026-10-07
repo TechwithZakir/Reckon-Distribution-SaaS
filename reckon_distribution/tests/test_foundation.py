@@ -17,10 +17,10 @@ class TestFoundation(FrappeTestCase):
         self.assertIn("erpnext", hooks.required_apps)
         self.assertNotIn(HRMS_APP_NAME, hooks.required_apps)
 
-    def test_roles_exist_with_distribution_home_page(self):
+    def test_roles_exist_without_forced_home_page(self):
         for role in OPERATIONAL_ROLES:
             self.assertTrue(frappe.db.exists("Role", role.name), role.name)
-            self.assertEqual(frappe.db.get_value("Role", role.name, "home_page"), "app/distribution")
+            self.assertFalse(frappe.db.get_value("Role", role.name, "home_page"))
 
     def test_workspace_exists_and_is_role_scoped(self):
         self.assertTrue(frappe.db.exists("Workspace", DISTRIBUTION_WORKSPACE))
@@ -38,10 +38,9 @@ class TestFoundation(FrappeTestCase):
             with patch("frappe.get_roles", return_value=["Accounts User"]):
                 self.assertFalse(check_app_permission())
 
-    def test_role_home_page_hook_routes_operational_users_to_distribution(self):
-        self.assertEqual(hooks.role_home_page["Reckon Distribution User"], "app/distribution")
-        self.assertEqual(hooks.role_home_page["Reckon Distribution Manager"], "app/distribution")
-        self.assertEqual(hooks.role_home_page["Reckon Distribution Admin"], "app/distribution")
+    def test_no_login_home_page_override(self):
+        self.assertFalse(hasattr(hooks, "get_website_user_home_page"))
+        self.assertFalse(hasattr(hooks, "role_home_page"))
 
     def test_no_desk_page_conflicts_with_distribution_workspace_route(self):
         page_path = (
@@ -53,6 +52,11 @@ class TestFoundation(FrappeTestCase):
         )
 
         self.assertFalse(page_path.exists())
+
+    def test_distribution_module_uses_app_workspace_route(self):
+        from reckon_distribution.saas_module import get_module_definition
+
+        self.assertEqual(get_module_definition()["workspace"], "app/distribution")
 
 
 class TestCompatibilityHelpers(unittest.TestCase):

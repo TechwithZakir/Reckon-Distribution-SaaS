@@ -67,7 +67,7 @@ def get_setup_links(company: str) -> dict:
         "items": frappe.db.sql("select s.master_name as name, coalesce(i.item_name, s.master_name) as item_name from `tabDistribution Master Scope` s left join `tabItem` i on i.name=s.master_name where s.company=%s and s.master_type='Item' and s.active=1 order by item_name", tenant.company, as_dict=True),
         "uoms": frappe.get_all("UOM", fields=["name"], order_by="name asc"),
         "price_lists": frappe.get_all("Price List", filters={"selling": 1, "enabled": 1}, fields=["name", "price_list_name"], order_by="price_list_name asc"),
-        "payment_terms": frappe.get_all("Payment Terms Template", filters={"disabled": 0}, fields=["name", "template_name"], order_by="template_name asc"),
+        "payment_terms": frappe.get_all("Payment Terms Template", fields=["name", "template_name"], order_by="template_name asc"),
         "warehouses": frappe.get_all("Warehouse", filters={"company": tenant.company, "is_group": 0, "disabled": 0}, fields=["name", "warehouse_name"], order_by="warehouse_name asc"),
         "accounts": frappe.get_all("Account", filters={"company": tenant.company, "is_group": 0, "disabled": 0}, fields=["name", "account_name", "account_type"], order_by="account_name asc"),
         "customer_groups": frappe.get_all("Customer Group", fields=["name"], order_by="name asc"),

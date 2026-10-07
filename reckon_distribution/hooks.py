@@ -32,6 +32,12 @@ add_to_apps_screen = [
 
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
+doc_events = {
+    "Purchase Receipt": {
+        "validate": "reckon_distribution.purchase_receipt.validate_purchase_receipt",
+        "before_submit": "reckon_distribution.purchase_receipt.validate_purchase_receipt",
+    }
+}
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
 app_include_js = ["/assets/reckon_distribution/js/desk_guard.js"]
@@ -45,6 +51,7 @@ website_route_rules = [
 
 permission_query_conditions = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Purchase Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -53,6 +60,7 @@ permission_query_conditions = {
 
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Purchase Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

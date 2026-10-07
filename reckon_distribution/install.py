@@ -9,11 +9,71 @@ from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_RO
 def after_install() -> None:
     setup_roles()
     setup_workspace()
+    ensure_purchase_receipt_fields()
 
 
 def after_migrate() -> None:
     setup_roles()
     setup_workspace()
+    ensure_purchase_receipt_fields()
+
+
+def ensure_purchase_receipt_fields() -> None:
+    fields = [
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_promotion_source",
+            "label": "Supplier Promotion Source",
+            "fieldtype": "Data",
+            "insert_after": "supplier",
+        },
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_promotion_reference",
+            "label": "Supplier Promotion Reference",
+            "fieldtype": "Data",
+            "insert_after": "rd_promotion_source",
+        },
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_promotion_terms",
+            "label": "Supplier Promotion Terms",
+            "fieldtype": "Small Text",
+            "insert_after": "rd_promotion_reference",
+        },
+        {
+            "dt": "Purchase Receipt Item",
+            "fieldname": "rd_paid_qty",
+            "label": "Paid Quantity",
+            "fieldtype": "Float",
+            "insert_after": "qty",
+        },
+        {
+            "dt": "Purchase Receipt Item",
+            "fieldname": "rd_free_qty",
+            "label": "Supplier Free Quantity",
+            "fieldtype": "Float",
+            "insert_after": "rd_paid_qty",
+        },
+        {
+            "dt": "Purchase Receipt Item",
+            "fieldname": "rd_shortage_qty",
+            "label": "Shortage Quantity",
+            "fieldtype": "Float",
+            "insert_after": "rd_free_qty",
+        },
+        {
+            "dt": "Purchase Receipt Item",
+            "fieldname": "rd_dispute_note",
+            "label": "Shortage / Dispute Note",
+            "fieldtype": "Small Text",
+            "insert_after": "rd_shortage_qty",
+        },
+    ]
+    for field in fields:
+        if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
+            continue
+        frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
 
 
 def setup_roles() -> None:

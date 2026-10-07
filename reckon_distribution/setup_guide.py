@@ -36,10 +36,6 @@ def get_setup_status(company: str) -> dict:
         "products": count("Distribution Master Scope", {"company": tenant.company, "master_type": "Item", "active": 1}),
         "prices": count("Distribution Master Scope", {"company": tenant.company, "master_type": "Price List", "active": 1}),
         "assignments": count("Retailer Route Assignment", {"company": tenant.company, "active": 1}),
-        "retailer_profiles": count("Company Retailer Profile", {"company": tenant.company, "active": 1}),
-        "item_profiles": count("Company Item Profile", {"company": tenant.company, "active": 1}),
-        "price_profiles": count("Company Item Price Profile", {"company": tenant.company, "active": 1}),
-        "supplier_profiles": count("Company Supplier Profile", {"company": tenant.company, "active": 1}),
         "records": {
             "routes": frappe.db.sql("select name, route_code, route_name, assigned_user from `tabDistribution Route` where company=%s order by route_name", tenant.company, as_dict=True),
             "retailers": frappe.db.sql("select s.master_name as name, c.customer_name, c.customer_group, c.territory from `tabDistribution Master Scope` s left join `tabCustomer` c on c.name=s.master_name where s.company=%s and s.master_type='Customer' and s.active=1 order by c.customer_name, s.master_name", tenant.company, as_dict=True),
@@ -127,7 +123,6 @@ def create_retailer(payload: str | dict) -> str:
     customer.update({"customer_name": name, "customer_type": "Company", "customer_group": data.get("customer_group") or "All Customer Groups", "territory": data.get("territory") or "All Territories"})
     customer.save(ignore_permissions=True) if customer.name else customer.insert(ignore_permissions=True)
     _scope(tenant.company, "Customer", customer.name)
-    _save_profile("Company Retailer Profile", {"company": tenant.company, "customer": customer.name, "outlet_code": data.get("outlet_code") or customer.name, "route": data.get("route"), "territory": data.get("territory"), "credit_limit": data.get("credit_limit") or 0, "payment_terms": data.get("payment_terms")})
     return customer.name
 
 
@@ -145,7 +140,6 @@ def create_supplier(payload: str | dict) -> str:
     supplier.update({"supplier_name": supplier_name, "supplier_group": data.get("supplier_group") or "All Supplier Groups", "supplier_type": data.get("supplier_type") or "Company"})
     supplier.save(ignore_permissions=True) if supplier.name else supplier.insert(ignore_permissions=True)
     _scope(tenant.company, "Supplier", supplier.name)
-    _save_profile("Company Supplier Profile", {"company": tenant.company, "supplier": supplier.name, "supplier_code": data.get("supplier_code") or supplier.name, "payment_terms": data.get("payment_terms")})
     return supplier.name
 
 
@@ -185,7 +179,6 @@ def create_product(payload: str | dict) -> dict:
     item.update({"item_code": item_name, "item_name": item_name, "stock_uom": uom, "is_stock_item": 1})
     item.save(ignore_permissions=True) if item.name else item.insert(ignore_permissions=True)
     _scope(tenant.company, "Item", item.name)
-    _save_profile("Company Item Profile", {"company": tenant.company, "item": item.name, "company_item_code": data.get("company_item_code") or item.name, "default_sales_uom": uom, "allow_fractional": data.get("allow_fractional") or 0})
     if price not in (None, ""):
         price_list = data.get("price_list") or _default_price_list(tenant.company)
         if not price_list:
@@ -198,7 +191,6 @@ def create_product(payload: str | dict) -> dict:
         item_price.save(ignore_permissions=True) if item_price.name else item_price.insert(ignore_permissions=True)
         _scope(tenant.company, "Price List", price_list)
         _scope(tenant.company, "Item Price", item_price.name)
-        _save_profile("Company Item Price Profile", {"company": tenant.company, "item": item.name, "price_list": price_list, "uom": uom, "rate": price, "valid_from": data.get("valid_from"), "valid_to": data.get("valid_to")})
     return {"item": item.name}
 
 
@@ -220,7 +212,6 @@ def create_price(payload: str | dict) -> str:
     item_price.update({"item_code": item, "price_list": price_list, "uom": uom, "price_list_rate": data["rate"], "selling": 1})
     item_price.save(ignore_permissions=True) if item_price.name else item_price.insert(ignore_permissions=True)
     _scope(tenant.company, "Item Price", item_price.name)
-    _save_profile("Company Item Price Profile", {"company": tenant.company, "item": item, "price_list": price_list, "uom": uom, "rate": data["rate"], "valid_from": data.get("valid_from"), "valid_to": data.get("valid_to")})
     return item_price.name
 
 
@@ -251,19 +242,6 @@ def remove_setup_entry(company: str, entry_type: str, name: str) -> str:
 def _scope(company: str, master_type: str, master_name: str) -> None:
     if not frappe.db.exists("Distribution Master Scope", {"company": company, "master_type": master_type, "master_name": master_name}):
         frappe.get_doc({"doctype": "Distribution Master Scope", "company": company, "master_type": master_type, "master_name": master_name, "access_scope": "Read", "active": 1}).insert(ignore_permissions=True)
-
-
-def _save_profile(doctype: str, values: dict) -> str:
-    filters = {"company": values["company"]}
-    key = {"Company Retailer Profile": "customer", "Company Supplier Profile": "supplier", "Company Item Profile": "item", "Company Item Price Profile": "item"}[doctype]
-    filters[key] = values[key]
-    if doctype == "Company Item Price Profile":
-        filters.update({"price_list": values["price_list"], "uom": values["uom"]})
-    name = frappe.db.exists(doctype, filters)
-    doc = frappe.get_doc(doctype, name) if name else frappe.get_doc({"doctype": doctype})
-    doc.update(values)
-    doc.save(ignore_permissions=True) if doc.name else doc.insert(ignore_permissions=True)
-    return doc.name
 
 
 def _assert_exclusive_master(company: str, master_type: str, master_name: str) -> None:

@@ -10,12 +10,64 @@ def after_install() -> None:
     setup_roles()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    ensure_master_quick_entry()
 
 
 def after_migrate() -> None:
     setup_roles()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    ensure_master_quick_entry()
+
+
+def ensure_master_quick_entry() -> None:
+    """Keep native ERPNext master creation compact for distribution users."""
+    configurations = {
+        "Customer": {"customer_name", "customer_type", "customer_group", "territory"},
+        "Supplier": {"supplier_name", "supplier_type", "supplier_group"},
+        "Item": {"item_code", "item_name", "item_group", "stock_uom", "is_stock_item", "is_sales_item"},
+        "Item Price": {"item_code", "price_list", "price_list_rate", "uom", "selling"},
+    }
+    for doctype, allowed_fields in configurations.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        _set_property(doctype, None, "quick_entry", "1", "Check")
+        for field in frappe.get_meta(doctype).fields:
+            if not field.fieldname:
+                continue
+            _set_property(
+                doctype,
+                field.fieldname,
+                "allow_in_quick_entry",
+                "1" if field.fieldname in allowed_fields else "0",
+                "Check",
+            )
+        frappe.clear_cache(doctype=doctype)
+
+
+def _set_property(doctype: str, fieldname: str | None, property_name: str, value: str, property_type: str) -> None:
+    filters = {
+        "doc_type": doctype,
+        "doctype_or_field": "DocType" if fieldname is None else "DocField",
+        "property": property_name,
+    }
+    if fieldname is not None:
+        filters["field_name"] = fieldname
+    name = frappe.db.exists("Property Setter", filters)
+    values = {
+        "doctype": "Property Setter",
+        "doc_type": doctype,
+        "doctype_or_field": filters["doctype_or_field"],
+        "property": property_name,
+        "value": value,
+        "property_type": property_type,
+        "is_system_generated": 1,
+    }
+    if fieldname is not None:
+        values["field_name"] = fieldname
+    setter = frappe.get_doc("Property Setter", name) if name else frappe.get_doc(values)
+    setter.update(values)
+    setter.save(ignore_permissions=True) if setter.name else setter.insert(ignore_permissions=True)
 
 
 def ensure_purchase_receipt_fields() -> None:

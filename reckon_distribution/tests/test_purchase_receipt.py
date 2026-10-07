@@ -36,7 +36,7 @@ class TestPurchaseReceiptControls(FrappeTestCase):
         )
 
     def test_paid_and_free_quantities_must_reconcile_to_received_qty(self):
-        receipt = self._receipt(rd_paid_qty=8, rd_free_qty=2)
+        receipt = self._receipt(rd_paid_qty=8, rd_free_qty=2, conversion_factor=2, stock_qty=20)
         receipt.rd_promotion_source = "Supplier circular"
         receipt.rd_promotion_reference = "PROMO-001"
         receipt.rd_promotion_terms = "Two free units supplied with this receipt"
@@ -51,6 +51,15 @@ class TestPurchaseReceiptControls(FrappeTestCase):
 
     def test_paid_and_free_quantities_cannot_overstate_stock_receipt(self):
         receipt = self._receipt(rd_paid_qty=8, rd_free_qty=1)
+
+        with self.assertRaises(frappe.ValidationError):
+            validate_purchase_receipt(receipt)
+
+    def test_stock_uom_quantity_must_match_conversion_factor(self):
+        receipt = self._receipt(rd_paid_qty=8, rd_free_qty=2, conversion_factor=2, stock_qty=19)
+        receipt.rd_promotion_source = "Supplier circular"
+        receipt.rd_promotion_reference = "PROMO-001"
+        receipt.rd_promotion_terms = "Two free units supplied with this receipt"
 
         with self.assertRaises(frappe.ValidationError):
             validate_purchase_receipt(receipt)

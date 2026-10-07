@@ -7,6 +7,7 @@ from frappe.utils import flt
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     assert_company_matches_tenant,
+    get_tenant_doc,
     user_can_bypass_tenant,
 )
 
@@ -36,6 +37,7 @@ def validate_purchase_receipt(doc, method=None) -> None:
                         row.idx
                     )
                 )
+            _validate_stock_uom_quantity(row)
 
         if free_qty:
             has_free_goods = True
@@ -62,6 +64,7 @@ def validate_purchase_receipt(doc, method=None) -> None:
                     row.idx, row.item_code
                 )
             )
+        _validate_batch_reference(row)
 
     if has_shortage and doc.docstatus == 1:
         frappe.throw(_("A Purchase Receipt with an unresolved shortage cannot be submitted."))
@@ -101,3 +104,56 @@ def _validate_shortage_against_order(row) -> None:
         frappe.throw(
             _("Row {0}: received plus shortage exceeds the ordered quantity.").format(row.idx)
         )
+
+
+def _validate_stock_uom_quantity(row) -> None:
+    conversion_factor = flt(row.get("conversion_factor")) or 1
+    expected_stock_qty = flt(row.qty) * conversion_factor
+    actual_stock_qty = flt(row.get("stock_qty"))
+    if actual_stock_qty and abs(actual_stock_qty - expected_stock_qty) > 0.000001:
+        frappe.throw(
+            _("Row {0}: received stock quantity does not match the UOM conversion factor.").format(
+                row.idx
+            )
+        )
+
+
+def _validate_batch_reference(row) -> None:
+    batch_no = row.get("batch_no")
+    if not batch_no or not row.get("item_code"):
+        return
+    batch_item = frappe.db.get_value("Batch", batch_no, "item")
+    if not batch_item:
+        frappe.throw(_("Batch {0} does not exist.").format(batch_no))
+    if batch_item != row.item_code:
+        frappe.throw(
+            _("Batch {0} belongs to Item {1}, not Item {2}.").format(
+                batch_no, batch_item, row.item_code
+            )
+        )
+
+
+@frappe.whitelist()
+def reconcile_purchase_receipt_stock(receipt: str) -> dict:
+    doc = get_tenant_doc("Purchase Receipt", receipt)
+    if doc.docstatus != 1:
+        frappe.throw(_("Purchase Receipt {0} must be submitted before stock reconciliation.").format(receipt))
+
+    source_qty = sum(flt(row.stock_qty) for row in doc.items)
+    ledger_qty = frappe.db.sql(
+        """
+        select coalesce(sum(actual_qty), 0)
+        from `tabStock Ledger Entry`
+        where voucher_type = 'Purchase Receipt'
+          and voucher_no = %s
+          and is_cancelled = 0
+        """,
+        receipt,
+    )[0][0]
+    ledger_qty = flt(ledger_qty)
+    return {
+        "receipt": receipt,
+        "source_stock_qty": source_qty,
+        "ledger_stock_qty": ledger_qty,
+        "reconciled": abs(source_qty - ledger_qty) <= 0.000001,
+    }

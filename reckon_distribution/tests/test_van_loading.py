@@ -7,7 +7,9 @@ from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.van_loading import (
     acknowledge_van_loading,
+    amend_van_loading_challan,
     approve_van_loading_challan,
+    cancel_van_loading_challan,
     validate_van_loading_acknowledgement,
     validate_van_loading_stock_entry,
 )
@@ -119,6 +121,68 @@ class TestVanLoadingControls(FrappeTestCase):
             }
         )
 
-        with patch("reckon_distribution.van_loading.frappe.get_doc", return_value=challan):
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=challan):
             with self.assertRaises(frappe.ValidationError):
                 validate_van_loading_stock_entry(stock_entry)
+
+    def test_approval_creates_one_submitted_stock_entry(self):
+        challan = self._challan(status="Pending Approval")
+        challan.update(
+            {
+                "posting_date": "2026-10-07",
+                "distributor_warehouse": "Distributor - TCA",
+                "van_warehouse": "Van - TCA",
+                "uom": "Nos",
+                "conversion_factor": 1,
+                "save": lambda: None,
+            }
+        )
+        stock_entry = frappe._dict(
+            {"name": "STE-NEW-001", "insert": lambda: None, "submit": lambda: None}
+        )
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=challan), patch(
+            "reckon_distribution.van_loading._require_manager"
+        ), patch("reckon_distribution.van_loading._validate_available_stock"), patch(
+            "reckon_distribution.van_loading.frappe.db.get_value", return_value=None
+        ), patch("reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry) as get_doc:
+            result = approve_van_loading_challan(challan.name)
+
+        self.assertEqual(result, "STE-NEW-001")
+        self.assertEqual(challan.stock_entry, "STE-NEW-001")
+        get_doc.assert_called_once()
+        self.assertEqual(get_doc.call_args.args[0]["doctype"], "Stock Entry")
+
+    def test_cancel_is_idempotent_and_cancels_submitted_stock_entry(self):
+        challan = self._challan(status="Approved")
+        challan.save = lambda: None
+        stock_entry = frappe._dict({"docstatus": 1, "cancel": lambda: setattr(stock_entry, "docstatus", 2)})
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=challan), patch(
+            "reckon_distribution.van_loading._require_manager"
+        ), patch("reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry):
+            self.assertEqual(cancel_van_loading_challan(challan.name), challan.name)
+            self.assertEqual(challan.status, "Cancelled")
+            self.assertEqual(stock_entry.docstatus, 2)
+
+        cancelled = self._challan(status="Cancelled")
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=cancelled), patch(
+            "reckon_distribution.van_loading._require_manager"
+        ):
+            self.assertEqual(cancel_van_loading_challan(cancelled.name), cancelled.name)
+
+    def test_amendment_only_starts_from_cancelled_challan(self):
+        cancelled = self._challan(status="Cancelled")
+        amended = frappe._dict({"name": "VLC-TEST-002", "status": "Draft", "insert": lambda: None})
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=cancelled), patch(
+            "reckon_distribution.van_loading._require_manager"
+        ), patch("reckon_distribution.van_loading.frappe.copy_doc", return_value=amended):
+            result = amend_van_loading_challan(cancelled.name)
+
+        self.assertEqual(result, amended.name)
+        self.assertEqual(amended.status, "Draft")
+
+        approved = self._challan(status="Approved")
+        with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=approved), patch(
+            "reckon_distribution.van_loading._require_manager"
+        ):
+            with self.assertRaises(frappe.ValidationError):
+                amend_van_loading_challan(approved.name)

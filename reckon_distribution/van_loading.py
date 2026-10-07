@@ -234,10 +234,10 @@ def _validate_challan_references(doc) -> None:
         if is_group:
             frappe.throw(_("Warehouse {0} must be a leaf warehouse.").format(warehouse))
 
-    route = frappe.get_doc("Distribution Route", doc.route)
+    route = get_tenant_doc("Distribution Route", doc.route)
     if route.company != doc.company:
         frappe.throw(_("Route does not belong to the challan Company."))
-    if route.assigned_user and route.assigned_user != doc.dsr:
+    if route.assigned_user != doc.dsr:
         frappe.throw(_("The DSR is not assigned to this route."))
     if doc.dsr not in get_user_companies(doc.dsr) and not user_can_bypass_tenant():
         frappe.throw(_("The DSR is not assigned to this Company."))
@@ -302,7 +302,7 @@ def validate_van_loading_stock_entry(doc, method=None) -> None:
     if not challan_name:
         return
 
-    challan = frappe.get_doc("Van Loading Challan", challan_name)
+    challan = get_tenant_doc("Van Loading Challan", challan_name)
     if challan.status not in {"Approved", "Acknowledged"}:
         frappe.throw(_("Linked Van Loading Challan must be approved before Stock Entry creation."))
     if challan.company != doc.company:

@@ -5,7 +5,11 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.delivery import validate_delivery_note, validate_return_inspection
+from reckon_distribution.delivery import (
+    approve_return_inspection,
+    validate_delivery_note,
+    validate_return_inspection,
+)
 
 
 class TestDistributionDelivery(FrappeTestCase):
@@ -71,3 +75,27 @@ class TestDistributionDelivery(FrappeTestCase):
         ):
             with self.assertRaises(frappe.ValidationError):
                 validate_return_inspection(inspection)
+
+    def test_return_approval_creates_one_material_receipt(self):
+        inspection = frappe._dict(
+            {
+                "name": "RET-TEST-001",
+                "company": "_Test Tenant Company A",
+                "item_code": "_Test Item",
+                "qty": 2,
+                "uom": "Nos",
+                "warehouse": "Quarantine - TCA",
+                "status": "Draft",
+                "stock_entry": None,
+                "save": lambda: None,
+            }
+        )
+        stock_entry = frappe._dict({"name": "STE-RETURN-001", "insert": lambda: None, "submit": lambda: None})
+        with patch("reckon_distribution.delivery.get_tenant_doc", return_value=inspection), patch(
+            "reckon_distribution.delivery._is_manager", return_value=True
+        ), patch("reckon_distribution.delivery.frappe.get_doc", return_value=stock_entry) as get_doc:
+            result = approve_return_inspection(inspection.name)
+
+        self.assertEqual(result, "STE-RETURN-001")
+        self.assertEqual(inspection.status, "Approved")
+        self.assertEqual(get_doc.call_args.args[0]["stock_entry_type"], "Material Receipt")

@@ -67,22 +67,6 @@ def get_setup_links(company: str) -> dict:
 
 
 @frappe.whitelist()
-def get_setup_records(company: str, entry_type: str) -> list[dict]:
-    """Return the selected master list for the reusable setup list page."""
-    status = get_setup_status(company)
-    records = status["records"]
-    mapping = {
-        "route": "routes",
-        "retailer": "retailers",
-        "assignment": "assignments_list",
-        "product": "products",
-    }
-    if entry_type not in mapping:
-        frappe.throw(_("Unsupported setup record."))
-    return records[mapping[entry_type]]
-
-
-@frappe.whitelist()
 def save_company_settings(payload: str | dict) -> str:
     data = _payload(payload)
     tenant = require_tenant(company=data.get("company"))

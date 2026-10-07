@@ -1,8 +1,0 @@
-.rd-setup-list { max-width: 1120px; padding: 28px; }
-.rd-setup-list-hero { align-items: flex-end; display: flex; gap: 20px; justify-content: space-between; margin-bottom: 22px; }
-.rd-setup-list-hero h2 { margin: 0 0 8px; }
-.rd-setup-list-hero p { color: var(--text-muted); margin: 0; }
-.rd-setup-table { margin-top: 18px; overflow-x: auto; }
-.rd-setup-list-actions { min-width: 145px; white-space: nowrap; }
-.rd-setup-list-actions .btn { margin-right: 5px; }
-@media (max-width: 700px) { .rd-setup-list { padding: 18px; } .rd-setup-list-hero { align-items: flex-start; flex-direction: column; } }

@@ -77,6 +77,44 @@ def get_supplier_free_availability(warehouse: str, route: str | None = None) -> 
 
 
 @frappe.whitelist()
+def get_sales_catalog(price_list: str | None = None) -> list[dict]:
+    tenant = require_tenant()
+    price_list = price_list or frappe.db.get_value(
+        "Distribution Master Scope",
+        {"company": tenant.company, "master_type": "Price List", "active": 1},
+        "master_name",
+    )
+    if not price_list:
+        frappe.throw(_("No Company sales Price List is configured."))
+    validate_master_scope(tenant.company, "Price List", price_list)
+    item_codes = frappe.get_all(
+        "Distribution Master Scope",
+        filters={"company": tenant.company, "master_type": "Item", "active": 1},
+        pluck="master_name",
+        order_by="master_name asc",
+    )
+    catalog = []
+    for item_code in item_codes:
+        item = frappe.get_doc("Item", item_code)
+        rate = frappe.db.get_value(
+            "Item Price", {"item_code": item_code, "price_list": price_list, "selling": 1}, "price_list_rate"
+        )
+        if rate is None:
+            continue
+        catalog.append(
+            {
+                "item_code": item_code,
+                "item_name": item.item_name,
+                "stock_uom": item.stock_uom,
+                "uoms": [{"uom": row.uom, "conversion_factor": row.conversion_factor} for row in item.get("uoms") or []],
+                "rate": rate,
+                "price_list": price_list,
+            }
+        )
+    return catalog
+
+
+@frappe.whitelist()
 def record_outlet_visit(payload: str | dict) -> str:
     data = _payload(payload)
     tenant = require_tenant(company=data.get("company"))

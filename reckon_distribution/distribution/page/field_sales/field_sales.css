@@ -13,3 +13,9 @@
 .rd-balance-strip strong { font-size: 24px; }
 .rd-field-actions { display: flex; gap: 10px; margin-top: 16px; }
 .rd-field-actions button { min-height: 48px; }
+.rd-order-composer { border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 16px; }
+.rd-order-row { display: grid; grid-template-columns: 1fr 0.8fr 0.6fr auto; gap: 8px; }
+.rd-order-row select, .rd-order-row input { min-height: 44px; min-width: 0; }
+.rd-order-line { display: flex; justify-content: space-between; padding: 10px 0; }
+.rd-order-composer [data-save-order] { margin-top: 12px; min-height: 48px; }
+@media (max-width: 560px) { .rd-order-row { grid-template-columns: 1fr 1fr; } .rd-order-row input { grid-column: 1; } .rd-order-row button { grid-column: 2; } }

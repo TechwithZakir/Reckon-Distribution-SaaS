@@ -112,6 +112,15 @@ def ensure_purchase_receipt_fields() -> None:
             "insert_after": "rd_dsr",
         },
         {
+            "dt": "Delivery Note",
+            "fieldname": "rd_idempotency_key",
+            "label": "Distribution Idempotency Key",
+            "fieldtype": "Data",
+            "read_only": 1,
+            "unique": 1,
+            "insert_after": "rd_outlet_visit",
+        },
+        {
             "dt": "Delivery Note Item",
             "fieldname": "rd_stock_category",
             "label": "Stock Category",

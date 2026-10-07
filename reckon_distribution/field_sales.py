@@ -187,6 +187,53 @@ def save_sr_order(payload: str | dict) -> str:
     return doc.name
 
 
+@frappe.whitelist()
+def submit_distribution_delivery(payload: str | dict) -> str:
+    data = _payload(payload)
+    tenant = require_tenant(company=data.get("company"))
+    key = _required(data, "idempotency_key")
+    existing = frappe.db.get_value("Delivery Note", {"rd_idempotency_key": key}, "name")
+    if existing:
+        return existing
+    _assert_assigned_customer(tenant.company, data["customer"], data.get("route"))
+    _validate_gps(data)
+    if not data.get("items"):
+        frappe.throw(_("A delivery must contain at least one item."))
+    if not data.get("warehouse"):
+        frappe.throw(_("A delivery source warehouse is required."))
+    _assert_warehouse(tenant.company, data["warehouse"])
+
+    item_rows = []
+    for row in data["items"]:
+        item = _order_item(tenant.company, row, data.get("price_list"))
+        item.update(
+            {
+                "warehouse": data["warehouse"],
+                "rd_stock_category": row.get("rd_stock_category") or "Saleable",
+                "rd_supplier_free_source": row.get("rd_supplier_free_source"),
+            }
+        )
+        item_rows.append(item)
+
+    delivery = frappe.get_doc(
+        {
+            "doctype": "Delivery Note",
+            "company": tenant.company,
+            "customer": data["customer"],
+            "posting_date": data.get("delivery_date") or nowdate(),
+            "set_warehouse": data["warehouse"],
+            "rd_route": data.get("route"),
+            "rd_dsr": frappe.session.user,
+            "rd_outlet_visit": data.get("outlet_visit"),
+            "rd_idempotency_key": key,
+            "items": item_rows,
+        }
+    )
+    delivery.insert()
+    delivery.submit()
+    return delivery.name
+
+
 def validate_sr_order(doc, method=None) -> None:
     require_tenant(company=doc.company)
     _assert_assigned_customer(doc.company, doc.customer, doc.route, doc.field_user)
@@ -212,6 +259,8 @@ def sync_field_sales_queue(events: str | list) -> list[dict]:
             name = record_outlet_visit(event.get("payload") or {})
         elif event.get("type") == "order":
             name = save_sr_order(event.get("payload") or {})
+        elif event.get("type") == "delivery":
+            name = submit_distribution_delivery(event.get("payload") or {})
         else:
             frappe.throw(_("Unsupported field sync event."))
         results.append({"type": event.get("type"), "idempotency_key": (event.get("payload") or {}).get("idempotency_key"), "name": name})

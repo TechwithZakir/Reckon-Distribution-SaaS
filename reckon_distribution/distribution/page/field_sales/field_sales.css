@@ -18,4 +18,6 @@
 .rd-order-row select, .rd-order-row input { min-height: 44px; min-width: 0; }
 .rd-order-line { display: flex; justify-content: space-between; padding: 10px 0; }
 .rd-order-composer [data-save-order] { margin-top: 12px; min-height: 48px; }
+.rd-delivery-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+.rd-delivery-row input { min-height: 44px; padding: 8px; }
 @media (max-width: 560px) { .rd-order-row { grid-template-columns: 1fr 1fr; } .rd-order-row input { grid-column: 1; } .rd-order-row button { grid-column: 2; } }

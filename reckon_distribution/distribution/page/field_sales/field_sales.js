@@ -13,7 +13,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
       <section class="rd-retailer-panel" data-retailer-panel hidden>
         <div class="rd-balance-strip"><span>${__("Current due")}</span><strong data-net-due>৳0</strong></div>
         <div class="rd-field-actions"><button class="btn btn-primary" data-start-visit>${__("Start visit")}</button></div>
-        <section class="rd-order-composer"><h4>${__("Order draft")}</h4><div class="rd-order-row"><select data-item></select><select data-uom></select><input data-qty type="number" min="0.001" step="0.001" placeholder="${__("Qty")}" /><button class="btn btn-default" data-add-item>${__("Add")}</button></div><div data-order-items></div><button class="btn btn-primary" data-save-order>${__("Save order draft")}</button></section>
+        <section class="rd-order-composer"><h4>${__("Order draft")}</h4><div class="rd-order-row"><select data-item></select><select data-uom></select><input data-qty type="number" min="0.001" step="0.001" placeholder="${__("Qty")}" /><button class="btn btn-default" data-add-item>${__("Add")}</button></div><div data-order-items></div><button class="btn btn-primary" data-save-order>${__("Save order draft")}</button><div class="rd-delivery-row"><input data-warehouse placeholder="${__("Van warehouse")}" /><button class="btn btn-default" data-submit-delivery>${__("Save delivery")}</button></div></section>
         <p class="text-muted" data-message>${__("Select an outlet to see its balance.")}</p>
       </section>
     </main>
@@ -30,6 +30,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   $(page.body).find("[data-start-visit]").on("click", () => saveVisit());
   $(page.body).find("[data-add-item]").on("click", addItem);
   $(page.body).find("[data-save-order]").on("click", saveOrder);
+  $(page.body).find("[data-submit-delivery]").on("click", submitDelivery);
   $(page.body).find("[data-item]").on("change", renderUoms);
 
   function loadOutlets() {
@@ -85,6 +86,14 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
     if (!selected || !orderItems.length) return frappe.msgprint(__("Add at least one item."));
     const payload = { customer: selected.customer, route: selected.route, price_list: catalog[0] && catalog[0].price_list, idempotency_key: `order-${selected.customer}-${Date.now()}`, items: orderItems };
     frappe.call({ method: "reckon_distribution.field_sales.save_sr_order", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(__("Order draft saved: {0}", [r.message])); orderItems = []; }).catch(() => queue(payload, "order"));
+  }
+
+  function submitDelivery() {
+    if (!selected || !orderItems.length) return frappe.msgprint(__("Add at least one item."));
+    const warehouse = $(page.body).find("[data-warehouse]").val();
+    if (!warehouse) return frappe.msgprint(__("Enter the van warehouse."));
+    const payload = { customer: selected.customer, route: selected.route, warehouse, price_list: catalog[0] && catalog[0].price_list, idempotency_key: `delivery-${selected.customer}-${Date.now()}`, items: orderItems };
+    frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(__("Delivery submitted: {0}", [r.message])); orderItems = []; }).catch(() => queue(payload, "delivery"));
   }
 
   function saveVisit() {

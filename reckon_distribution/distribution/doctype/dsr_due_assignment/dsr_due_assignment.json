@@ -1,0 +1,31 @@
+{
+ "doctype":"DocType",
+ "name":"DSR Due Assignment",
+ "module":"Distribution",
+ "autoname":"naming_series:",
+ "naming_rule":"By script",
+ "title_field":"name",
+ "field_order":["naming_series","company","customer","route","dsr","effective_from","effective_to","opening_due","opening_unapplied_credit","closing_due","status","approved_by","approved_on"],
+ "fields":[
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"DDA-.#####","default":"DDA-.#####","reqd":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"Retailer","options":"Customer","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1},
+  {"fieldname":"dsr","fieldtype":"Link","label":"Responsible DSR","options":"User","reqd":1,"in_list_view":1},
+  {"fieldname":"effective_from","fieldtype":"Date","label":"Effective From","reqd":1},
+  {"fieldname":"effective_to","fieldtype":"Date","label":"Effective To","reqd":1},
+  {"fieldname":"opening_due","fieldtype":"Currency","label":"Opening Due","default":0},
+  {"fieldname":"opening_unapplied_credit","fieldtype":"Currency","label":"Opening Unapplied Credit","default":0},
+  {"fieldname":"closing_due","fieldtype":"Currency","label":"Closing Due","read_only":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nApproved\nCancelled","default":"Draft","read_only":1,"in_list_view":1},
+  {"fieldname":"approved_by","fieldtype":"Link","label":"Approved By","options":"User","read_only":1},
+  {"fieldname":"approved_on","fieldtype":"Datetime","label":"Approved On","read_only":1}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1,"submit":1,"cancel":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1,"create":1,"submit":1,"cancel":1},
+  {"role":"Reckon Distribution User","read":1},
+  {"role":"Reckon Master Data Manager","read":1}
+ ],
+ "track_changes":1
+}

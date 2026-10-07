@@ -47,6 +47,9 @@ doc_events = {
     "DSR Collection Receipt": {
         "validate": "reckon_distribution.collection.validate_collection_receipt",
     },
+    "DSR Due Assignment": {
+        "validate": "reckon_distribution.due_assignment.validate_due_assignment",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -66,6 +69,7 @@ permission_query_conditions = {
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Stock Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "DSR Due Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -79,6 +83,7 @@ has_permission = {
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Stock Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "DSR Due Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

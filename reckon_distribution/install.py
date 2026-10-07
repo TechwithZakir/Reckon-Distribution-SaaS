@@ -137,6 +137,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
             {"label": "Van Loading", "link_to": "van-loading", "type": "Page"},
             {"label": "DSR Collection Receipt", "link_to": "DSR Collection Receipt", "type": "DocType"},
+            {"label": "DSR Due Assignment", "link_to": "DSR Due Assignment", "type": "DocType"},
             {"label": "Distribution Settings", "link_to": "Distribution Settings", "type": "DocType"},
             {"label": "Master Scope", "link_to": "Distribution Master Scope", "type": "DocType"},
             {"label": "Purchase Receipt", "link_to": "Purchase Receipt", "type": "DocType"},

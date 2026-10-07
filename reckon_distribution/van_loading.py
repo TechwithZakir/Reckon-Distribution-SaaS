@@ -122,6 +122,11 @@ def approve_van_loading_challan(challan: str) -> str:
         doc.save()
         return existing
 
+    doc.status = "Approved"
+    doc.approved_by = frappe.session.user
+    doc.approved_on = now_datetime()
+    doc.save()
+
     stock_entry = frappe.get_doc(
         {
             "doctype": "Stock Entry",
@@ -149,9 +154,6 @@ def approve_van_loading_challan(challan: str) -> str:
     stock_entry.submit()
 
     doc.stock_entry = stock_entry.name
-    doc.status = "Approved"
-    doc.approved_by = frappe.session.user
-    doc.approved_on = now_datetime()
     doc.save()
     return stock_entry.name
 
@@ -293,3 +295,23 @@ def _validate_batch(item_code: str, batch_no: str) -> None:
         frappe.throw(_("Batch {0} does not exist.").format(batch_no))
     if batch_item != item_code:
         frappe.throw(_("Batch {0} does not belong to Item {1}.").format(batch_no, item_code))
+
+
+def validate_van_loading_stock_entry(doc, method=None) -> None:
+    challan_name = doc.get("rd_van_loading_challan")
+    if not challan_name:
+        return
+
+    challan = frappe.get_doc("Van Loading Challan", challan_name)
+    if challan.status not in {"Approved", "Acknowledged"}:
+        frappe.throw(_("Linked Van Loading Challan must be approved before Stock Entry creation."))
+    if challan.company != doc.company:
+        frappe.throw(_("Stock Entry Company must match the Van Loading Challan Company."))
+    if challan.stock_entry and challan.stock_entry != doc.name:
+        frappe.throw(_("The Van Loading Challan already has a different Stock Entry."))
+
+    for row in doc.get("items") or []:
+        if row.s_warehouse != challan.distributor_warehouse:
+            frappe.throw(_("Stock Entry source warehouse does not match the challan."))
+        if row.t_warehouse != challan.van_warehouse:
+            frappe.throw(_("Stock Entry target warehouse does not match the challan."))

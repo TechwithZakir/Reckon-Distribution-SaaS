@@ -9,6 +9,7 @@ from reckon_distribution.van_loading import (
     acknowledge_van_loading,
     approve_van_loading_challan,
     validate_van_loading_acknowledgement,
+    validate_van_loading_stock_entry,
 )
 
 
@@ -97,3 +98,27 @@ class TestVanLoadingControls(FrappeTestCase):
 
     def test_acknowledgement_api_is_present_for_dsr_workflow(self):
         self.assertTrue(callable(acknowledge_van_loading))
+
+    def test_linked_stock_entry_must_match_challan_warehouses(self):
+        challan = self._challan()
+        challan.distributor_warehouse = "Distributor - TCA"
+        challan.van_warehouse = "Van - TCA"
+        stock_entry = frappe._dict(
+            {
+                "name": "STE-TEST-001",
+                "company": challan.company,
+                "rd_van_loading_challan": challan.name,
+                "items": [
+                    frappe._dict(
+                        {
+                            "s_warehouse": challan.distributor_warehouse,
+                            "t_warehouse": "Wrong - TCA",
+                        }
+                    )
+                ],
+            }
+        )
+
+        with patch("reckon_distribution.van_loading.frappe.get_doc", return_value=challan):
+            with self.assertRaises(frappe.ValidationError):
+                validate_van_loading_stock_entry(stock_entry)

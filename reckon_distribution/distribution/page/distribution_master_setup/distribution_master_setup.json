@@ -1,0 +1,16 @@
+{
+ "doctype": "Page",
+ "name": "distribution-master-setup",
+ "page_name": "distribution-master-setup",
+ "title": "Distribution Master Setup",
+ "module": "Distribution",
+ "icon": "settings",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {"role": "Reckon Distribution Admin"},
+  {"role": "Reckon Distribution Manager"},
+  {"role": "Reckon Master Data Manager"},
+  {"role": "Reckon Distribution User"}
+ ]
+}

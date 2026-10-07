@@ -7,9 +7,16 @@ from reckon_distribution.constants import OPERATIONAL_ROLES
 
 DISTRIBUTION_DESK_ROUTE = "app/distribution"
 DISTRIBUTION_PAGE = "distribution"
+ALLOWED_DISTRIBUTION_PAGES = {"distribution", "distribution-master-setup"}
 DESK_BYPASS_ROLES = {"Administrator", "System Manager", "Reckon Vendor Superuser"}
 ALLOWED_DESK_PREFIXES = (
     "/app/distribution",
+    "/app/distribution-master-setup",
+    "/app/distribution-settings",
+    "/app/company-uom-profile",
+    "/app/distribution-route",
+    "/app/distribution-master-scope",
+    "/app/purchase-receipt",
     "/app/user-profile",
     "/app/user",
     "/app/home",
@@ -43,14 +50,14 @@ def restrict_distribution_desk_request() -> None:
     if path.startswith("/app/") and not path.startswith(ALLOWED_DESK_PREFIXES):
         _redirect_to_distribution()
 
-    if path.startswith("/desk/") and path != f"/desk/{DISTRIBUTION_PAGE}":
+    if path.startswith("/desk/") and path.removeprefix("/desk/") not in ALLOWED_DISTRIBUTION_PAGES:
         _redirect_to_distribution()
 
 
 @frappe.whitelist()
 def getpage(page: str | None = None, name: str | None = None):
     page_name = page or name
-    if _is_distribution_only_user() and page_name != DISTRIBUTION_PAGE:
+    if _is_distribution_only_user() and page_name not in ALLOWED_DISTRIBUTION_PAGES:
         frappe.throw(_("Page {0} not found").format(page_name), frappe.DoesNotExistError)
 
     from frappe.desk.desk_page import getpage as frappe_getpage

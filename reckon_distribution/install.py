@@ -115,7 +115,12 @@ def _workspace_doc(update: bool = False) -> dict:
         "icon": "organization",
         "roles": [{"role": role.name} for role in OPERATIONAL_ROLES],
         "content": _workspace_content(),
-        "shortcuts": [],
+        "shortcuts": [
+            {"label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
+            {"label": "Distribution Settings", "link_to": "Distribution Settings", "type": "DocType"},
+            {"label": "Master Scope", "link_to": "Distribution Master Scope", "type": "DocType"},
+            {"label": "Purchase Receipt", "link_to": "Purchase Receipt", "type": "DocType"},
+        ],
         "links": [],
         "charts": [],
         "number_cards": [],

@@ -85,6 +85,17 @@ class TestFoundation(FrappeTestCase):
 
         self.assertTrue(page_path.exists())
 
+    def test_distribution_master_setup_page_exists(self):
+        page_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "page"
+            / "distribution_master_setup"
+            / "distribution_master_setup.json"
+        )
+
+        self.assertTrue(page_path.exists())
+
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition
 

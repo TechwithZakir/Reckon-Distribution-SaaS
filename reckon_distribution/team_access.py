@@ -93,6 +93,25 @@ def deactivate_team_access(assignment: str) -> str:
     return doc.name
 
 
+@frappe.whitelist()
+def update_team_access(payload: str | dict) -> str:
+    data = frappe.parse_json(payload) if isinstance(payload, str) else payload
+    tenant = require_tenant(company=data.get("company"))
+    _require_manager()
+    assignment = get_tenant_doc("Tenant User Assignment", data.get("name"))
+    if assignment.company != tenant.company:
+        frappe.throw(_("This team member belongs to another Company."), frappe.PermissionError)
+    if data.get("role_profile") not in ROLE_MAP:
+        frappe.throw(_("Select a valid Company role."))
+    assignment.role_profile = data["role_profile"]
+    assignment.route_scope = data.get("route") or ""
+    assignment.active = 1 if data.get("active", True) else 0
+    assignment.save(ignore_permissions=True)
+    user = frappe.get_doc("User", assignment.user)
+    _ensure_role(user, ROLE_MAP[assignment.role_profile])
+    return assignment.name
+
+
 def _get_or_create_user(email: str, full_name: str):
     if frappe.db.exists("User", email):
         return frappe.get_doc("User", email)

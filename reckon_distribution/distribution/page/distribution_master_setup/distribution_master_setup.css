@@ -17,7 +17,14 @@
 .rd-inline-fields { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px; }
 .rd-inline-fields label { display: grid; gap: 6px; font-weight: 600; }
 .rd-inline-fields input { min-height: 44px; padding: 8px 10px; }
+.rd-inline-fields select { min-height: 44px; padding: 8px 10px; }
 .rd-inline-form button { margin-right: 8px; min-height: 44px; }
+.rd-record-list { border-top: 1px solid var(--border-color); margin-top: 12px; max-width: 720px; }
+.rd-record-row { align-items: center; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; justify-content: space-between; padding: 9px 0; }
+.rd-record-row strong, .rd-record-row small { display: block; }
+.rd-record-row small { color: var(--text-muted); margin-top: 3px; }
+.rd-record-row .btn { margin-left: 5px; }
+.rd-record-empty { color: var(--text-muted); font-size: 12px; margin: 10px 0 0; }
 .rd-master-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
 .rd-master-hero h2 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
 .rd-master-hero p { margin: 0; color: var(--text-muted); max-width: 680px; }

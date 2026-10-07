@@ -32,6 +32,9 @@ add_to_apps_screen = [
 
 after_install = "reckon_distribution.install.after_install"
 after_migrate = "reckon_distribution.install.after_migrate"
+get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
+before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
+app_include_js = ["/assets/reckon_distribution/js/desk_guard.js"]
 
 reckon_saas_modules = [
     "reckon_distribution.saas_module.get_module_definition",
@@ -46,6 +49,10 @@ permission_query_conditions = {
 
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+}
+
+override_whitelisted_methods = {
+    "frappe.desk.desk_page.getpage": "reckon_distribution.desk_guard.getpage",
 }
 
 fixtures = [

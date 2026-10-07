@@ -39,8 +39,31 @@ class TestFoundation(FrappeTestCase):
                 self.assertFalse(check_app_permission())
 
     def test_no_login_home_page_override(self):
-        self.assertFalse(hasattr(hooks, "get_website_user_home_page"))
+        self.assertEqual(
+            hooks.get_website_user_home_page,
+            "reckon_distribution.desk_guard.get_user_home_page",
+        )
         self.assertFalse(hasattr(hooks, "role_home_page"))
+
+    def test_distribution_user_home_page_is_distribution_workspace(self):
+        from reckon_distribution.desk_guard import get_user_home_page
+
+        with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
+            self.assertEqual(get_user_home_page("field@example.com"), "app/distribution")
+
+    def test_system_manager_home_page_is_native(self):
+        from reckon_distribution.desk_guard import get_user_home_page
+
+        with patch("frappe.get_roles", return_value=["System Manager", "Reckon Distribution User"]):
+            self.assertIsNone(get_user_home_page("admin@example.com"))
+
+    def test_distribution_user_cannot_load_other_desk_page(self):
+        from reckon_distribution.desk_guard import getpage
+
+        with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
+            with patch("frappe.session", frappe._dict(user="field@example.com")):
+                with self.assertRaises(frappe.DoesNotExistError):
+                    getpage("selling")
 
     def test_no_desk_page_conflicts_with_distribution_workspace_route(self):
         page_path = (

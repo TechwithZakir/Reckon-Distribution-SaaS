@@ -46,9 +46,9 @@ def validate_purchase_receipt(doc, method=None) -> None:
                     )
                 )
             if not doc.get("rd_promotion_terms"):
-            frappe.throw(
-                _("Supplier promotion terms are required when free goods are received.")
-            )
+                frappe.throw(
+                    _("Supplier promotion terms are required when free goods are received.")
+                )
 
         if shortage_qty:
             has_shortage = True

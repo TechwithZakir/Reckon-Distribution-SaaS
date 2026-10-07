@@ -59,6 +59,13 @@ doc_events = {
     "SR Order": {
         "validate": "reckon_distribution.field_sales.validate_sr_order",
     },
+    "Delivery Note": {
+        "validate": "reckon_distribution.delivery.validate_delivery_note",
+        "before_submit": "reckon_distribution.delivery.validate_delivery_note",
+    },
+    "Return Inspection": {
+        "validate": "reckon_distribution.delivery.validate_return_inspection",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -82,6 +89,8 @@ permission_query_conditions = {
     "Retailer Route Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Outlet Visit": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "SR Order": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Delivery Note": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Return Inspection": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -99,6 +108,8 @@ has_permission = {
     "Retailer Route Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Outlet Visit": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "SR Order": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Delivery Note": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Return Inspection": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

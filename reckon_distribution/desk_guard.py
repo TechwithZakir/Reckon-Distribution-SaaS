@@ -7,7 +7,7 @@ from reckon_distribution.constants import OPERATIONAL_ROLES
 
 DISTRIBUTION_DESK_ROUTE = "app/distribution"
 DISTRIBUTION_PAGE = "distribution"
-ALLOWED_DISTRIBUTION_PAGES = {"distribution", "distribution-master-setup"}
+ALLOWED_DISTRIBUTION_PAGES = {"distribution", "distribution-master-setup", "van-loading"}
 DESK_BYPASS_ROLES = {"Administrator", "System Manager", "Reckon Vendor Superuser"}
 ALLOWED_DESK_PREFIXES = (
     "/app/distribution",
@@ -17,6 +17,9 @@ ALLOWED_DESK_PREFIXES = (
     "/app/distribution-route",
     "/app/distribution-master-scope",
     "/app/purchase-receipt",
+    "/app/van-loading",
+    "/app/van-loading-challan",
+    "/app/van-loading-acknowledgement",
     "/app/user-profile",
     "/app/user",
     "/app/home",

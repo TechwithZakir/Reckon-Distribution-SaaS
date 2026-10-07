@@ -69,6 +69,15 @@ def ensure_purchase_receipt_fields() -> None:
             "fieldtype": "Small Text",
             "insert_after": "rd_shortage_qty",
         },
+        {
+            "dt": "Stock Entry",
+            "fieldname": "rd_van_loading_challan",
+            "label": "Van Loading Challan",
+            "fieldtype": "Link",
+            "options": "Van Loading Challan",
+            "read_only": 1,
+            "insert_after": "stock_entry_type",
+        },
     ]
     for field in fields:
         if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
@@ -117,6 +126,7 @@ def _workspace_doc(update: bool = False) -> dict:
         "content": _workspace_content(),
         "shortcuts": [
             {"label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
+            {"label": "Van Loading", "link_to": "van-loading", "type": "Page"},
             {"label": "Distribution Settings", "link_to": "Distribution Settings", "type": "DocType"},
             {"label": "Master Scope", "link_to": "Distribution Master Scope", "type": "DocType"},
             {"label": "Purchase Receipt", "link_to": "Purchase Receipt", "type": "DocType"},

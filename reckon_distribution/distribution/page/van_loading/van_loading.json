@@ -1,0 +1,15 @@
+{
+ "doctype":"Page",
+ "name":"van-loading",
+ "page_name":"van-loading",
+ "title":"Van Loading",
+ "module":"Distribution",
+ "icon":"truck",
+ "standard":"Yes",
+ "system_page":0,
+ "roles":[
+  {"role":"Reckon Distribution Admin"},
+  {"role":"Reckon Distribution Manager"},
+  {"role":"Reckon Distribution User"}
+ ]
+}

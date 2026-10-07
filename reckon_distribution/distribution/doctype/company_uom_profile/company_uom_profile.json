@@ -1,0 +1,19 @@
+{
+ "doctype":"DocType",
+ "name":"Company UOM Profile",
+ "module":"Distribution",
+ "autoname":"field:company",
+ "field_order":["company","enabled","units"],
+ "fields":[
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"unique":1,"in_list_view":1},
+  {"fieldname":"enabled","fieldtype":"Check","label":"Enabled","default":1},
+  {"fieldname":"units","fieldtype":"Table","label":"Enabled Units","options":"Company UOM Profile Item"}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1},
+  {"role":"Reckon Master Data Manager","read":1,"write":1},
+  {"role":"Reckon Distribution User","read":1}
+ ],
+ "track_changes":1
+}

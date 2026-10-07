@@ -45,10 +45,18 @@ website_route_rules = [
 
 permission_query_conditions = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Distribution Master Scope": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
 }
 
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Distribution Master Scope": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
 }
 
 override_whitelisted_methods = {

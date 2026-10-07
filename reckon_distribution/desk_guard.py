@@ -48,13 +48,14 @@ def restrict_distribution_desk_request() -> None:
 
 
 @frappe.whitelist()
-def getpage(page):
-    if _is_distribution_only_user() and page != DISTRIBUTION_PAGE:
-        frappe.throw(_("Page {0} not found").format(page), frappe.DoesNotExistError)
+def getpage(page: str | None = None, name: str | None = None):
+    page_name = page or name
+    if _is_distribution_only_user() and page_name != DISTRIBUTION_PAGE:
+        frappe.throw(_("Page {0} not found").format(page_name), frappe.DoesNotExistError)
 
     from frappe.desk.desk_page import getpage as frappe_getpage
 
-    return frappe_getpage(page)
+    return frappe_getpage(page_name)
 
 
 @frappe.whitelist()

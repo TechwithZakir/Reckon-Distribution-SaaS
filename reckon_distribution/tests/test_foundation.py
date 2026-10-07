@@ -65,6 +65,15 @@ class TestFoundation(FrappeTestCase):
                 with self.assertRaises(frappe.DoesNotExistError):
                     getpage("selling")
 
+    def test_system_manager_can_load_desktop_page_by_name_argument(self):
+        from reckon_distribution.desk_guard import getpage
+
+        with patch("frappe.get_roles", return_value=["System Manager"]):
+            with patch("frappe.session", frappe._dict(user="admin@example.com")):
+                with patch("frappe.desk.desk_page.getpage", return_value={"name": "desktop"}) as getpage_mock:
+                    self.assertEqual(getpage(name="desktop"), {"name": "desktop"})
+                    getpage_mock.assert_called_once_with("desktop")
+
     def test_no_desk_page_conflicts_with_distribution_workspace_route(self):
         page_path = (
             Path(__file__).parents[1]

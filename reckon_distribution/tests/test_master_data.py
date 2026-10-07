@@ -76,6 +76,20 @@ class TestDistributionMasterData(FrappeTestCase):
             "Supplier Provided Goods Only",
         )
 
+    def test_settings_cannot_use_another_company_uom_profile(self):
+        run_distribution_seed(self.company_b, "test-1")
+        settings = frappe.get_doc(
+            {
+                "doctype": "Distribution Settings",
+                "company": self.company_a,
+                "supplier_goods_policy": "Supplier Provided Goods Only",
+                "default_uom_profile": self.company_b,
+            }
+        )
+
+        with self.assertRaises(frappe.ValidationError):
+            settings.validate()
+
     def test_route_is_immutable_and_company_scoped(self):
         route_a = self._route(self.route_a, self.company_a)
         self._route(self.route_b, self.company_b)

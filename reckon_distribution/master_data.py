@@ -17,6 +17,8 @@ SUPPORTED_MASTER_TYPES = frozenset(
         "Supplier",
         "Customer",
         "Warehouse",
+        "Payment Terms Template",
+        "Account",
     }
 )
 

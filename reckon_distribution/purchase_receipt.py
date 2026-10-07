@@ -22,7 +22,7 @@ def validate_purchase_receipt(doc, method=None) -> None:
     has_free_goods = False
     has_shortage = False
 
-    for row in doc.items:
+    for row in doc.get("items") or []:
         paid_qty = flt(row.get("rd_paid_qty"))
         free_qty = flt(row.get("rd_free_qty"))
         shortage_qty = flt(row.get("rd_shortage_qty"))
@@ -87,7 +87,7 @@ def _validate_master_links(doc) -> None:
         return
 
     validate_master_scope(doc.company, "Supplier", doc.supplier)
-    for row in doc.items:
+    for row in doc.get("items") or []:
         validate_master_scope(doc.company, "Item", row.item_code)
         if row.get("warehouse"):
             validate_master_scope(doc.company, "Warehouse", row.warehouse)
@@ -139,7 +139,7 @@ def reconcile_purchase_receipt_stock(receipt: str) -> dict:
     if doc.docstatus != 1:
         frappe.throw(_("Purchase Receipt {0} must be submitted before stock reconciliation.").format(receipt))
 
-    source_qty = sum(flt(row.stock_qty) for row in doc.items)
+    source_qty = sum(flt(row.stock_qty) for row in doc.get("items") or [])
     ledger_qty = frappe.db.sql(
         """
         select coalesce(sum(actual_qty), 0)

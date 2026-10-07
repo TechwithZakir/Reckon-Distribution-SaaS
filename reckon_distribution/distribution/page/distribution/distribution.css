@@ -1,0 +1,57 @@
+.reckon-distribution-desk {
+  padding: 24px;
+  max-width: 1040px;
+}
+
+.rd-desk-hero {
+  margin-bottom: 24px;
+}
+
+.rd-kicker {
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.rd-desk-hero h2 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  letter-spacing: 0;
+}
+
+.rd-desk-hero p {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.rd-desk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.rd-desk-card {
+  display: block;
+  min-height: 120px;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.rd-desk-card:hover {
+  text-decoration: none;
+  border-color: var(--primary);
+}
+
+.rd-desk-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.rd-desk-card p {
+  color: var(--text-muted);
+  margin: 0;
+}

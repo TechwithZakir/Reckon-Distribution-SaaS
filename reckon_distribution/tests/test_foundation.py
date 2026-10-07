@@ -74,7 +74,7 @@ class TestFoundation(FrappeTestCase):
                     self.assertEqual(getpage(name="desktop"), {"name": "desktop"})
                     getpage_mock.assert_called_once_with("desktop")
 
-    def test_no_desk_page_conflicts_with_distribution_workspace_route(self):
+    def test_distribution_desk_page_exists_for_restricted_users(self):
         page_path = (
             Path(__file__).parents[1]
             / "distribution"
@@ -83,7 +83,7 @@ class TestFoundation(FrappeTestCase):
             / "distribution.json"
         )
 
-        self.assertFalse(page_path.exists())
+        self.assertTrue(page_path.exists())
 
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition

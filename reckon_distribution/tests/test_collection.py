@@ -49,12 +49,15 @@ class TestDSRCollectionReceipt(FrappeTestCase):
             "reckon_distribution.collection._require_collector_or_manager"
         ), patch("reckon_distribution.collection.frappe.db.get_value", return_value=receipt.company), patch(
             "erpnext.accounts.party.get_party_account", return_value="Debtors - TCA"
-        ), patch("reckon_distribution.collection.frappe.get_doc", return_value=payment) as get_doc:
+        ), patch("reckon_distribution.collection.nowdate", return_value="2026-10-07") as nowdate, patch(
+            "reckon_distribution.collection.frappe.get_doc", return_value=payment
+        ) as get_doc:
             result = confirm_collection(receipt.name)
 
         self.assertEqual(result, "ACC-PAY-001")
         self.assertEqual(receipt.status, "Confirmed")
         self.assertEqual(receipt.payment_entry, "ACC-PAY-001")
+        nowdate.assert_called_once()
         self.assertEqual(get_doc.call_args.args[0]["payment_type"], "Receive")
         self.assertNotIn("references", get_doc.call_args.args[0])
 

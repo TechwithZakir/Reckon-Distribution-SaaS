@@ -93,7 +93,9 @@ class TestDistributionDelivery(FrappeTestCase):
         stock_entry = frappe._dict({"name": "STE-RETURN-001", "insert": lambda: None, "submit": lambda: None})
         with patch("reckon_distribution.delivery.get_tenant_doc", return_value=inspection), patch(
             "reckon_distribution.delivery._is_manager", return_value=True
-        ), patch("reckon_distribution.delivery.frappe.get_doc", return_value=stock_entry) as get_doc:
+        ), patch("reckon_distribution.delivery.nowdate", return_value="2026-10-07"), patch(
+            "reckon_distribution.delivery.frappe.get_doc", return_value=stock_entry
+        ) as get_doc:
             result = approve_return_inspection(inspection.name)
 
         self.assertEqual(result, "STE-RETURN-001")

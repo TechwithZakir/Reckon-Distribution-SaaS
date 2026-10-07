@@ -1,0 +1,36 @@
+{
+ "doctype":"DocType",
+ "name":"DSR Collection Receipt",
+ "module":"Distribution",
+ "autoname":"naming_series:",
+ "naming_rule":"By script",
+ "title_field":"name",
+ "field_order":["naming_series","company","customer","route","dsr","collection_date","amount","payment_method","reference_no","receiving_account","note","idempotency_key","status","payment_entry","gps_latitude","gps_longitude","gps_accuracy","captured_on"],
+ "fields":[
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"DCR-.#####","default":"DCR-.#####","reqd":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"Retailer","options":"Customer","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1},
+  {"fieldname":"dsr","fieldtype":"Link","label":"Collector DSR","options":"User","reqd":1,"in_list_view":1},
+  {"fieldname":"collection_date","fieldtype":"Date","label":"Collection Date","default":"Today","reqd":1,"in_list_view":1},
+  {"fieldname":"amount","fieldtype":"Currency","label":"Amount","reqd":1,"in_list_view":1},
+  {"fieldname":"payment_method","fieldtype":"Select","label":"Payment Method","options":"Cash\nCheque\nBank\nMFS","reqd":1},
+  {"fieldname":"reference_no","fieldtype":"Data","label":"Reference No."},
+  {"fieldname":"receiving_account","fieldtype":"Link","label":"Receiving / DSR Custody Account","options":"Account","reqd":1},
+  {"fieldname":"note","fieldtype":"Small Text","label":"Note"},
+  {"fieldname":"idempotency_key","fieldtype":"Data","label":"Idempotency Key","reqd":1,"unique":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nPending Verification\nConfirmed\nCancelled","default":"Draft","read_only":1,"in_list_view":1},
+  {"fieldname":"payment_entry","fieldtype":"Link","label":"Payment Entry","options":"Payment Entry","read_only":1},
+  {"fieldname":"gps_latitude","fieldtype":"Float","label":"GPS Latitude"},
+  {"fieldname":"gps_longitude","fieldtype":"Float","label":"GPS Longitude"},
+  {"fieldname":"gps_accuracy","fieldtype":"Float","label":"GPS Accuracy (m)"},
+  {"fieldname":"captured_on","fieldtype":"Datetime","label":"Captured On"}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1,"submit":1,"cancel":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1,"create":1,"submit":1,"cancel":1},
+  {"role":"Reckon Distribution User","read":1,"write":1,"create":1},
+  {"role":"Reckon Master Data Manager","read":1}
+ ],
+ "track_changes":1
+}

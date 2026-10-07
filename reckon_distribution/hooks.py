@@ -50,6 +50,15 @@ doc_events = {
     "DSR Due Assignment": {
         "validate": "reckon_distribution.due_assignment.validate_due_assignment",
     },
+    "Retailer Route Assignment": {
+        "validate": "reckon_distribution.route_assignment.validate_route_assignment",
+    },
+    "Outlet Visit": {
+        "validate": "reckon_distribution.field_sales.validate_outlet_visit",
+    },
+    "SR Order": {
+        "validate": "reckon_distribution.field_sales.validate_sr_order",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -70,6 +79,9 @@ permission_query_conditions = {
     "Stock Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Due Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Retailer Route Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Outlet Visit": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "SR Order": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -84,6 +96,9 @@ has_permission = {
     "Stock Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Due Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Retailer Route Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Outlet Visit": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "SR Order": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

@@ -1,0 +1,29 @@
+{
+ "doctype":"DocType",
+ "name":"Outlet Visit",
+ "module":"Distribution",
+ "autoname":"naming_series:",
+ "naming_rule":"By script",
+ "field_order":["naming_series","company","customer","route","field_user","visited_on","visit_status","idempotency_key","gps_latitude","gps_longitude","gps_accuracy","gps_captured_on"],
+ "fields":[
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"VIS-.#####","default":"VIS-.#####","reqd":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"customer","fieldtype":"Link","label":"Retailer","options":"Customer","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1},
+  {"fieldname":"field_user","fieldtype":"Link","label":"Field User","options":"User","reqd":1},
+  {"fieldname":"visited_on","fieldtype":"Date","label":"Visit Date","default":"Today","reqd":1},
+  {"fieldname":"visit_status","fieldtype":"Select","label":"Visit Status","options":"Started\nCompleted\nNo Order\nSkipped","default":"Started","reqd":1,"in_list_view":1},
+  {"fieldname":"idempotency_key","fieldtype":"Data","label":"Idempotency Key","reqd":1,"unique":1},
+  {"fieldname":"gps_latitude","fieldtype":"Float","label":"GPS Latitude"},
+  {"fieldname":"gps_longitude","fieldtype":"Float","label":"GPS Longitude"},
+  {"fieldname":"gps_accuracy","fieldtype":"Float","label":"GPS Accuracy (m)"},
+  {"fieldname":"gps_captured_on","fieldtype":"Datetime","label":"GPS Captured On"}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1,"create":1},
+  {"role":"Reckon Distribution User","read":1,"write":1,"create":1},
+  {"role":"Reckon Master Data Manager","read":1}
+ ],
+ "track_changes":1
+}

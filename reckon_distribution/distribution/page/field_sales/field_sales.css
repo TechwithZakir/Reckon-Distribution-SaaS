@@ -1,0 +1,15 @@
+.rd-field-sales { max-width: 720px; margin: 0 auto; padding: 24px 16px 96px; }
+.rd-field-sales__top { align-items: center; display: flex; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.rd-field-sales__top h2 { margin: 0; }
+.rd-sync-state { background: var(--subtle-fg); border-radius: 999px; color: var(--text-muted); font-size: 12px; padding: 8px 12px; }
+.rd-search { display: grid; gap: 8px; margin-bottom: 16px; }
+.rd-search span { font-weight: 600; }
+.rd-search input { border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; min-height: 48px; padding: 10px 12px; }
+.rd-outlets { display: grid; gap: 8px; }
+.rd-outlet-row { align-items: center; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: space-between; min-height: 60px; padding: 12px 14px; text-align: left; }
+.rd-outlet-row small { color: var(--text-muted); }
+.rd-retailer-panel { border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 20px; }
+.rd-balance-strip { align-items: baseline; background: var(--subtle-fg); border-radius: 8px; display: flex; justify-content: space-between; padding: 16px; }
+.rd-balance-strip strong { font-size: 24px; }
+.rd-field-actions { display: flex; gap: 10px; margin-top: 16px; }
+.rd-field-actions button { min-height: 48px; }

@@ -3,6 +3,8 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
   $(page.body).html(`<div class="rd-setup-guide"><section class="rd-master-hero"><div><p class="rd-kicker">${__("Start here / এখান থেকে শুরু করুন")}</p><h2>${__("Distribution Setup Guide")}</h2><p>${__("Complete these simple steps in order. / নিচের ধাপগুলো ক্রমানুসারে শেষ করুন।")}</p></div><a class="btn btn-default" href="/app/distribution">${__("Back to workspace")}</a></section><section class="rd-company-picker"><label>${__("Your Company / আপনার কোম্পানি")}<select data-company><option value="">${__("Select Company")}</option></select></label><button class="btn btn-primary" data-refresh>${__("Refresh status")}</button></section><div data-steps><p class="text-muted">${__("Select a Company to begin. / শুরু করতে কোম্পানি নির্বাচন করুন।")}</p></div><section class="rd-inline-form" data-form hidden></section></div>`);
   const companySelect = $(page.body).find("[data-company]");
   let links = {};
+  const requestedStep = new URLSearchParams(window.location.search).get("step");
+  const requestedName = new URLSearchParams(window.location.search).get("name");
   frappe.call({ method: "reckon_distribution.setup_guide.get_setup_companies" }).then((r) => {
     (r.message || []).forEach((row) => companySelect.append(`<option value="${esc(row.name)}">${esc(row.name)}</option>`));
     if ((r.message || []).length === 1) { companySelect.val(r.message[0].name); refresh(); }
@@ -24,20 +26,25 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
     Promise.all([
       frappe.call({ method: "reckon_distribution.setup_guide.get_setup_status", args: { company } }),
       frappe.call({ method: "reckon_distribution.setup_guide.get_setup_links", args: { company } }),
-    ]).then(([status, linkData]) => { links = linkData.message || {}; render_steps(status.message); });
+    ]).then(([status, linkData]) => { links = linkData.message || {}; render_steps(status.message); if (requestedStep) { const record = find_record(status.message, requestedStep, requestedName); show_form(requestedStep, record); } });
   }
 
   function render_steps(status) {
     const steps = [
       { number: "1", title: "Company rules", bangla: "কোম্পানির নিয়ম", help: "Set warehouse, accounts and payment defaults.", help_bn: "গুদাম, হিসাব ও পেমেন্টের নিয়ম ঠিক করুন।", done: status.settings > 0, route: "distribution-settings" },
       { number: "2", title: "Field user access", bangla: "ফিল্ড ব্যবহারকারী", help: "Create the SR/DSR login and give it access to this Company.", help_bn: "SR/DSR লগইন তৈরি করে এই কোম্পানির অ্যাক্সেস দিন।", done: status.users > 0, route: "distribution-team-access", page: true },
-      { number: "3", title: "Route", bangla: "রুট", help: "Create the route and assign the SR/DSR who works on it.", help_bn: "রুট তৈরি করে দায়িত্বপ্রাপ্ত SR/DSR নির্বাচন করুন।", done: status.routes > 0, route: "distribution-route", records: status.records.routes, type: "route" },
-      { number: "4", title: "Retailer", bangla: "রিটেইলার", help: "Create the shop/customer record.", help_bn: "দোকান/কাস্টমার রেকর্ড তৈরি করুন।", done: status.retailers > 0, route: "customer", records: status.records.retailers, type: "retailer" },
-      { number: "5", title: "Retailer route", bangla: "রিটেইলার রুটে যুক্ত করুন", help: "Assign the retailer to the route and field user.", help_bn: "রিটেইলারকে রুট ও ফিল্ড ব্যবহারকারীর সাথে যুক্ত করুন।", done: status.assignments > 0, route: "retailer-route-assignment", records: status.records.assignments_list, type: "assignment" },
-      { number: "6", title: "Products and prices", bangla: "পণ্য ও দাম", help: "Enable products, price list and sales UOMs for this Company.", help_bn: "কোম্পানির জন্য পণ্য, মূল্য তালিকা ও বিক্রয় UOM চালু করুন।", done: status.products > 0 && status.prices > 0, route: "distribution-master-scope", records: status.records.products, type: "product" },
+      { number: "3", title: "Route", bangla: "রুট", help: "Create the route and assign the SR/DSR who works on it.", help_bn: "রুট তৈরি করে দায়িত্বপ্রাপ্ত SR/DSR নির্বাচন করুন।", done: status.routes > 0, route: "distribution-route", records: status.records.routes, type: "route", list: "route" },
+      { number: "4", title: "Retailer", bangla: "রিটেইলার", help: "Create the shop/customer record.", help_bn: "দোকান/কাস্টমার রেকর্ড তৈরি করুন।", done: status.retailers > 0, route: "customer", records: status.records.retailers, type: "retailer", list: "retailer" },
+      { number: "5", title: "Retailer route", bangla: "রিটেইলার রুটে যুক্ত করুন", help: "Assign the retailer to the route and field user.", help_bn: "রিটেইলারকে রুট ও ফিল্ড ব্যবহারকারীর সাথে যুক্ত করুন।", done: status.assignments > 0, route: "retailer-route-assignment", records: status.records.assignments_list, type: "assignment", list: "assignment" },
+      { number: "6", title: "Products and prices", bangla: "পণ্য ও দাম", help: "Enable products, price list and sales UOMs for this Company.", help_bn: "কোম্পানির জন্য পণ্য, মূল্য তালিকা ও বিক্রয় UOM চালু করুন।", done: status.products > 0 && status.prices > 0, route: "distribution-master-scope", records: status.records.products, type: "product", list: "product" },
       { number: "7", title: "Start field work", bangla: "ফিল্ড কাজ শুরু করুন", help: "Open the delivery page. Assigned retailers will appear here.", help_bn: "ডেলিভারি পেজ খুলুন। দায়িত্বপ্রাপ্ত রিটেইলার এখানে দেখা যাবে।", done: status.assignments > 0 && status.products > 0, route: "dsr-delivery", page: true },
     ];
-    $(page.body).find("[data-steps]").html(steps.map((step) => `<article class="rd-setup-step ${step.done ? "is-done" : ""}"><div class="rd-setup-number">${step.number}</div><div class="rd-setup-copy"><h3>${__(step.title)} <span>${__(step.bangla)}</span></h3><p>${__(step.help)}<br><small>${__(step.help_bn)}</small></p>${render_records(step)}</div><div class="rd-setup-action">${step.done ? `<strong>${__("Done / সম্পন্ন")}</strong>` : ""}${step.page ? `<a class="btn btn-default" href="/desk/${step.route}">${__("Open")}</a>` : `<button class="btn ${step.done ? "btn-default" : "btn-primary"}" data-step="${step.route}">${step.done ? __("Review") : __("Set up")}</button>`}</div></article>`).join(""));
+    $(page.body).find("[data-steps]").html(steps.map((step) => `<article class="rd-setup-step ${step.done ? "is-done" : ""}"><div class="rd-setup-number">${step.number}</div><div class="rd-setup-copy"><h3>${__(step.title)} <span>${__(step.bangla)}</span></h3><p>${__(step.help)}<br><small>${__(step.help_bn)}</small></p>${render_records(step)}</div><div class="rd-setup-action">${step.done ? `<strong>${__("Done / সম্পন্ন")}</strong>` : ""}${step.page ? `<a class="btn btn-default" href="/desk/${step.route}">${__("Open")}</a>` : `<button class="btn ${step.done ? "btn-default" : "btn-primary"}" data-step="${step.route}">${step.done ? __("Review") : __("Set up")}</button>`}${step.list ? `<a class="btn btn-default btn-xs" href="/desk/distribution-setup-list?type=${step.list}">${__("Open list")}</a>` : ""}</div></article>`).join(""));
+  }
+
+  function find_record(status, step, name) {
+    const source = { "distribution-route": status.records.routes, customer: status.records.retailers, "retailer-route-assignment": status.records.assignments_list, "distribution-master-scope": status.records.products }[step] || [];
+    return source.find((row) => row.name === name);
   }
 
   function render_records(step) {

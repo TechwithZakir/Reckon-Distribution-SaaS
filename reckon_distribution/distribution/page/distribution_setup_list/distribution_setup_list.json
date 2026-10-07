@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "name": "distribution-setup-list",
+ "page_name": "distribution-setup-list",
+ "title": "Distribution Setup List",
+ "module": "Distribution",
+ "icon": "list",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {"role": "Reckon Distribution Admin"},
+  {"role": "Reckon Distribution Manager"},
+  {"role": "Reckon Master Data Manager"}
+ ]
+}

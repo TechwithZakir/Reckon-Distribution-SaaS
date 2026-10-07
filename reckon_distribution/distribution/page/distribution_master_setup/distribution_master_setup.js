@@ -6,8 +6,14 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
   const requestedStep = new URLSearchParams(window.location.search).get("step");
   const requestedName = new URLSearchParams(window.location.search).get("name");
   frappe.call({ method: "reckon_distribution.setup_guide.get_setup_companies" }).then((r) => {
-    (r.message || []).forEach((row) => companySelect.append(`<option value="${esc(row.name)}">${esc(row.name)}</option>`));
-    if ((r.message || []).length === 1) { companySelect.val(r.message[0].name); refresh(); }
+    const companies = r.message || [];
+    companies.forEach((row) => companySelect.append(`<option value="${esc(row.name)}">${esc(row.name)}</option>`));
+    if (companies.length === 1) {
+      companySelect.val(companies[0].name).hide();
+      $(page.body).find("[data-refresh]").hide();
+      companySelect.after(`<span class="rd-company-fixed">${esc(companies[0].name)}</span>`);
+      refresh();
+    }
   });
   companySelect.on("change", refresh);
   $(page.body).find("[data-refresh]").on("click", refresh);

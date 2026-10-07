@@ -3,6 +3,7 @@
 .rd-company-picker { align-items: end; display: flex; gap: 10px; margin: 22px 0; }
 .rd-company-picker label { display: grid; gap: 6px; font-weight: 600; }
 .rd-company-picker select { min-height: 42px; min-width: 280px; padding: 8px; }
+.rd-company-fixed { align-items: center; background: var(--subtle-fg); border: 1px solid var(--border-color); border-radius: 4px; display: inline-flex; min-height: 42px; min-width: 280px; padding: 8px 10px; }
 .rd-setup-step { align-items: center; border: 1px solid var(--border-color); border-radius: 8px; display: flex; gap: 16px; margin: 10px 0; padding: 16px; }
 .rd-setup-step.is-done { border-left: 4px solid var(--green, #2e9b69); }
 .rd-setup-number { align-items: center; background: var(--subtle-fg); border-radius: 50%; display: flex; flex: 0 0 36px; height: 36px; justify-content: center; font-weight: 700; }

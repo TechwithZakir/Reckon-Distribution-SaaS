@@ -60,7 +60,7 @@ class TestVanLoadingControls(FrappeTestCase):
         ), patch("reckon_distribution.van_loading.user_can_bypass_tenant", return_value=True):
             validate_van_loading_acknowledgement(acknowledgement)
 
-        self.assertEqual(acknowledgement.items[0].loaded_qty, 10)
+        self.assertEqual(acknowledgement.get("items")[0].loaded_qty, 10)
 
     def test_acknowledgement_requires_rejection_reason(self):
         challan = self._challan()

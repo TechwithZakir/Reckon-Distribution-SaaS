@@ -1,4 +1,6 @@
-from reckon_saas_platform.www import reckonerp_signup
+from importlib import import_module
+
+reckonerp_signup = import_module("reckon_saas_platform.www.reckonerp_signup")
 
 
 def get_context(context):

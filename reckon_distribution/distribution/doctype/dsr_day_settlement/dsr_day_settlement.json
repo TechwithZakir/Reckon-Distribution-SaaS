@@ -1,0 +1,35 @@
+{
+ "doctype":"DocType",
+ "name":"DSR Day Settlement",
+ "module":"Distribution",
+ "autoname":"naming_series:",
+ "naming_rule":"By script",
+ "field_order":["naming_series","company","settlement_date","route","dsr","status","opening_cash","confirmed_cash_collections","approved_expenses","approved_refunds","cash_handover","counted_cash","expected_cash","cash_variance","cash_variance_reason","stock_items","approved_by","approved_on"],
+ "fields":[
+  {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"SET-.#####","default":"SET-.#####","reqd":1},
+  {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
+  {"fieldname":"settlement_date","fieldtype":"Date","label":"Settlement Date","default":"Today","reqd":1,"in_list_view":1},
+  {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1},
+  {"fieldname":"dsr","fieldtype":"Link","label":"DSR","options":"User","reqd":1,"in_list_view":1},
+  {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nPending Approval\nApproved\nRejected","default":"Draft","read_only":1,"in_list_view":1},
+  {"fieldname":"opening_cash","fieldtype":"Currency","label":"Opening Cash","default":0},
+  {"fieldname":"confirmed_cash_collections","fieldtype":"Currency","label":"Confirmed Cash Collections","default":0},
+  {"fieldname":"approved_expenses","fieldtype":"Currency","label":"Approved Expenses","default":0},
+  {"fieldname":"approved_refunds","fieldtype":"Currency","label":"Approved Refunds","default":0},
+  {"fieldname":"cash_handover","fieldtype":"Currency","label":"Cash Handover","default":0},
+  {"fieldname":"counted_cash","fieldtype":"Currency","label":"Counted Cash","default":0},
+  {"fieldname":"expected_cash","fieldtype":"Currency","label":"Expected Cash","read_only":1},
+  {"fieldname":"cash_variance","fieldtype":"Currency","label":"Cash Variance","read_only":1},
+  {"fieldname":"cash_variance_reason","fieldtype":"Small Text","label":"Cash Variance Explanation"},
+  {"fieldname":"stock_items","fieldtype":"Table","label":"Stock Reconciliation","options":"DSR Day Settlement Item","reqd":1},
+  {"fieldname":"approved_by","fieldtype":"Link","label":"Approved By","options":"User","read_only":1},
+  {"fieldname":"approved_on","fieldtype":"Datetime","label":"Approved On","read_only":1}
+ ],
+ "permissions":[
+  {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1},
+  {"role":"Reckon Distribution Manager","read":1,"write":1,"create":1},
+  {"role":"Reckon Distribution User","read":1,"write":1,"create":1},
+  {"role":"Reckon Master Data Manager","read":1}
+ ],
+ "track_changes":1
+}

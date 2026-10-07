@@ -66,6 +66,9 @@ doc_events = {
     "Return Inspection": {
         "validate": "reckon_distribution.delivery.validate_return_inspection",
     },
+    "DSR Day Settlement": {
+        "validate": "reckon_distribution.settlement.validate_day_settlement",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -91,6 +94,7 @@ permission_query_conditions = {
     "SR Order": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Delivery Note": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Return Inspection": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "DSR Day Settlement": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Settings": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -110,6 +114,7 @@ has_permission = {
     "SR Order": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Delivery Note": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Return Inspection": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "DSR Day Settlement": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Settings": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

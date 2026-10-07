@@ -1,0 +1,9 @@
+{
+ "doctype":"Page",
+ "module":"Distribution",
+ "name":"dsr-delivery",
+ "page_name":"dsr-delivery",
+ "roles":[{"role":"Reckon Distribution User"},{"role":"Reckon Distribution Manager"},{"role":"Reckon Distribution Admin"}],
+ "standard":1,
+ "title":"DSR Delivery & Collection"
+}

@@ -9,6 +9,7 @@ from frappe.utils import nowdate
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
+    get_user_companies,
     require_tenant,
     user_can_bypass_tenant,
 )
@@ -16,6 +17,8 @@ from reckon_distribution.tenant_security import (
 
 @frappe.whitelist()
 def get_assigned_outlets(route: str | None = None, txt: str = "") -> list[dict]:
+    if user_can_bypass_tenant() and len(get_user_companies()) != 1:
+        return []
     tenant = require_tenant()
     filters = {
         "company": tenant.company,

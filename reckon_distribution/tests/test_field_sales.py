@@ -5,7 +5,7 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.field_sales import _order_item, save_sr_order
+from reckon_distribution.field_sales import _order_item, get_assigned_outlets, save_sr_order
 
 
 class TestFieldSales(FrappeTestCase):
@@ -60,3 +60,10 @@ class TestFieldSales(FrappeTestCase):
 
             with self.assertRaises(frappe.ValidationError):
                 record_outlet_visit(payload)
+
+    def test_bypass_user_without_tenant_assignment_gets_empty_outlet_list(self):
+        with patch("reckon_distribution.field_sales.user_can_bypass_tenant", return_value=True), patch(
+            "reckon_distribution.field_sales.get_user_companies", return_value=[]
+        ), patch("reckon_distribution.field_sales.require_tenant") as require_tenant:
+            self.assertEqual(get_assigned_outlets(), [])
+            require_tenant.assert_not_called()

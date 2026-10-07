@@ -22,6 +22,8 @@ def get_setup_companies() -> list[dict]:
 def get_setup_status(company: str) -> dict:
     tenant = require_tenant(company=company)
     def count(doctype: str, filters: dict) -> int:
+        if not frappe.db.exists("DocType", doctype):
+            return 0
         return frappe.db.count(doctype, filters)
 
     return {

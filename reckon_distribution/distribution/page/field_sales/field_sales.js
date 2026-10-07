@@ -15,6 +15,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
         <div class="rd-field-actions"><button class="btn btn-primary" data-start-visit>${__("Start visit")}</button></div>
         <section class="rd-order-composer"><h4>${__("Order draft")}</h4><div class="rd-order-row"><select data-item></select><select data-uom></select><input data-qty type="number" min="0.001" step="0.001" placeholder="${__("Qty")}" /><button class="btn btn-default" data-add-item>${__("Add")}</button></div><div data-order-items></div><button class="btn btn-primary" data-save-order>${__("Save order draft")}</button><div class="rd-delivery-row"><input data-warehouse placeholder="${__("Van warehouse")}" /><button class="btn btn-default" data-submit-delivery>${__("Save delivery")}</button></div></section>
         <p class="text-muted" data-message>${__("Select an outlet to see its balance.")}</p>
+        <section class="rd-collection-card"><h4>${__("Receive payment")}</h4><div class="rd-collection-row"><input data-collection-amount type="number" min="0.01" step="0.01" placeholder="${__("Amount")}" /><select data-collection-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></div><div class="rd-collection-row"><input data-collection-account placeholder="${__("DSR custody account")}" /><input data-collection-reference placeholder="${__("Reference for bank/MFS")}" /></div><button class="btn btn-primary" data-receive-payment>${__("Receive payment")}</button></section>
       </section>
     </main>
   `);
@@ -31,6 +32,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   $(page.body).find("[data-add-item]").on("click", addItem);
   $(page.body).find("[data-save-order]").on("click", saveOrder);
   $(page.body).find("[data-submit-delivery]").on("click", submitDelivery);
+  $(page.body).find("[data-receive-payment]").on("click", receivePayment);
   $(page.body).find("[data-item]").on("change", renderUoms);
 
   function loadOutlets() {
@@ -94,6 +96,16 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
     if (!warehouse) return frappe.msgprint(__("Enter the van warehouse."));
     const payload = { customer: selected.customer, route: selected.route, warehouse, price_list: catalog[0] && catalog[0].price_list, idempotency_key: `delivery-${selected.customer}-${Date.now()}`, items: orderItems };
     frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(__("Delivery submitted: {0}", [r.message])); orderItems = []; }).catch(() => queue(payload, "delivery"));
+  }
+
+  function receivePayment() {
+    if (!selected) return;
+    const amount = Number($(page.body).find("[data-collection-amount]").val());
+    const payment_method = $(page.body).find("[data-collection-method]").val();
+    const receiving_account = $(page.body).find("[data-collection-account]").val();
+    if (!amount || amount <= 0 || !receiving_account) return frappe.msgprint(__("Enter amount and DSR custody account."));
+    const payload = { customer: selected.customer, route: selected.route, amount, payment_method, receiving_account, reference_no: $(page.body).find("[data-collection-reference]").val(), idempotency_key: `collection-${selected.customer}-${Date.now()}` };
+    frappe.call({ method: "reckon_distribution.collection.record_collection", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(payment_method === "Cash" || payment_method === "Cheque" ? __("Payment confirmed: {0}", [r.message]) : __("Payment pending verification: {0}", [r.message])); }).catch(() => queue(payload, "collection"));
   }
 
   function saveVisit() {

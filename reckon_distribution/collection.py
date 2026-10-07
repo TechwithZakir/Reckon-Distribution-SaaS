@@ -44,6 +44,42 @@ def validate_collection_receipt(doc, method=None) -> None:
 
 
 @frappe.whitelist()
+def record_collection(payload: str | dict) -> str:
+    data = frappe.parse_json(payload) if isinstance(payload, str) else payload
+    tenant = require_tenant(company=data.get("company"))
+    key = data.get("idempotency_key")
+    if not key:
+        frappe.throw(_("A collection idempotency key is required."))
+    existing = frappe.db.get_value("DSR Collection Receipt", {"company": tenant.company, "idempotency_key": key}, "name")
+    if existing:
+        return existing
+    doc = frappe.get_doc(
+        {
+            "doctype": "DSR Collection Receipt",
+            "company": tenant.company,
+            "customer": data.get("customer"),
+            "route": data.get("route"),
+            "dsr": frappe.session.user,
+            "collection_date": data.get("collection_date") or nowdate(),
+            "amount": data.get("amount"),
+            "payment_method": data.get("payment_method"),
+            "reference_no": data.get("reference_no"),
+            "receiving_account": data.get("receiving_account"),
+            "note": data.get("note"),
+            "idempotency_key": key,
+            "gps_latitude": data.get("gps_latitude"),
+            "gps_longitude": data.get("gps_longitude"),
+            "gps_accuracy": data.get("gps_accuracy"),
+            "captured_on": data.get("captured_on"),
+        }
+    )
+    doc.insert()
+    if doc.payment_method in VERIFIED_METHODS:
+        return confirm_collection(doc.name)
+    return doc.name
+
+
+@frappe.whitelist()
 def confirm_collection(receipt: str) -> str:
     doc = get_tenant_doc("DSR Collection Receipt", receipt)
     _require_collector_or_manager(doc)

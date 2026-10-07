@@ -264,6 +264,10 @@ def sync_field_sales_queue(events: str | list) -> list[dict]:
             name = save_sr_order(event.get("payload") or {})
         elif event.get("type") == "delivery":
             name = submit_distribution_delivery(event.get("payload") or {})
+        elif event.get("type") == "collection":
+            from reckon_distribution.collection import record_collection
+
+            name = record_collection(event.get("payload") or {})
         else:
             frappe.throw(_("Unsupported field sync event."))
         results.append({"type": event.get("type"), "idempotency_key": (event.get("payload") or {}).get("idempotency_key"), "name": name})

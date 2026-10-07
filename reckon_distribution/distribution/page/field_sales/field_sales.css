@@ -20,4 +20,8 @@
 .rd-order-composer [data-save-order] { margin-top: 12px; min-height: 48px; }
 .rd-delivery-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
 .rd-delivery-row input { min-height: 44px; padding: 8px; }
+.rd-collection-card { border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 16px; }
+.rd-collection-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.rd-collection-row input, .rd-collection-row select { min-height: 44px; padding: 8px; }
+.rd-collection-card button { min-height: 46px; }
 @media (max-width: 560px) { .rd-order-row { grid-template-columns: 1fr 1fr; } .rd-order-row input { grid-column: 1; } .rd-order-row button { grid-column: 2; } }

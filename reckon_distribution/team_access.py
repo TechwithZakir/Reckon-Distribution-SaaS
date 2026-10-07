@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import frappe
+from frappe import _
+from frappe.utils import nowdate
+
+from reckon_distribution.tenant_security import (
+    get_tenant_doc,
+    require_tenant,
+    user_can_bypass_tenant,
+)
+
+ROLE_MAP = {
+    "Company Admin": "Reckon Distribution Admin",
+    "Company Manager": "Reckon Distribution Manager",
+    "Master Data Manager": "Reckon Master Data Manager",
+    "SR": "Reckon Distribution User",
+    "DSR": "Reckon Distribution User",
+}
+MANAGER_ROLES = {"Reckon Distribution Admin", "Reckon Distribution Manager"}
+
+
+@frappe.whitelist()
+def list_team(company: str | None = None) -> list[dict]:
+    tenant = require_tenant(company=company)
+    return frappe.get_all(
+        "Tenant User Assignment",
+        filters={"company": tenant.company},
+        fields=["name", "user", "role_profile", "active", "is_default", "valid_from", "valid_to", "route_scope"],
+        order_by="active desc, user asc",
+    )
+
+
+@frappe.whitelist()
+def create_team_access(payload: str | dict) -> str:
+    data = frappe.parse_json(payload) if isinstance(payload, str) else payload
+    tenant = require_tenant(company=data.get("company"))
+    _require_manager()
+    email = (data.get("email") or "").strip().lower()
+    full_name = (data.get("full_name") or "").strip()
+    profile = data.get("role_profile")
+    if not email or "@" not in email or not full_name:
+        frappe.throw(_("Full name and a valid email are required."))
+    if profile not in ROLE_MAP:
+        frappe.throw(_("Select a valid Company role."))
+
+    user = _get_or_create_user(email, full_name)
+    existing = frappe.db.get_value(
+        "Tenant User Assignment",
+        {"user": user.name, "company": tenant.company},
+        "name",
+    )
+    if existing:
+        assignment = frappe.get_doc("Tenant User Assignment", existing)
+        assignment.role_profile = profile
+        assignment.active = 1
+        assignment.route_scope = data.get("route") or ""
+        assignment.valid_from = data.get("valid_from") or nowdate()
+        assignment.save(ignore_permissions=True)
+    else:
+        assignment = frappe.get_doc(
+            {
+                "doctype": "Tenant User Assignment",
+                "user": user.name,
+                "company": tenant.company,
+                "role_profile": profile,
+                "active": 1,
+                "is_default": 1,
+                "valid_from": data.get("valid_from") or nowdate(),
+                "route_scope": data.get("route") or "",
+                "notes": _("Created from Company Team & Access guide."),
+            }
+        )
+        assignment.insert(ignore_permissions=True)
+    _ensure_role(user, ROLE_MAP[profile])
+    return assignment.name
+
+
+@frappe.whitelist()
+def deactivate_team_access(assignment: str) -> str:
+    doc = get_tenant_doc("Tenant User Assignment", assignment)
+    _require_manager()
+    doc.active = 0
+    doc.is_default = 0
+    doc.save(ignore_permissions=True)
+    return doc.name
+
+
+def _get_or_create_user(email: str, full_name: str):
+    if frappe.db.exists("User", email):
+        return frappe.get_doc("User", email)
+    user = frappe.get_doc(
+        {
+            "doctype": "User",
+            "email": email,
+            "first_name": full_name,
+            "full_name": full_name,
+            "user_type": "System User",
+            "send_welcome_email": 0,
+            "enabled": 1,
+        }
+    )
+    user.insert(ignore_permissions=True)
+    return user
+
+
+def _ensure_role(user, role: str) -> None:
+    if role not in user.get_roles():
+        user.add_roles(role)
+
+
+def _require_manager() -> None:
+    if user_can_bypass_tenant() or MANAGER_ROLES.intersection(frappe.get_roles()):
+        return
+    frappe.throw(_("Company Admin or Company Manager access is required."), frappe.PermissionError)

@@ -1,0 +1,11 @@
+.rd-team-access { max-width: 900px; padding: 28px; }
+.rd-team-hero p { color: var(--text-muted); max-width: 700px; }
+.rd-team-card { border: 1px solid var(--border-color); border-radius: 8px; margin-top: 18px; padding: 20px; }
+.rd-team-form { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rd-team-form label { display: grid; gap: 6px; font-weight: 600; }
+.rd-team-form input, .rd-team-form select { min-height: 44px; padding: 8px 10px; }
+.rd-team-form button { align-self: end; min-height: 46px; }
+.rd-team-row { align-items: center; border-top: 1px solid var(--border-color); display: flex; gap: 16px; justify-content: space-between; padding: 12px 0; }
+.rd-team-row span { color: var(--text-muted); }
+.rd-team-row em { color: var(--green, #2e9b69); font-style: normal; }
+@media (max-width: 650px) { .rd-team-access { padding: 18px; } .rd-team-form { grid-template-columns: 1fr; } }

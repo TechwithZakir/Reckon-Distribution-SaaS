@@ -195,6 +195,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"label": "Return Inspections", "link_to": "Return Inspection", "type": "DocType"},
             {"label": "DSR Day Settlement", "link_to": "DSR Day Settlement", "type": "DocType"},
             {"label": "DSR Delivery & Collection", "link_to": "dsr-delivery", "type": "Page"},
+            {"label": "Company Team & Access", "link_to": "distribution-team-access", "type": "Page"},
             {"label": "Distribution Settings", "link_to": "Distribution Settings", "type": "DocType"},
             {"label": "Master Scope", "link_to": "Distribution Master Scope", "type": "DocType"},
             {"label": "Purchase Receipt", "link_to": "Purchase Receipt", "type": "DocType"},

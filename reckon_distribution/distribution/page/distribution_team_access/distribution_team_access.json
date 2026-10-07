@@ -1,0 +1,9 @@
+{
+ "doctype":"Page",
+ "module":"Distribution",
+ "name":"distribution-team-access",
+ "page_name":"distribution-team-access",
+ "roles":[{"role":"Reckon Distribution Admin"},{"role":"Reckon Distribution Manager"}],
+ "standard":1,
+ "title":"Company Team & Access"
+}

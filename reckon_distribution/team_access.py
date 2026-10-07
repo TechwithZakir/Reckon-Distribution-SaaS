@@ -23,11 +23,16 @@ MANAGER_ROLES = {"Reckon Distribution Admin", "Reckon Distribution Manager"}
 @frappe.whitelist()
 def list_team(company: str | None = None) -> list[dict]:
     tenant = require_tenant(company=company)
-    return frappe.get_all(
-        "Tenant User Assignment",
-        filters={"company": tenant.company},
-        fields=["name", "user", "role_profile", "active", "is_default", "valid_from", "valid_to", "route_scope"],
-        order_by="active desc, user asc",
+    _require_manager()
+    return frappe.db.sql(
+        """
+        select name, user, role_profile, active, is_default, valid_from, valid_to, route_scope
+        from `tabTenant User Assignment`
+        where company = %s
+        order by active desc, user asc
+        """,
+        tenant.company,
+        as_dict=True,
     )
 
 
@@ -65,7 +70,9 @@ def create_team_access(payload: str | dict) -> str:
                 "company": tenant.company,
                 "role_profile": profile,
                 "active": 1,
-                "is_default": 1,
+                "is_default": not frappe.db.exists(
+                    "Tenant User Assignment", {"user": user.name, "active": 1, "is_default": 1}
+                ),
                 "valid_from": data.get("valid_from") or nowdate(),
                 "route_scope": data.get("route") or "",
                 "notes": _("Created from Company Team & Access guide."),

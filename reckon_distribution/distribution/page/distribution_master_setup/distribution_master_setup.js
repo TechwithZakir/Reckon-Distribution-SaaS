@@ -40,12 +40,12 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
       { number: "1", title: "Company rules", bangla: "কোম্পানির নিয়ম", help: "Open the native Frappe Company rules DocType.", help_bn: "Frappe-এর নিজস্ব কোম্পানি নিয়ম DocType খুলুন।", done: status.settings > 0, route: "distribution-settings", native: "/app/distribution-settings" },
       { number: "2", title: "Field user access", bangla: "ফিল্ড ব্যবহারকারী", help: "Create the SR/DSR login and give it access to this Company.", help_bn: "SR/DSR লগইন তৈরি করে এই কোম্পানির অ্যাক্সেস দিন।", done: status.users > 0, route: "distribution-team-access", page: true },
       { number: "3", title: "Route", bangla: "রুট", help: "Open the native Frappe Route list. Company access is enforced on the server.", help_bn: "Frappe-এর নিজস্ব রুট তালিকা খুলুন। সার্ভারে কোম্পানি অ্যাক্সেস যাচাই হয়।", done: status.routes > 0, route: "distribution-route", records: status.records.routes, type: "route", native: "/app/distribution-route" },
-      { number: "4", title: "Retailers", bangla: "রিটেইলার", help: "Create or select the shop and set its Company outlet details.", help_bn: "দোকান তৈরি/নির্বাচন করে কোম্পানির আউটলেট তথ্য দিন।", done: status.retailer_profiles > 0, route: "customer" },
-      { number: "5", title: "Retailer route", bangla: "রিটেইলার রুটে যুক্ত করুন", help: "Assign the retailer, route and responsible field user.", help_bn: "রিটেইলার, রুট ও দায়িত্বপ্রাপ্ত ফিল্ড ব্যবহারকারী যুক্ত করুন।", done: status.assignments > 0, route: "retailer-route-assignment" },
-      { number: "6", title: "Products", bangla: "পণ্য", help: "Create or select products and set the sales unit.", help_bn: "পণ্য তৈরি/নির্বাচন করে বিক্রয় ইউনিট দিন।", done: status.item_profiles > 0, route: "product" },
-      { number: "7", title: "Prices", bangla: "দাম", help: "Set product, sales unit, selling price and effective dates.", help_bn: "পণ্য, বিক্রয় ইউনিট, দাম ও কার্যকর তারিখ দিন।", done: status.price_profiles > 0, route: "price" },
-      { number: "8", title: "Suppliers", bangla: "সরবরাহকারী", help: "Create or select suppliers and set purchase terms.", help_bn: "সরবরাহকারী তৈরি/নির্বাচন করে ক্রয় শর্ত দিন।", done: status.supplier_profiles > 0, route: "supplier" },
-      { number: "9", title: "Finish setup", bangla: "সেটআপ শেষ করুন", help: "Validate the Company setup and unlock field work.", help_bn: "কোম্পানি সেটআপ যাচাই করে ফিল্ড কাজ চালু করুন।", done: status.assignments > 0 && status.item_profiles > 0 && status.price_profiles > 0, route: "finish-setup" },
+      { number: "4", title: "Retailers", bangla: "রিটেইলার", help: "Open the native ERPNext Customer list to create or edit shops.", help_bn: "দোকান তৈরি বা সম্পাদনা করতে ERPNext Customer তালিকা খুলুন।", done: status.retailers > 0, route: "customer", native: "/app/customer" },
+      { number: "5", title: "Suppliers", bangla: "সরবরাহকারী", help: "Open the native ERPNext Supplier list to create or edit suppliers.", help_bn: "সরবরাহকারী তৈরি বা সম্পাদনা করতে ERPNext Supplier তালিকা খুলুন।", done: status.suppliers > 0, route: "supplier", native: "/app/supplier" },
+      { number: "6", title: "Products", bangla: "পণ্য", help: "Open the native ERPNext Item list to create or edit products.", help_bn: "পণ্য তৈরি বা সম্পাদনা করতে ERPNext Item তালিকা খুলুন।", done: status.products > 0, route: "item", native: "/app/item" },
+      { number: "7", title: "Prices", bangla: "দাম", help: "Open the native ERPNext Item Price list to manage selling prices.", help_bn: "বিক্রয় মূল্য পরিচালনা করতে ERPNext Item Price তালিকা খুলুন।", done: status.prices > 0, route: "item-price", native: "/app/item-price" },
+      { number: "8", title: "Retailer route", bangla: "রিটেইলার রুটে যুক্ত করুন", help: "Assign the retailer, route and responsible field user.", help_bn: "রিটেইলার, রুট ও দায়িত্বপ্রাপ্ত ফিল্ড ব্যবহারকারী যুক্ত করুন।", done: status.assignments > 0, route: "retailer-route-assignment" },
+      { number: "9", title: "Finish setup", bangla: "সেটআপ শেষ করুন", help: "Validate the Company setup and unlock field work.", help_bn: "কোম্পানি সেটআপ যাচাই করে ফিল্ড কাজ চালু করুন।", done: status.assignments > 0 && status.products > 0 && status.prices > 0, route: "finish-setup" },
     ];
     $(page.body).find("[data-steps]").html(steps.map((step) => `<article class="rd-setup-step ${step.done ? "is-done" : ""}"><div class="rd-setup-number">${step.number}</div><div class="rd-setup-copy"><h3>${__(step.title)} <span>${__(step.bangla)}</span></h3><p>${__(step.help)}<br><small>${__(step.help_bn)}</small></p></div><div class="rd-setup-action">${step.done ? `<strong>${__("Done / সম্পন্ন")}</strong>` : ""}${step.page ? `<a class="btn btn-default" href="/desk/${step.route}">${__("Open")}</a>` : step.native ? `<a class="btn btn-default" href="${step.native}">${__("Open native list")}</a>` : `<button class="btn ${step.done ? "btn-default" : "btn-primary"}" data-step="${step.route}">${step.done ? __("Review") : __("Set up")}</button>`}</div></article>`).join(""));
   }
@@ -102,11 +102,11 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
       if (!s.settings) missing.push(__("Company rules"));
       if (!s.users) missing.push(__("Team member"));
       if (!s.routes) missing.push(__("Route"));
-      if (!s.retailer_profiles) missing.push(__("Retailer"));
+      if (!s.retailers) missing.push(__("Retailer"));
       if (!s.assignments) missing.push(__("Retailer route assignment"));
-      if (!s.item_profiles) missing.push(__("Product"));
-      if (!s.price_profiles) missing.push(__("Price"));
-      if (!s.supplier_profiles) missing.push(__("Supplier"));
+      if (!s.products) missing.push(__("Product"));
+      if (!s.prices) missing.push(__("Price"));
+      if (!s.suppliers) missing.push(__("Supplier"));
       const box = $(page.body).find("[data-form]").prop("hidden", false);
       box.html(missing.length ? `<h3>${__("Finish setup / সেটআপ শেষ করুন")}</h3><p class="text-warning">${__("Complete these steps first / আগে এই ধাপগুলো শেষ করুন:")} ${missing.join(", ")}</p>` : `<h3>${__("Setup complete / সেটআপ সম্পন্ন")}</h3><p class="text-success">${__("Your Company setup is ready for field work. / আপনার কোম্পানি ফিল্ড কাজের জন্য প্রস্তুত।")}</p><a class="btn btn-primary" href="/desk/dsr-delivery">${__("Open field work")}</a>`);
       box[0].scrollIntoView({ behavior: "smooth", block: "start" });

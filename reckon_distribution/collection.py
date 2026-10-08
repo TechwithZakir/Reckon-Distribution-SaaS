@@ -132,12 +132,13 @@ def _post_collection(doc) -> str:
     from erpnext.accounts.party import get_party_account
 
     receivable = get_party_account("Customer", doc.customer, doc.company)
+    posting_date = doc.collection_date or nowdate()
     payment = frappe.get_doc(
         {
             "doctype": "Payment Entry",
             "payment_type": "Receive",
             "company": doc.company,
-            "posting_date": doc.collection_date or nowdate(),
+            "posting_date": posting_date,
             "party_type": "Customer",
             "party": doc.customer,
             "paid_from": receivable,
@@ -145,7 +146,7 @@ def _post_collection(doc) -> str:
             "paid_amount": doc.amount,
             "received_amount": doc.amount,
             "reference_no": doc.reference_no,
-            "reference_date": doc.collection_date or nowdate(),
+            "reference_date": posting_date,
             "remarks": doc.note,
             "rd_collection_receipt": doc.name,
         }

@@ -1,47 +1,56 @@
 """Compatibility exports for the SaaS platform app."""
 
+import frappe
 from reckon_saas_platform.saas import (
-    PaymentGatewayAdapter as PaymentGatewayAdapter,
+    PaymentGatewayAdapter,
+    SubscriptionGateError,
+    assert_operational_access,
+    create_registration,
+    ensure_tenant_seed_job,
+    get_company_subscription,
+    get_subscription_summary,
+    get_user_home_page,
+    get_vendor_saas_summary,
+    is_subscription_active,
+    public_signup,
 )
 from reckon_saas_platform.saas import (
-    SubscriptionGateError as SubscriptionGateError,
+    run_tenant_seed_job as _run_tenant_seed_job,
 )
 from reckon_saas_platform.saas import (
-    assert_operational_access as assert_operational_access,
+    verify_payment as _verify_payment,
 )
-from reckon_saas_platform.saas import (
-    create_registration as create_registration,
-)
-from reckon_saas_platform.saas import (
-    ensure_tenant_seed_job as ensure_tenant_seed_job,
-)
-from reckon_saas_platform.saas import (
-    get_company_subscription as get_company_subscription,
-)
-from reckon_saas_platform.saas import (
-    get_subscription_summary as get_subscription_summary,
-)
-from reckon_saas_platform.saas import (
-    get_user_home_page as get_user_home_page,
-)
-from reckon_saas_platform.saas import (
-    get_vendor_saas_summary as get_vendor_saas_summary,
-)
-from reckon_saas_platform.saas import (
-    is_subscription_active as is_subscription_active,
-)
-from reckon_saas_platform.saas import (
-    public_signup as public_signup,
-)
-from reckon_saas_platform.saas import (
-    retry_tenant_seed_job as retry_tenant_seed_job,
-)
-from reckon_saas_platform.saas import (
-    run_tenant_seed_job as run_tenant_seed_job,
-)
-from reckon_saas_platform.saas import (
-    verify_payment as verify_payment,
-)
-from reckon_saas_platform.saas import (
-    verify_payment_manual as verify_payment_manual,
-)
+from reckon_saas_platform.saas_security import is_vendor_user
+
+__all__ = [
+    "PaymentGatewayAdapter",
+    "SubscriptionGateError",
+    "assert_operational_access",
+    "create_registration",
+    "ensure_tenant_seed_job",
+    "get_company_subscription",
+    "get_subscription_summary",
+    "get_user_home_page",
+    "get_vendor_saas_summary",
+    "is_subscription_active",
+    "public_signup",
+    "retry_tenant_seed_job",
+    "run_tenant_seed_job",
+    "verify_payment",
+    "verify_payment_manual",
+]
+
+run_tenant_seed_job = _run_tenant_seed_job
+verify_payment = _verify_payment
+
+
+def verify_payment_manual(payment: str, reference: str | None = None):
+    if not is_vendor_user():
+        frappe.throw("Only vendor administrators can perform this action.", frappe.PermissionError)
+    return _verify_payment(payment, reference=reference).name
+
+
+def retry_tenant_seed_job(company: str):
+    if not is_vendor_user():
+        frappe.throw("Only vendor administrators can perform this action.", frappe.PermissionError)
+    return _run_tenant_seed_job(company).name

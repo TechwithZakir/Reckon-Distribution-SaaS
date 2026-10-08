@@ -109,8 +109,10 @@ def restrict_distribution_desk_request() -> None:
     if path.startswith("/app/") and not path.startswith(ALLOWED_DESK_PREFIXES):
         _redirect_to_distribution()
 
-    if path.startswith("/desk/") and path.removeprefix("/desk/") not in ALLOWED_DISTRIBUTION_PAGES:
-        _redirect_to_distribution()
+    if path.startswith("/desk/"):
+        desk_route = path.removeprefix("/desk/").split("/", 1)[0]
+        if desk_route not in ALLOWED_DISTRIBUTION_PAGES:
+            _redirect_to_distribution()
 
 
 @frappe.whitelist()

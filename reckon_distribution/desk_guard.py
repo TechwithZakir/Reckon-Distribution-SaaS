@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
+from werkzeug.exceptions import Found
 
 from reckon_distribution.constants import OPERATIONAL_ROLES
 
@@ -16,6 +17,11 @@ ALLOWED_DESK_PREFIXES = (
     "/app/company-uom-profile",
     "/app/distribution-route",
     "/app/distribution-master-scope",
+    "/app/customer",
+    "/app/supplier",
+    "/app/item",
+    "/app/item-price",
+    "/app/price-list",
     "/app/purchase-receipt",
     "/app/van-loading",
     "/app/van-loading-challan",
@@ -101,5 +107,4 @@ def _request_path() -> str:
 
 
 def _redirect_to_distribution() -> None:
-    frappe.local.flags.redirect_location = f"/{DISTRIBUTION_DESK_ROUTE}"
-    raise frappe.Redirect
+    raise Found(f"/{DISTRIBUTION_DESK_ROUTE}")

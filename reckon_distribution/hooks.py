@@ -94,6 +94,7 @@ doc_events = {
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
 app_include_js = ["/assets/reckon_distribution/js/desk_guard_v2.js"]
+app_include_css = ["/assets/reckon_distribution/css/distribution_desk.css"]
 
 reckon_saas_modules = [
     "reckon_distribution.saas_module.get_module_definition",

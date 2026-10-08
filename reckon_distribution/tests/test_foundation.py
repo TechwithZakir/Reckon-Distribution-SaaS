@@ -85,6 +85,25 @@ class TestFoundation(FrappeTestCase):
 
         self.assertTrue(page_path.exists())
 
+    def test_distribution_generic_api_rejects_unrelated_doctype(self):
+        from reckon_distribution.desk_guard import _guard_distribution_api_request
+
+        with patch("frappe.local.form_dict", frappe._dict(doctype="Sales Invoice")):
+            with self.assertRaises(frappe.PermissionError):
+                _guard_distribution_api_request("/api/method/frappe.client.get_list")
+
+    def test_distribution_generic_api_allows_scoped_native_master(self):
+        from reckon_distribution.desk_guard import _guard_distribution_api_request
+
+        with patch("frappe.local.form_dict", frappe._dict(doctype="Item")):
+            _guard_distribution_api_request("/api/method/frappe.desk.reportview.get")
+
+    def test_internal_distribution_records_are_not_navigation_pages(self):
+        from reckon_distribution.desk_guard import ALLOWED_DISTRIBUTION_PAGES
+
+        self.assertNotIn("distribution-master-scope", ALLOWED_DISTRIBUTION_PAGES)
+        self.assertNotIn("user", ALLOWED_DISTRIBUTION_PAGES)
+
     def test_distribution_master_setup_page_exists(self):
         page_path = (
             Path(__file__).parents[1]

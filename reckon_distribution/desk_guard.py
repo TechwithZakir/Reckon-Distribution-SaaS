@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from urllib.parse import unquote
+
 import frappe
 from frappe import _
 from werkzeug.exceptions import HTTPException
@@ -31,7 +34,6 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "distribution-settings",
     "company-uom-profile",
     "distribution-route",
-    "distribution-master-scope",
     "customer",
     "supplier",
     "item",
@@ -50,7 +52,6 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "return-inspection",
     "dsr-day-settlement",
     "user-profile",
-    "user",
     "home",
 }
 DESK_BYPASS_ROLES = {"Administrator", "System Manager", "Reckon Vendor Superuser"}
@@ -60,7 +61,6 @@ ALLOWED_DESK_PREFIXES = (
     "/app/distribution-settings",
     "/app/company-uom-profile",
     "/app/distribution-route",
-    "/app/distribution-master-scope",
     "/app/customer",
     "/app/supplier",
     "/app/item",
@@ -79,8 +79,58 @@ ALLOWED_DESK_PREFIXES = (
     "/app/return-inspection",
     "/app/dsr-day-settlement",
     "/app/user-profile",
-    "/app/user",
     "/app/home",
+)
+
+# These are the records a tenant user can reach through generic Frappe list,
+# form, link-search, and resource endpoints. Everything else stays behind the
+# Distribution workspace boundary, even when a user guesses an API URL.
+ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
+    {
+        "Company",
+        "Customer",
+        "Supplier",
+        "Item",
+        "Item Price",
+        "Price List",
+        "UOM",
+        "Item Group",
+        "Brand",
+        "Customer Group",
+        "Supplier Group",
+        "Territory",
+        "Warehouse",
+        "Payment Terms Template",
+        "Account",
+        "Purchase Receipt",
+        "Delivery Note",
+        "Stock Entry",
+        "User",
+        "Distribution Settings",
+        "Distribution Route",
+        "Company UOM Profile",
+        "Company UOM Profile Item",
+        "Van Loading Challan",
+        "Van Loading Challan Item",
+        "Van Loading Acknowledgement",
+        "Van Loading Acknowledgement Item",
+        "DSR Collection Receipt",
+        "DSR Due Assignment",
+        "Retailer Route Assignment",
+        "Outlet Visit",
+        "SR Order",
+        "SR Order Item",
+        "Return Inspection",
+        "DSR Day Settlement",
+        "DSR Day Settlement Item",
+    }
+)
+
+GENERIC_DESK_API_PREFIXES = (
+    "frappe.client.",
+    "frappe.desk.reportview.",
+    "frappe.desk.form.",
+    "frappe.desk.search.",
 )
 ALLOWED_WEBSITE_PREFIXES = (
     "/reckonerp-subscription",
@@ -106,16 +156,62 @@ def restrict_distribution_desk_request() -> None:
         return
 
     path = _request_path()
-    if not path or path == "/app":
+    if path.startswith("/api/"):
+        _guard_distribution_api_request(path)
+        return
+
+    if not path or path in {"/", "/app", "/desk"}:
         _redirect_to_distribution()
 
-    if path.startswith("/app/") and not path.startswith(ALLOWED_DESK_PREFIXES):
-        _redirect_to_distribution()
+    if path.startswith("/app/"):
+        app_route = path.removeprefix("/app/").split("/", 1)[0]
+        if app_route not in ALLOWED_DISTRIBUTION_PAGES:
+            _redirect_to_distribution()
 
     if path.startswith("/desk/"):
         desk_route = path.removeprefix("/desk/").split("/", 1)[0]
         if desk_route not in ALLOWED_DISTRIBUTION_PAGES:
             _redirect_to_distribution()
+
+
+def _guard_distribution_api_request(path: str) -> None:
+    """Apply the same tenant navigation boundary to generic Desk APIs."""
+    if path.startswith("/api/resource/"):
+        doctype = unquote(path.removeprefix("/api/resource/").split("/", 1)[0])
+        _assert_distribution_doctype(doctype)
+        return
+
+    if not path.startswith("/api/method/"):
+        return
+
+    method = path.removeprefix("/api/method/")
+    if method == "frappe.desk.desk_page.getpage":
+        page_name = frappe.local.form_dict.get("page") or frappe.local.form_dict.get("name")
+        if page_name not in ALLOWED_DISTRIBUTION_PAGES:
+            frappe.throw(_("Page {0} is outside the Distribution workspace.").format(page_name))
+        return
+
+    if not method.startswith(GENERIC_DESK_API_PREFIXES):
+        return
+
+    doctype = frappe.local.form_dict.get("doctype")
+    if not doctype:
+        args = frappe.local.form_dict.get("args")
+        if isinstance(args, str):
+            try:
+                doctype = json.loads(args).get("doctype")
+            except (TypeError, ValueError, AttributeError):
+                doctype = None
+    if doctype:
+        _assert_distribution_doctype(doctype)
+
+
+def _assert_distribution_doctype(doctype: str) -> None:
+    if doctype not in ALLOWED_DISTRIBUTION_DOCTYPES:
+        frappe.throw(
+            _("{0} is not available in the Distribution workspace.").format(doctype),
+            frappe.PermissionError,
+        )
 
 
 @frappe.whitelist()

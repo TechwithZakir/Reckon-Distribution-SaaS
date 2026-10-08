@@ -296,6 +296,16 @@ def ensure_native_master_permissions() -> None:
         "Item Price": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Price List": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "UOM": {"read"},
+        # Supporting link masters are shared ERPNext references. Distribution users
+        # may select them, but must not edit the global definitions.
+        "Item Group": {"read"},
+        "Brand": {"read"},
+        "Customer Group": {"read"},
+        "Supplier Group": {"read"},
+        "Territory": {"read"},
+        "Warehouse": {"read"},
+        "Payment Terms Template": {"read"},
+        "Account": {"read"},
     }
     full_access_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Master Data Manager"}
     read_only_roles = {"Reckon Distribution User"}

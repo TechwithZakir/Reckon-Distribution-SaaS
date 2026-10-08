@@ -6,6 +6,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.master_data import (
+    has_shared_master_permission,
     normalize_item_code,
     search_company_master,
     validate_master_scope,
@@ -15,6 +16,14 @@ from reckon_distribution.tenant_security import validate_tenant_owned_doc
 
 
 class TestDistributionMasterData(FrappeTestCase):
+    def test_new_shared_master_uses_frappe_ptype_hook_argument(self):
+        item = frappe._dict({"doctype": "Item", "name": "new-item-test"})
+        item.is_new = lambda: True
+        with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False), patch(
+            "reckon_distribution.master_data.require_tenant", return_value=frappe._dict(company=self.company_a)
+        ):
+            self.assertTrue(has_shared_master_permission(item, user=self.user_a, ptype="create"))
+
     def test_tenant_item_code_follows_item_name(self):
         item = frappe._dict({"doctype": "Item", "item_name": "Rupchada Tel", "item_code": "OLD-CODE"})
         with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False):

@@ -53,9 +53,16 @@ def get_shared_master_query(user: str | None = None, doctype: str | None = None)
     )
 
 
-def has_shared_master_permission(doc, user: str | None = None, permission_type: str | None = None) -> bool:
+def has_shared_master_permission(
+    doc,
+    user: str | None = None,
+    ptype: str | None = None,
+    permission_type: str | None = None,
+    debug: bool = False,
+) -> bool:
     """Apply tenant scope to native master reads and mutations."""
     user = user or frappe.session.user
+    permission_type = ptype or permission_type
     if user_can_bypass_tenant(user):
         return True
     master_type = SHARED_MASTER_TYPES.get(doc.doctype)

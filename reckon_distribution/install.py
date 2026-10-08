@@ -342,7 +342,12 @@ def ensure_native_master_permissions() -> None:
                 # installations do not immediately include Custom DocPerm rows
                 # in the cached role permission map after migration.
                 if enabled and hasattr(permissions, "add_permission"):
-                    permissions.add_permission(doctype, role, 0, right)
+                    if not frappe.db.exists(
+                        "DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
+                    ):
+                        permissions.add_permission(doctype, role, 0)
+                    if hasattr(permissions, "update_permission_property"):
+                        permissions.update_permission_property(doctype, role, 0, right, 1)
         frappe.clear_cache(doctype=doctype)
 
 

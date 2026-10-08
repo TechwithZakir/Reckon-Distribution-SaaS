@@ -259,15 +259,21 @@ def ensure_distribution_page_roles() -> None:
     for page_name in page_names:
         if not frappe.db.exists("Page", page_name):
             continue
-        page = frappe.get_doc("Page", page_name)
-        existing_roles = {row.role for row in page.roles}
-        changed = False
         for role in roles:
-            if role not in existing_roles:
-                page.append("roles", {"role": role})
-                changed = True
-        if changed:
-            page.save(ignore_permissions=True)
+            if frappe.db.exists(
+                "Has Role",
+                {"parent": page_name, "parenttype": "Page", "parentfield": "roles", "role": role},
+            ):
+                continue
+            frappe.get_doc(
+                {
+                    "doctype": "Has Role",
+                    "parent": page_name,
+                    "parenttype": "Page",
+                    "parentfield": "roles",
+                    "role": role,
+                }
+            ).insert(ignore_permissions=True)
 
 
 def ensure_native_master_permissions() -> None:

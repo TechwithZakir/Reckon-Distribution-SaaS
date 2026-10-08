@@ -2,9 +2,25 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-from werkzeug.exceptions import TemporaryRedirect
+from werkzeug.exceptions import HTTPException
 
 from reckon_distribution.constants import OPERATIONAL_ROLES
+
+
+class DistributionRedirect(HTTPException):
+    """Version-independent HTTP redirect for Frappe's before-request hook."""
+
+    code = 302
+    description = "Redirecting to the Distribution workspace."
+
+    def __init__(self, location: str):
+        super().__init__()
+        self.location = location
+
+    def get_headers(self, environ=None):
+        headers = super().get_headers(environ)
+        headers.append(("Location", self.location))
+        return headers
 
 DISTRIBUTION_DESK_ROUTE = "app/distribution"
 DISTRIBUTION_PAGE = "distribution"
@@ -107,4 +123,4 @@ def _request_path() -> str:
 
 
 def _redirect_to_distribution() -> None:
-    raise TemporaryRedirect(location=f"/{DISTRIBUTION_DESK_ROUTE}")
+    raise DistributionRedirect(f"/{DISTRIBUTION_DESK_ROUTE}")

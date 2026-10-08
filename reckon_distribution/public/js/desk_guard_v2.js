@@ -31,6 +31,7 @@
   const hiddenRoutes = new Set([
     "tenant-security-test-record",
     "distribution-master-scope",
+    "undefined",
   ]);
 
   function routeName(href) {
@@ -53,6 +54,11 @@
   }
 
   function enforceDistributionRoute() {
+    if (window.location.pathname === "/desk/undefined") {
+      window.location.replace("/desk/distribution");
+      return;
+    }
+
     const match = window.location.pathname.match(/^\/app\/([^/]+)/);
     if (!match || allowedAppRoutes.has(decodeURIComponent(match[1]).toLowerCase())) {
       return;

@@ -104,6 +104,12 @@ class TestFoundation(FrappeTestCase):
         with patch("frappe.local.form_dict", frappe._dict(doctype="List Filter")):
             _guard_distribution_api_request("/api/method/frappe.desk.reportview.get_list")
 
+    def test_distribution_generic_api_allows_language_link_titles(self):
+        from reckon_distribution.desk_guard import _guard_distribution_api_request
+
+        with patch("frappe.local.form_dict", frappe._dict(doctype="Language")):
+            _guard_distribution_api_request("/api/method/frappe.desk.search.get_link_title")
+
     def test_internal_distribution_records_are_not_navigation_pages(self):
         from reckon_distribution.desk_guard import ALLOWED_DISTRIBUTION_PAGES
 

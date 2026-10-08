@@ -108,6 +108,8 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         # Frappe stores saved list filters in this user-scoped metadata DocType.
         # It is required by every native list view and contains no tenant data.
         "List Filter",
+        # Link-title lookup uses Language while rendering native forms.
+        "Language",
         "User",
         "Distribution Settings",
         "Distribution Route",

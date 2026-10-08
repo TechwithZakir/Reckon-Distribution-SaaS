@@ -265,15 +265,23 @@ def ensure_distribution_page_roles() -> None:
                 {"parent": page_name, "parenttype": "Page", "parentfield": "roles", "role": role},
             ):
                 continue
-            frappe.get_doc(
-                {
-                    "doctype": "Has Role",
-                    "parent": page_name,
-                    "parenttype": "Page",
-                    "parentfield": "roles",
-                    "role": role,
-                }
-            ).insert(ignore_permissions=True)
+            next_idx = frappe.db.sql(
+                """
+                select coalesce(max(idx), 0) + 1
+                from `tabHas Role`
+                where parent = %s and parenttype = 'Page' and parentfield = 'roles'
+                """,
+                page_name,
+            )[0][0]
+            frappe.db.sql(
+                """
+                insert into `tabHas Role`
+                    (name, creation, modified, modified_by, owner, docstatus,
+                     parent, parentfield, parenttype, idx, role)
+                values (%s, now(), now(), %s, %s, 0, %s, 'roles', 'Page', %s, %s)
+                """,
+                (frappe.generate_hash(length=10), frappe.session.user, frappe.session.user, page_name, next_idx, role),
+            )
 
 
 def ensure_native_master_permissions() -> None:

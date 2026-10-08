@@ -69,6 +69,26 @@ doc_events = {
     "DSR Day Settlement": {
         "validate": "reckon_distribution.settlement.validate_day_settlement",
     },
+    "Customer": {
+        "validate": "reckon_distribution.master_data.validate_shared_master_change",
+        "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
+    },
+    "Supplier": {
+        "validate": "reckon_distribution.master_data.validate_shared_master_change",
+        "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
+    },
+    "Item": {
+        "validate": "reckon_distribution.master_data.validate_shared_master_change",
+        "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
+    },
+    "Item Price": {
+        "validate": "reckon_distribution.master_data.validate_shared_master_change",
+        "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
+    },
+    "Price List": {
+        "validate": "reckon_distribution.master_data.validate_shared_master_change",
+        "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -99,6 +119,11 @@ permission_query_conditions = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Customer": "reckon_distribution.master_data.get_shared_master_query",
+    "Supplier": "reckon_distribution.master_data.get_shared_master_query",
+    "Item": "reckon_distribution.master_data.get_shared_master_query",
+    "Item Price": "reckon_distribution.master_data.get_shared_master_query",
+    "Price List": "reckon_distribution.master_data.get_shared_master_query",
 }
 
 has_permission = {
@@ -119,6 +144,11 @@ has_permission = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Customer": "reckon_distribution.master_data.has_shared_master_permission",
+    "Supplier": "reckon_distribution.master_data.has_shared_master_permission",
+    "Item": "reckon_distribution.master_data.has_shared_master_permission",
+    "Item Price": "reckon_distribution.master_data.has_shared_master_permission",
+    "Price List": "reckon_distribution.master_data.has_shared_master_permission",
 }
 
 override_whitelisted_methods = {

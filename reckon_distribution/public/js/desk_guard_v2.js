@@ -22,6 +22,7 @@
     "sr-order",
     "outlet-visit",
     "field-sales",
+    "dsr-delivery",
     "delivery-note",
     "return-inspection",
     "dsr-day-settlement",

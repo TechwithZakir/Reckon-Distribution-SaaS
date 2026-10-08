@@ -115,6 +115,7 @@ class TestFoundation(FrappeTestCase):
 
         self.assertNotIn("distribution-master-scope", ALLOWED_DISTRIBUTION_PAGES)
         self.assertNotIn("user", ALLOWED_DISTRIBUTION_PAGES)
+        self.assertIn("dsr-delivery", ALLOWED_DISTRIBUTION_PAGES)
 
     def test_distribution_master_setup_page_exists(self):
         page_path = (
@@ -126,6 +127,12 @@ class TestFoundation(FrappeTestCase):
         )
 
         self.assertTrue(page_path.exists())
+
+    def test_dsr_delivery_page_is_not_an_alias_to_field_sales(self):
+        page_path = Path(__file__).parents[1] / "distribution" / "page" / "dsr_delivery" / "dsr_delivery.js"
+        source = page_path.read_text()
+        self.assertNotIn('frappe.set_route("field-sales")', source)
+        self.assertIn('frappe.pages["dsr-delivery"]', source)
 
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition

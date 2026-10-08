@@ -1,6 +1,35 @@
 (function () {
+  const allowedRoutes = new Set([
+    "distribution",
+    "distribution-master-setup",
+    "distribution-team-access",
+    "distribution-settings",
+    "company-uom-profile",
+    "distribution-route",
+    "distribution-master-scope",
+    "customer",
+    "supplier",
+    "item",
+    "item-price",
+    "price-list",
+    "purchase-receipt",
+    "van-loading",
+    "van-loading-challan",
+    "van-loading-acknowledgement",
+    "dsr-collection-receipt",
+    "sr-order",
+    "outlet-visit",
+    "field-sales",
+    "delivery-note",
+    "return-inspection",
+    "dsr-day-settlement",
+    "user-profile",
+    "user",
+    "home",
+  ]);
+
   function redirectToDistribution(route) {
-    if (!route || route[0] !== "distribution") {
+    if (!route || !allowedRoutes.has(route[0])) {
       frappe.set_route("distribution");
     }
   }

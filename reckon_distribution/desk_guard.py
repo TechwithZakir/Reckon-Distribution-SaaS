@@ -105,6 +105,9 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Purchase Receipt",
         "Delivery Note",
         "Stock Entry",
+        # Frappe stores saved list filters in this user-scoped metadata DocType.
+        # It is required by every native list view and contains no tenant data.
+        "List Filter",
         "User",
         "Distribution Settings",
         "Distribution Route",

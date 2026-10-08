@@ -1,5 +1,6 @@
 {
  "doctype":"Page",
+ "icon":"users",
  "module":"Distribution",
  "name":"distribution-team-access",
  "page_name":"distribution-team-access",

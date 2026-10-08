@@ -1,5 +1,6 @@
 {
  "doctype":"Page",
+ "icon":"shopping-cart",
  "module":"Distribution",
  "name":"dsr-delivery",
  "page_name":"dsr-delivery",

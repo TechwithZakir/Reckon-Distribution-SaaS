@@ -151,7 +151,7 @@ ALLOWED_WEBSITE_PREFIXES = (
 
 def get_user_home_page(user: str):
     if _is_distribution_only_user(user):
-        return "app/distribution"
+        return "desk/distribution"
     return None
 
 

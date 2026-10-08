@@ -49,7 +49,7 @@ class TestFoundation(FrappeTestCase):
         from reckon_distribution.desk_guard import get_user_home_page
 
         with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
-            self.assertEqual(get_user_home_page("field@example.com"), "app/distribution")
+            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
 
     def test_system_manager_home_page_is_native(self):
         from reckon_distribution.desk_guard import get_user_home_page

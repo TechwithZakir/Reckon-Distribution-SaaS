@@ -1,4 +1,15 @@
 /* Keep native ERPNext forms dense for distributor master and transaction entry. */
+.layout-main-section-wrapper,
+.layout-main-section,
+.layout-main-section .form-layout {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.layout-main-section {
+  flex: 1 1 auto;
+}
+
 @media (min-width: 992px) {
   .layout-main-section .form-layout .form-section > .section-body,
   .layout-main-section .form-layout .form-section:not(:has(> .section-body)) {
@@ -11,11 +22,14 @@
 
   .layout-main-section .form-layout .form-section > .section-body > .form-column,
   .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-column {
-    width: auto;
-    max-width: none;
+    display: contents;
+  }
+
+  /* A DocType without explicit Column Breaks has one wrapper column. Flatten
+     it so each native field participates in the three-column layout. */
+  .layout-main-section .form-layout .form-section .frappe-control {
     min-width: 0;
-    padding-left: 0;
-    padding-right: 0;
+    width: auto !important;
   }
 
   .layout-main-section .form-layout .form-section > .section-body > .form-grid,
@@ -40,6 +54,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 20px;
     align-items: start;
+  }
+
+  .layout-main-section .form-layout .form-section > .section-body > .form-column,
+  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-column {
+    display: contents;
   }
 
   .layout-main-section .form-layout .form-section > .section-body > .form-grid,

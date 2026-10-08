@@ -1,5 +1,6 @@
 {
  "doctype":"Page",
+ "icon":"calendar",
  "module":"Distribution",
  "name":"dsr-day-settlement",
  "page_name":"dsr-day-settlement",

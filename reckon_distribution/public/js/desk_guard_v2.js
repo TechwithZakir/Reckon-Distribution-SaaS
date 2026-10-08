@@ -47,9 +47,18 @@
 
   function hideInternalSidebarLinks() {
     document.querySelectorAll("a[href]").forEach((link) => {
-      if (hiddenRoutes.has(routeName(link.href))) {
-        const item = link.closest(".sidebar-item, .standard-sidebar-item, li");
-        (item || link).style.display = "none";
+      const route = routeName(link.href);
+      const item = link.closest(".sidebar-item, .standard-sidebar-item, li");
+      if (!item) return;
+
+      const label = (link.textContent || "").trim().toLowerCase();
+      const isTechnicalRecord =
+        hiddenRoutes.has(route) || label.includes("company uom profile");
+
+      // The server is authoritative; this removes stale or unrelated native
+      // links from an already-rendered tenant sidebar after SPA navigation.
+      if (isTechnicalRecord || (route && !allowedAppRoutes.has(route))) {
+        item.style.display = "none";
       }
     });
   }

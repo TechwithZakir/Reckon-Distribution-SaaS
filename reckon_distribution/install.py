@@ -217,8 +217,32 @@ def setup_roles() -> None:
 
 def ensure_distribution_permissions() -> None:
     """Grant navigation and native-master access to Distribution roles."""
+    ensure_assigned_user_roles()
     ensure_distribution_page_roles()
     ensure_native_master_permissions()
+
+
+def ensure_assigned_user_roles() -> None:
+    if not frappe.db.exists("DocType", "Tenant User Assignment"):
+        return
+    role_map = {
+        "Company Admin": "Reckon Distribution Admin",
+        "Company Manager": "Reckon Distribution Manager",
+        "Master Data Manager": "Reckon Master Data Manager",
+        "SR": "Reckon Distribution User",
+        "DSR": "Reckon Distribution User",
+    }
+    assignments = frappe.get_all(
+        "Tenant User Assignment",
+        filters={"active": 1},
+        fields=["user", "role_profile"],
+    )
+    for assignment in assignments:
+        role = role_map.get(assignment.role_profile)
+        if not role or not frappe.db.exists("User", assignment.user):
+            continue
+        if role not in frappe.get_roles(assignment.user):
+            frappe.get_doc("User", assignment.user).add_roles(role)
 
 
 def ensure_distribution_page_roles() -> None:

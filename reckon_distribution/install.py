@@ -336,7 +336,14 @@ def ensure_native_master_permissions() -> None:
                 perm.insert(ignore_permissions=True)
             rights = full_rights if role in full_access_roles else {"read"}
             for right in full_rights:
-                perm.db_set(right, 1 if right in rights else 0)
+                enabled = right in rights
+                perm.db_set(right, 1 if enabled else 0)
+                # Keep Frappe's native permission resolver in sync. Some v16
+                # installations do not immediately include Custom DocPerm rows
+                # in the cached role permission map after migration.
+                if enabled and hasattr(permissions, "add_permission"):
+                    permissions.add_permission(doctype, role, 0, right)
+        frappe.clear_cache(doctype=doctype)
 
 
 def setup_workspace() -> None:

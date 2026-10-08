@@ -21,7 +21,7 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
       <section class="rd-desk-grid">
         <a class="rd-desk-card" href="/desk/van-loading">
           <h3>${__("Van Loading")}</h3>
-          <p>${__("Manager challans, Stock Entry custody, and DSR acknowledgement.")}</p>
+          <p>${__("Create loading requests, approve the van load, and receive it as a DSR.")}</p>
         </a>
         <a class="rd-desk-card" href="/desk/distribution-master-setup">
           <h3>${__("Master Setup")}</h3>
@@ -30,10 +30,6 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
         <a class="rd-desk-card" href="/reckonerp-subscription">
           <h3>${__("Subscription")}</h3>
           <p>${__("Payment, activation, and provisioning status.")}</p>
-        </a>
-        <a class="rd-desk-card" href="/distribution">
-          <h3>${__("Web Shell")}</h3>
-          <p>${__("Open the public-facing distribution landing shell.")}</p>
         </a>
       </section>
     </div>

@@ -4,7 +4,6 @@
     "distribution-master-setup",
     "distribution-team-access",
     "distribution-settings",
-    "company-uom-profile",
     "distribution-route",
     "distribution-master-scope",
     "customer",

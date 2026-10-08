@@ -114,6 +114,7 @@ class TestFoundation(FrappeTestCase):
         from reckon_distribution.desk_guard import ALLOWED_DISTRIBUTION_PAGES
 
         self.assertNotIn("distribution-master-scope", ALLOWED_DISTRIBUTION_PAGES)
+        self.assertNotIn("company-uom-profile", ALLOWED_DISTRIBUTION_PAGES)
         self.assertNotIn("user", ALLOWED_DISTRIBUTION_PAGES)
         self.assertIn("dsr-delivery", ALLOWED_DISTRIBUTION_PAGES)
 
@@ -133,6 +134,16 @@ class TestFoundation(FrappeTestCase):
         source = page_path.read_text()
         self.assertNotIn('frappe.set_route("field-sales")', source)
         self.assertIn('frappe.pages["dsr-delivery"]', source)
+
+    def test_distribution_workspace_hides_public_shell_and_stock_ledger_tile(self):
+        distribution_js = (
+            Path(__file__).parents[1] / "distribution" / "page" / "distribution" / "distribution.js"
+        ).read_text()
+        van_loading_js = (
+            Path(__file__).parents[1] / "distribution" / "page" / "van_loading" / "van_loading.js"
+        ).read_text()
+        self.assertNotIn('__("Web Shell")', distribution_js)
+        self.assertNotIn('tile("Stock custody"', van_loading_js)
 
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition

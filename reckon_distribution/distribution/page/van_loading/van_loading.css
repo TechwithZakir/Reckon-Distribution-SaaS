@@ -3,7 +3,7 @@
 .rd-van-loading__hero h2 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
 .rd-van-loading__hero p { margin: 0; color: var(--text-muted); max-width: 700px; }
 .rd-van-loading__hero .rd-kicker { margin-bottom: 8px !important; color: var(--primary) !important; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-.rd-van-loading__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rd-van-loading__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .rd-van-tile { display: flex; gap: 14px; min-height: 150px; padding: 18px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-color); text-decoration: none; }
 .rd-van-tile:hover { border-color: var(--primary); text-decoration: none; box-shadow: 0 5px 16px rgba(0, 0, 0, .06); }
 .rd-van-tile__icon { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 8px; background: var(--subtle-fg); color: var(--primary); font-weight: 700; }

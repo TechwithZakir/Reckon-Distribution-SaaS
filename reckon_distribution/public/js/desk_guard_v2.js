@@ -6,7 +6,6 @@
     "distribution-master-setup",
     "distribution-team-access",
     "distribution-settings",
-    "company-uom-profile",
     "distribution-route",
     "customer",
     "supplier",
@@ -32,6 +31,7 @@
   const hiddenRoutes = new Set([
     "tenant-security-test-record",
     "distribution-master-scope",
+    "company-uom-profile",
     "undefined",
   ]);
 

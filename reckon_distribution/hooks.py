@@ -14,7 +14,7 @@ app_license = "MIT"
 app_logo_url = "/assets/reckon_distribution/images/reckon-distribution-icon.svg"
 app_icon_url = app_logo_url
 app_icon_title = app_title
-app_icon_route = "/app/distribution"
+app_icon_route = "/desk/distribution"
 
 required_apps = ["erpnext", "reckon_saas_platform"]
 

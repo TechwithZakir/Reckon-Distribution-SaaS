@@ -9,7 +9,7 @@ frappe.pages["van-loading"].on_page_load = function (wrapper) {
     <div class="rd-van-loading">
       <section class="rd-van-loading__hero">
         <div><p class="rd-kicker">${__("Stock custody")}</p><h2>${__("Van Loading")}</h2><p>${__("Move approved saleable and supplier-free stock to an assigned DSR van with a traceable Stock Entry.")}</p></div>
-        <a class="btn btn-primary" href="/app/van-loading-challan/new-van-loading-challan-1">${__("New Loading Challan")}</a>
+        <a class="btn btn-primary" href="/desk/van-loading-challan/new-van-loading-challan-1">${__("New Loading Challan")}</a>
       </section>
       <section class="rd-van-loading__grid">
         ${tile("Manager queue", "Review, approve, cancel, and amend loading challans.", "van-loading-challan", "Open Challans")}
@@ -21,6 +21,6 @@ frappe.pages["van-loading"].on_page_load = function (wrapper) {
   `);
 
   function tile(title, description, route, action) {
-    return `<a class="rd-van-tile" href="/app/${route}"><span class="rd-van-tile__icon">${title.charAt(0)}</span><span><strong>${__(title)}</strong><small>${__(description)}</small><em>${__(action)} &rarr;</em></span></a>`;
+    return `<a class="rd-van-tile" href="/desk/${route}"><span class="rd-van-tile__icon">${title.charAt(0)}</span><span><strong>${__(title)}</strong><small>${__(description)}</small><em>${__(action)} &rarr;</em></span></a>`;
   }
 };

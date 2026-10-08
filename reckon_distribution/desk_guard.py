@@ -22,9 +22,36 @@ class DistributionRedirect(HTTPException):
         headers.append(("Location", self.location))
         return headers
 
-DISTRIBUTION_DESK_ROUTE = "app/distribution"
+DISTRIBUTION_DESK_ROUTE = "desk/distribution"
 DISTRIBUTION_PAGE = "distribution"
-ALLOWED_DISTRIBUTION_PAGES = {"distribution", "distribution-master-setup", "distribution-team-access", "van-loading", "dsr-collection-receipt", "dsr-due-assignment", "sr-order", "outlet-visit", "field-sales", "dsr-delivery", "return-inspection", "dsr-day-settlement"}
+ALLOWED_DISTRIBUTION_PAGES = {
+    "distribution",
+    "distribution-master-setup",
+    "distribution-team-access",
+    "distribution-settings",
+    "company-uom-profile",
+    "distribution-route",
+    "distribution-master-scope",
+    "customer",
+    "supplier",
+    "item",
+    "item-price",
+    "price-list",
+    "purchase-receipt",
+    "van-loading",
+    "van-loading-challan",
+    "van-loading-acknowledgement",
+    "dsr-collection-receipt",
+    "sr-order",
+    "outlet-visit",
+    "field-sales",
+    "delivery-note",
+    "return-inspection",
+    "dsr-day-settlement",
+    "user-profile",
+    "user",
+    "home",
+}
 DESK_BYPASS_ROLES = {"Administrator", "System Manager", "Reckon Vendor Superuser"}
 ALLOWED_DESK_PREFIXES = (
     "/app/distribution",

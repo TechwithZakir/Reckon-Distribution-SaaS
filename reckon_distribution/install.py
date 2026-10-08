@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import frappe
-from frappe import _
+from frappe import _, permissions
 
 from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
 
 
 def after_install() -> None:
     setup_roles()
+    ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
     ensure_master_quick_entry()
@@ -15,6 +16,7 @@ def after_install() -> None:
 
 def after_migrate() -> None:
     setup_roles()
+    ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
     ensure_master_quick_entry()
@@ -211,6 +213,75 @@ def setup_roles() -> None:
         else:
             frappe.db.set_value("Role", role.name, "desk_access", 1)
             frappe.db.set_value("Role", role.name, "home_page", "")
+
+
+def ensure_distribution_permissions() -> None:
+    """Grant navigation and native-master access to Distribution roles."""
+    ensure_distribution_page_roles()
+    ensure_native_master_permissions()
+
+
+def ensure_distribution_page_roles() -> None:
+    page_names = {
+        "distribution",
+        "distribution-master-setup",
+        "distribution-team-access",
+        "van-loading",
+        "field-sales",
+        "dsr-delivery",
+        "dsr-day-settlement",
+    }
+    roles = [role.name for role in OPERATIONAL_ROLES]
+    for page_name in page_names:
+        if not frappe.db.exists("Page", page_name):
+            continue
+        page = frappe.get_doc("Page", page_name)
+        existing_roles = {row.role for row in page.roles}
+        changed = False
+        for role in roles:
+            if role not in existing_roles:
+                page.append("roles", {"role": role})
+                changed = True
+        if changed:
+            page.save(ignore_permissions=True)
+
+
+def ensure_native_master_permissions() -> None:
+    master_permissions = {
+        "Customer": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+        "Supplier": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+        "Item": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+        "Item Price": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+        "Price List": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+    }
+    full_access_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Master Data Manager"}
+    read_only_roles = {"Reckon Distribution User"}
+    for doctype, full_rights in master_permissions.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        permissions.setup_custom_perms(doctype)
+        for role in full_access_roles | read_only_roles:
+            existing = frappe.db.exists(
+                "Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
+            )
+            if existing:
+                perm = frappe.get_doc("Custom DocPerm", existing)
+            else:
+                perm = frappe.get_doc(
+                    {
+                        "doctype": "Custom DocPerm",
+                        "parent": doctype,
+                        "parenttype": "DocType",
+                        "parentfield": "permissions",
+                        "role": role,
+                        "permlevel": 0,
+                        "if_owner": 0,
+                    }
+                )
+                perm.insert(ignore_permissions=True)
+            rights = full_rights if role in full_access_roles else {"read"}
+            for right in full_rights:
+                perm.db_set(right, 1 if right in rights else 0)
 
 
 def setup_workspace() -> None:

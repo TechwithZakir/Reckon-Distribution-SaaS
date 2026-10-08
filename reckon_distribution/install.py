@@ -243,8 +243,10 @@ def ensure_assigned_user_roles() -> None:
         role = role_map.get(assignment.role_profile)
         if not role or not frappe.db.exists("User", assignment.user):
             continue
+        user = frappe.get_doc("User", assignment.user)
         if role not in frappe.get_roles(assignment.user):
-            frappe.get_doc("User", assignment.user).add_roles(role)
+            user.add_roles(role)
+        frappe.clear_cache(user=assignment.user)
 
 
 def ensure_distribution_page_roles() -> None:

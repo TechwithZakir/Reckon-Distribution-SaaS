@@ -145,6 +145,7 @@ def _get_or_create_user(email: str, full_name: str, role: str | None = None, pas
 def _ensure_role(user, role: str) -> None:
     if role not in frappe.get_roles(user.name):
         user.add_roles(role)
+    frappe.clear_cache(user=user.name)
 
 
 def _set_password(user, password: str) -> None:

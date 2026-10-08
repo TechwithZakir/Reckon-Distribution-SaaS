@@ -44,12 +44,17 @@ def create_team_access(payload: str | dict) -> str:
     email = (data.get("email") or "").strip().lower()
     full_name = (data.get("full_name") or "").strip()
     profile = data.get("role_profile")
+    password = data.get("password") or ""
+    password_confirm = data.get("password_confirm") or ""
     if not email or "@" not in email or not full_name:
         frappe.throw(_("Full name and a valid email are required."))
     if profile not in ROLE_MAP:
         frappe.throw(_("Select a valid Company role."))
+    if not password:
+        frappe.throw(_("Set a password for the new team member."))
+    _validate_password_pair(password, password_confirm)
 
-    user = _get_or_create_user(email, full_name, ROLE_MAP[profile])
+    user = _get_or_create_user(email, full_name, ROLE_MAP[profile], password)
     existing = frappe.db.get_value(
         "Tenant User Assignment",
         {"user": user.name, "company": tenant.company},
@@ -94,23 +99,6 @@ def deactivate_team_access(assignment: str) -> str:
 
 
 @frappe.whitelist()
-def send_password_setup_link(assignment: str) -> str:
-    """Send a Frappe reset link for a user assigned to the current Company."""
-    tenant = require_tenant()
-    _require_manager()
-    doc = get_tenant_doc("Tenant User Assignment", assignment)
-    if doc.company != tenant.company:
-        frappe.throw(_("This team member belongs to another Company."), frappe.PermissionError)
-
-    user = frappe.get_doc("User", doc.user)
-    if not user.enabled:
-        frappe.throw(_("Enable this team member before sending a password setup link."))
-
-    user._reset_password(send_email=True)
-    return _("Password setup link sent to {0}.").format(user.name)
-
-
-@frappe.whitelist()
 def update_team_access(payload: str | dict) -> str:
     data = frappe.parse_json(payload) if isinstance(payload, str) else payload
     tenant = require_tenant(company=data.get("company"))
@@ -125,11 +113,16 @@ def update_team_access(payload: str | dict) -> str:
     assignment.active = 1 if data.get("active", True) else 0
     assignment.save(ignore_permissions=True)
     user = frappe.get_doc("User", assignment.user)
+    password = data.get("password") or ""
+    password_confirm = data.get("password_confirm") or ""
+    if password:
+        _validate_password_pair(password, password_confirm)
+        _set_password(user, password)
     _ensure_role(user, ROLE_MAP[assignment.role_profile])
     return assignment.name
 
 
-def _get_or_create_user(email: str, full_name: str, role: str | None = None):
+def _get_or_create_user(email: str, full_name: str, role: str | None = None, password: str | None = None):
     if frappe.db.exists("User", email):
         return frappe.get_doc("User", email)
     user = frappe.get_doc(
@@ -142,6 +135,7 @@ def _get_or_create_user(email: str, full_name: str, role: str | None = None):
             "send_welcome_email": 0,
             "enabled": 1,
             "roles": [{"role": role}] if role else [],
+            "new_password": password or "",
         }
     )
     user.insert(ignore_permissions=True)
@@ -151,6 +145,18 @@ def _get_or_create_user(email: str, full_name: str, role: str | None = None):
 def _ensure_role(user, role: str) -> None:
     if role not in frappe.get_roles(user.name):
         user.add_roles(role)
+
+
+def _set_password(user, password: str) -> None:
+    user.new_password = password
+    user.save(ignore_permissions=True)
+
+
+def _validate_password_pair(password: str, password_confirm: str) -> None:
+    if password != password_confirm:
+        frappe.throw(_("Password and confirmation do not match."))
+    if len(password) < 8:
+        frappe.throw(_("Password must be at least 8 characters."))
 
 
 def _require_manager() -> None:

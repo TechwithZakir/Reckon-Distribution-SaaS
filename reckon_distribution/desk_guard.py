@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-from werkzeug.exceptions import Found
+from werkzeug.exceptions import TemporaryRedirect
 
 from reckon_distribution.constants import OPERATIONAL_ROLES
 
@@ -107,4 +107,4 @@ def _request_path() -> str:
 
 
 def _redirect_to_distribution() -> None:
-    raise Found(f"/{DISTRIBUTION_DESK_ROUTE}")
+    raise TemporaryRedirect(location=f"/{DISTRIBUTION_DESK_ROUTE}")

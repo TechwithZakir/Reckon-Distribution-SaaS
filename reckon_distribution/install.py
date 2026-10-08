@@ -278,6 +278,7 @@ def ensure_distribution_page_roles() -> None:
 
 def ensure_native_master_permissions() -> None:
     master_permissions = {
+        "Page": {"read"},
         "Customer": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Supplier": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Item": {"read", "write", "create", "delete", "report", "export", "print", "email"},

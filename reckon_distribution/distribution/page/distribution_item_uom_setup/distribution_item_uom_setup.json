@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "name": "distribution-item-uom-setup",
+ "page_name": "distribution-item-uom-setup",
+ "title": "Item Units & Conversion",
+ "module": "Distribution",
+ "icon": "number-1",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {"role": "Reckon Distribution Admin"},
+  {"role": "Reckon Distribution Manager"},
+  {"role": "Reckon Master Data Manager"}
+ ]
+}

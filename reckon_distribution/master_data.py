@@ -110,6 +110,13 @@ def auto_scope_shared_master(doc, method=None) -> None:
         ).insert()
 
 
+def normalize_item_code(doc, method=None) -> None:
+    """Use the business-facing Item Name as the unique ERPNext Item Code."""
+    if doc.doctype != "Item" or user_can_bypass_tenant() or not doc.get("item_name"):
+        return
+    doc.item_code = doc.item_name.strip()
+
+
 def validate_shared_master_change(doc, method=None) -> None:
     if doc.is_new() or user_can_bypass_tenant():
         return

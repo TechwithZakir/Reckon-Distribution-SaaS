@@ -78,6 +78,7 @@ doc_events = {
         "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
     },
     "Item": {
+        "before_insert": "reckon_distribution.master_data.normalize_item_code",
         "validate": "reckon_distribution.master_data.validate_shared_master_change",
         "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
     },

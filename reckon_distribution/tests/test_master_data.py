@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.master_data import search_company_master, validate_master_scope
+from reckon_distribution.master_data import (
+    normalize_item_code,
+    search_company_master,
+    validate_master_scope,
+)
 from reckon_distribution.seed import run_distribution_seed
 from reckon_distribution.tenant_security import validate_tenant_owned_doc
 
 
 class TestDistributionMasterData(FrappeTestCase):
+    def test_tenant_item_code_follows_item_name(self):
+        item = frappe._dict({"doctype": "Item", "item_name": "Rupchada Tel", "item_code": "OLD-CODE"})
+        with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False):
+            normalize_item_code(item)
+        self.assertEqual(item.item_code, "Rupchada Tel")
+
     def setUp(self):
         self.user_a = "master-data-a@example.com"
         self.user_b = "master-data-b@example.com"

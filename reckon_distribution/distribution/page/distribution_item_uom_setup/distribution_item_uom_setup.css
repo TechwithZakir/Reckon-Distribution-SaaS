@@ -1,0 +1,6 @@
+.rd-uom-setup { max-width: 880px; padding: 32px 24px; }
+.rd-uom-setup label { display: block; max-width: 560px; font-weight: 600; }
+.rd-uom-setup select, .rd-uom-setup input { display: block; width: 100%; min-height: 44px; margin: 8px 0 18px; }
+.rd-uom-stock { display: flex; gap: 16px; margin: 24px 0 8px; padding: 14px; background: var(--subtle-fg); border-radius: 6px; }
+.rd-uom-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: center; max-width: 720px; }
+.rd-uom-row select, .rd-uom-row input { margin: 6px 0; }

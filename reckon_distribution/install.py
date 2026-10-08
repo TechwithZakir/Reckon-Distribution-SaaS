@@ -27,7 +27,7 @@ def ensure_master_quick_entry() -> None:
     configurations = {
         "Customer": {"customer_name", "customer_type", "customer_group", "territory"},
         "Supplier": {"supplier_name", "supplier_type", "supplier_group"},
-        "Item": {"item_code", "item_name", "item_group", "stock_uom", "is_stock_item", "is_sales_item"},
+        "Item": {"item_name", "item_group", "stock_uom", "is_stock_item", "is_sales_item"},
         "Item Price": {"item_code", "price_list", "price_list_rate", "uom", "selling"},
     }
     for doctype, allowed_fields in configurations.items():
@@ -44,6 +44,8 @@ def ensure_master_quick_entry() -> None:
                 "1" if field.fieldname in allowed_fields else "0",
                 "Check",
             )
+        if doctype == "Item":
+            _set_property("Item", "item_code", "read_only", "1", "Check")
         frappe.clear_cache(doctype=doctype)
 
 
@@ -249,6 +251,7 @@ def ensure_distribution_page_roles() -> None:
     page_names = {
         "distribution",
         "distribution-master-setup",
+        "distribution-item-uom-setup",
         "distribution-team-access",
         "van-loading",
         "field-sales",
@@ -292,6 +295,7 @@ def ensure_native_master_permissions() -> None:
         "Item": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Item Price": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Price List": {"read", "write", "create", "delete", "report", "export", "print", "email"},
+        "UOM": {"read"},
     }
     full_access_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Master Data Manager"}
     read_only_roles = {"Reckon Distribution User"}
@@ -347,6 +351,7 @@ def _workspace_doc(update: bool = False) -> dict:
         "content": _workspace_content(),
         "shortcuts": [
             {"label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
+            {"label": "Item Units & Conversion", "link_to": "distribution-item-uom-setup", "type": "Page"},
             {"label": "Van Loading", "link_to": "van-loading", "type": "Page"},
             {"label": "DSR Collection Receipt", "link_to": "DSR Collection Receipt", "type": "DocType"},
             {"label": "DSR Due Assignment", "link_to": "DSR Due Assignment", "type": "DocType"},

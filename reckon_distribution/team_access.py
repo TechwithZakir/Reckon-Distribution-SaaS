@@ -94,6 +94,23 @@ def deactivate_team_access(assignment: str) -> str:
 
 
 @frappe.whitelist()
+def send_password_setup_link(assignment: str) -> str:
+    """Send a Frappe reset link for a user assigned to the current Company."""
+    tenant = require_tenant()
+    _require_manager()
+    doc = get_tenant_doc("Tenant User Assignment", assignment)
+    if doc.company != tenant.company:
+        frappe.throw(_("This team member belongs to another Company."), frappe.PermissionError)
+
+    user = frappe.get_doc("User", doc.user)
+    if not user.enabled:
+        frappe.throw(_("Enable this team member before sending a password setup link."))
+
+    user._reset_password(send_email=True)
+    return _("Password setup link sent to {0}.").format(user.name)
+
+
+@frappe.whitelist()
 def update_team_access(payload: str | dict) -> str:
     data = frappe.parse_json(payload) if isinstance(payload, str) else payload
     tenant = require_tenant(company=data.get("company"))

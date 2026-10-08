@@ -101,6 +101,7 @@ def get_user_home_page(user: str):
 
 
 def restrict_distribution_desk_request() -> None:
+    _ensure_current_distribution_role()
     if not _is_distribution_only_user():
         return
 
@@ -144,6 +145,38 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     if roles.intersection(DESK_BYPASS_ROLES):
         return False
     return any(role.name in roles for role in OPERATIONAL_ROLES)
+
+
+def _ensure_current_distribution_role() -> None:
+    """Repair the Frappe role from the active tenant assignment before checks."""
+    user = frappe.session.user
+    if not user or user in {"Guest", "Administrator"}:
+        return
+    role_map = {
+        "Company Admin": "Reckon Distribution Admin",
+        "Company Manager": "Reckon Distribution Manager",
+        "Master Data Manager": "Reckon Master Data Manager",
+        "SR": "Reckon Distribution User",
+        "DSR": "Reckon Distribution User",
+    }
+    if not frappe.db.exists("DocType", "Tenant User Assignment"):
+        return
+    profile = frappe.db.get_value(
+        "Tenant User Assignment",
+        {"user": user, "active": 1, "is_default": 1},
+        "role_profile",
+    )
+    if not profile:
+        profile = frappe.db.get_value(
+            "Tenant User Assignment",
+            {"user": user, "active": 1},
+            "role_profile",
+        )
+    role = role_map.get(profile)
+    if not role or role in frappe.get_roles(user):
+        return
+    frappe.get_doc("User", user).add_roles(role)
+    frappe.clear_cache(user=user)
 
 
 def _request_path() -> str:

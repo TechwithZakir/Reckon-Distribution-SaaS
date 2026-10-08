@@ -46,6 +46,7 @@ def ensure_master_quick_entry() -> None:
             )
         if doctype == "Item":
             _set_property("Item", "item_code", "read_only", "1", "Check")
+            _set_property("Item", "item_code", "reqd", "0", "Check")
         frappe.clear_cache(doctype=doctype)
 
 

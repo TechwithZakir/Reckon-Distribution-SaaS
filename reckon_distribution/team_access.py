@@ -49,7 +49,7 @@ def create_team_access(payload: str | dict) -> str:
     if profile not in ROLE_MAP:
         frappe.throw(_("Select a valid Company role."))
 
-    user = _get_or_create_user(email, full_name)
+    user = _get_or_create_user(email, full_name, ROLE_MAP[profile])
     existing = frappe.db.get_value(
         "Tenant User Assignment",
         {"user": user.name, "company": tenant.company},
@@ -112,7 +112,7 @@ def update_team_access(payload: str | dict) -> str:
     return assignment.name
 
 
-def _get_or_create_user(email: str, full_name: str):
+def _get_or_create_user(email: str, full_name: str, role: str | None = None):
     if frappe.db.exists("User", email):
         return frappe.get_doc("User", email)
     user = frappe.get_doc(
@@ -124,6 +124,7 @@ def _get_or_create_user(email: str, full_name: str):
             "user_type": "System User",
             "send_welcome_email": 0,
             "enabled": 1,
+            "roles": [{"role": role}] if role else [],
         }
     )
     user.insert(ignore_permissions=True)
@@ -131,7 +132,7 @@ def _get_or_create_user(email: str, full_name: str):
 
 
 def _ensure_role(user, role: str) -> None:
-    if role not in user.get_roles():
+    if role not in frappe.get_roles(user.name):
         user.add_roles(role)
 
 

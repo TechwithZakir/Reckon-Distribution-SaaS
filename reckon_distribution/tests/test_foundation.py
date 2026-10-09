@@ -196,6 +196,16 @@ class TestFoundation(FrappeTestCase):
         self.assertNotIn("app_include_css", hooks)
         self.assertNotIn("app_include_js", hooks)
 
+    def test_distribution_settings_is_company_scoped_two_column_form(self):
+        path = Path(__file__).parents[1] / "distribution" / "doctype" / "distribution_settings" / "distribution_settings.json"
+        metadata = json.loads(path.read_text())
+        self.assertEqual(metadata["issingle"], 0)
+        self.assertEqual(
+            [field["fieldname"] for field in metadata["fields"] if field["fieldtype"] == "Column Break"],
+            ["column_break_1"],
+        )
+        self.assertEqual(metadata["autoname"], "field:company")
+
 
 class TestCompatibilityHelpers(unittest.TestCase):
     def test_major_version_parser(self):

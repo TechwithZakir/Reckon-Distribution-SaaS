@@ -4,7 +4,7 @@
  "module": "Distribution",
  "issingle": 0,
  "autoname": "field:company",
- "field_order": ["company", "supplier_goods_policy", "column_break_1", "default_uom_profile", "default_warehouse", "default_price_list", "column_break_2", "default_payment_terms_template", "default_receivable_account", "default_cash_account", "allow_batch_expiry"],
+ "field_order": ["company", "supplier_goods_policy", "column_break_1", "default_uom_profile", "default_warehouse", "default_price_list", "default_payment_terms_template", "default_receivable_account", "default_cash_account", "allow_batch_expiry"],
  "fields": [
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"unique":1,"in_list_view":1},
   {"fieldname":"supplier_goods_policy","fieldtype":"Select","label":"Goods Policy","options":"Supplier Provided Goods Only","default":"Supplier Provided Goods Only","reqd":1},
@@ -12,7 +12,6 @@
   {"fieldname":"default_uom_profile","fieldtype":"Link","label":"Default UOM Profile","options":"Company UOM Profile"},
   {"fieldname":"default_warehouse","fieldtype":"Link","label":"Default Warehouse","options":"Warehouse"},
   {"fieldname":"default_price_list","fieldtype":"Link","label":"Default Price List","options":"Price List"},
-  {"fieldname":"column_break_2","fieldtype":"Column Break"},
   {"fieldname":"default_payment_terms_template","fieldtype":"Link","label":"Default Payment Terms","options":"Payment Terms Template"},
   {"fieldname":"default_receivable_account","fieldtype":"Link","label":"Default Receivable Account","options":"Account"},
   {"fieldname":"default_cash_account","fieldtype":"Link","label":"Default Cash Account","options":"Account"},

@@ -37,7 +37,7 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
 
   function render_steps(status) {
     const steps = [
-      { number: "1", title: "Company rules", bangla: "কোম্পানির নিয়ম", help: "Open the native Frappe Company rules DocType.", help_bn: "Frappe-এর নিজস্ব কোম্পানি নিয়ম DocType খুলুন।", done: status.settings > 0, route: "distribution-settings", native: "/desk/distribution-settings" },
+      { number: "1", title: "Company rules", bangla: "কোম্পানির নিয়ম", help: "Set the rules used by this Company.", help_bn: "এই কোম্পানির ব্যবহারের নিয়মগুলো সেট করুন।", done: status.settings > 0, route: "distribution-settings" },
       { number: "2", title: "Field user access", bangla: "ফিল্ড ব্যবহারকারী", help: "Create the SR/DSR login and give it access to this Company.", help_bn: "SR/DSR লগইন তৈরি করে এই কোম্পানির অ্যাক্সেস দিন।", done: status.users > 0, route: "distribution-team-access", page: true },
       { number: "3", title: "Route", bangla: "রুট", help: "Open the native Frappe Route list. Company access is enforced on the server.", help_bn: "Frappe-এর নিজস্ব রুট তালিকা খুলুন। সার্ভারে কোম্পানি অ্যাক্সেস যাচাই হয়।", done: status.routes > 0, route: "distribution-route", records: status.records.routes, type: "route", native: "/desk/distribution-route" },
       { number: "4", title: "Retailers", bangla: "রিটেইলার", help: "Open the native ERPNext Customer list to create or edit shops.", help_bn: "দোকান তৈরি বা সম্পাদনা করতে ERPNext Customer তালিকা খুলুন।", done: status.retailers > 0, route: "customer", native: "/desk/customer" },

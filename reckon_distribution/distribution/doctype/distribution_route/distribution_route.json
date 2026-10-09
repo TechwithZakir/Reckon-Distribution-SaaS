@@ -3,12 +3,14 @@
  "name":"Distribution Route",
  "module":"Distribution",
  "autoname":"format:{company}-{route_code}",
- "field_order":["company","route_code","route_name","territory","active","assigned_user"],
+ "field_order":["company","route_code","column_break_1","route_name","territory","column_break_2","active","assigned_user"],
  "fields":[
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
   {"fieldname":"route_code","fieldtype":"Data","label":"Route Code","reqd":1,"in_list_view":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
   {"fieldname":"route_name","fieldtype":"Data","label":"Route Name","reqd":1,"in_list_view":1},
   {"fieldname":"territory","fieldtype":"Link","label":"Territory","options":"Territory"},
+  {"fieldname":"column_break_2","fieldtype":"Column Break"},
   {"fieldname":"active","fieldtype":"Check","label":"Active","default":1,"in_list_view":1},
   {"fieldname":"assigned_user","fieldtype":"Link","label":"Assigned SR/DSR","options":"User"}
  ],

@@ -4,23 +4,28 @@
  "module":"Distribution",
  "autoname":"naming_series:",
  "naming_rule":"By script",
- "field_order":["naming_series","company","delivery_note","customer","route","dsr","item_code","qty","uom","batch_no","condition","disposition","warehouse","evidence_note","status","stock_entry","approved_by","approved_on"],
+ "field_order":["naming_series","company","delivery_note","column_break_1","customer","route","dsr","column_break_2","item_code","qty","uom","section_break_review","batch_no","condition","disposition","column_break_3","warehouse","evidence_note","status","section_break_approval","stock_entry","approved_by","approved_on"],
  "fields":[
   {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"RET-.#####","default":"RET-.#####","reqd":1},
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
   {"fieldname":"delivery_note","fieldtype":"Link","label":"Delivery Note","options":"Delivery Note","reqd":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
   {"fieldname":"customer","fieldtype":"Link","label":"Retailer","options":"Customer","reqd":1,"in_list_view":1},
   {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1},
   {"fieldname":"dsr","fieldtype":"Link","label":"DSR","options":"User","reqd":1},
+  {"fieldname":"column_break_2","fieldtype":"Column Break"},
   {"fieldname":"item_code","fieldtype":"Link","label":"Item","options":"Item","reqd":1},
   {"fieldname":"qty","fieldtype":"Float","label":"Return Qty","reqd":1},
   {"fieldname":"uom","fieldtype":"Link","label":"UOM","options":"UOM","reqd":1},
+  {"fieldname":"section_break_review","fieldtype":"Section Break","label":"Inspection review"},
   {"fieldname":"batch_no","fieldtype":"Link","label":"Batch","options":"Batch"},
   {"fieldname":"condition","fieldtype":"Select","label":"Condition","options":"Saleable\nDamaged\nDisputed","reqd":1},
   {"fieldname":"disposition","fieldtype":"Select","label":"Disposition","options":"Restock\nQuarantine\nSupplier Claim\nCustomer Credit\nWrite Off","reqd":1},
+  {"fieldname":"column_break_3","fieldtype":"Column Break"},
   {"fieldname":"warehouse","fieldtype":"Link","label":"Inspection Warehouse","options":"Warehouse","reqd":1},
   {"fieldname":"evidence_note","fieldtype":"Small Text","label":"Evidence / Reason"},
   {"fieldname":"status","fieldtype":"Select","label":"Status","options":"Draft\nApproved\nCancelled","default":"Draft","read_only":1,"in_list_view":1}
+  ,{"fieldname":"section_break_approval","fieldtype":"Section Break","label":"Approval"}
   ,{"fieldname":"stock_entry","fieldtype":"Link","label":"Stock Entry","options":"Stock Entry","read_only":1}
   ,{"fieldname":"approved_by","fieldtype":"Link","label":"Approved By","options":"User","read_only":1}
   ,{"fieldname":"approved_on","fieldtype":"Datetime","label":"Approved On","read_only":1}

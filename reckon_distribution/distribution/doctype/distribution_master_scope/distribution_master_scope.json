@@ -3,12 +3,14 @@
  "name":"Distribution Master Scope",
  "module":"Distribution",
  "autoname":"hash",
- "field_order":["company","master_type","master_name","access_scope","active"],
+ "field_order":["company","master_type","column_break_1","master_name","access_scope","column_break_2","active"],
  "fields":[
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},
   {"fieldname":"master_type","fieldtype":"Select","label":"Master Type","options":"Item\nItem Group\nBrand\nPrice List\nItem Price\nSupplier\nCustomer\nWarehouse\nPayment Terms Template\nAccount","reqd":1,"in_list_view":1},
+  {"fieldname":"column_break_1","fieldtype":"Column Break"},
   {"fieldname":"master_name","fieldtype":"Dynamic Link","label":"Master Name","options":"master_type","reqd":1,"in_list_view":1},
   {"fieldname":"access_scope","fieldtype":"Select","label":"Access Scope","options":"Read\nManage","default":"Read","reqd":1},
+  {"fieldname":"column_break_2","fieldtype":"Column Break"},
   {"fieldname":"active","fieldtype":"Check","label":"Active","default":1,"in_list_view":1}
  ],
  "permissions":[

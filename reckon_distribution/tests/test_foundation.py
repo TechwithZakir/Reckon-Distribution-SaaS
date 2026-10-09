@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -144,6 +145,29 @@ class TestFoundation(FrappeTestCase):
         ).read_text()
         self.assertNotIn('__("Web Shell")', distribution_js)
         self.assertNotIn('tile("Stock custody"', van_loading_js)
+
+    def test_distribution_native_forms_have_explicit_dense_layout(self):
+        doctype_root = Path(__file__).parents[1] / "distribution" / "doctype"
+        user_forms = {
+            "distribution_route",
+            "distribution_settings",
+            "dsr_collection_receipt",
+            "dsr_day_settlement",
+            "dsr_due_assignment",
+            "outlet_visit",
+            "retailer_route_assignment",
+            "return_inspection",
+            "sr_order",
+            "van_loading_acknowledgement",
+            "van_loading_challan",
+        }
+        for directory in user_forms:
+            metadata = json.loads(
+                (doctype_root / directory / f"{directory}.json").read_text()
+            )
+            field_types = {field["fieldtype"] for field in metadata["fields"]}
+            self.assertIn("Column Break", field_types, directory)
+            self.assertIn("field_order", metadata)
 
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition

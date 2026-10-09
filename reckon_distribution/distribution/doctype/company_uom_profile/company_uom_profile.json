@@ -3,10 +3,11 @@
  "name":"Company UOM Profile",
  "module":"Distribution",
  "autoname":"field:company",
- "field_order":["company","enabled","units"],
+ "field_order":["company","enabled","section_break_units","units"],
  "fields":[
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"unique":1,"in_list_view":1},
   {"fieldname":"enabled","fieldtype":"Check","label":"Enabled","default":1},
+  {"fieldname":"section_break_units","fieldtype":"Section Break","label":"Enabled Units"},
   {"fieldname":"units","fieldtype":"Table","label":"Enabled Units","options":"Company UOM Profile Item"}
  ],
  "permissions":[

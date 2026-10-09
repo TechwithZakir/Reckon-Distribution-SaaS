@@ -9,6 +9,7 @@
  "field_order": [
   "title",
   "company",
+  "column_break_1",
   "payload"
  ],
  "fields": [
@@ -27,6 +28,10 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "payload",

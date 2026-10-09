@@ -173,6 +173,6 @@ fixtures = [
     },
     {
         "dt": "Workspace",
-        "filters": [["name", "=", "Distribution"]],
+        "filters": [["name", "=", "Distribution Workspace"]],
     },
 ]

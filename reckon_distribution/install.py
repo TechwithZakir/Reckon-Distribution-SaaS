@@ -493,7 +493,7 @@ def _workspace_doc(update: bool = False) -> dict:
     data = {
         "doctype": "Workspace",
         "label": DISTRIBUTION_WORKSPACE,
-        "title": _("Distribution"),
+        "title": _("Distribution Workspace"),
         "module": "Distribution",
         "category": "Modules",
         "public": 0,

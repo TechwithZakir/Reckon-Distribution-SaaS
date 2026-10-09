@@ -26,6 +26,7 @@ class TestFoundation(FrappeTestCase):
     def test_workspace_exists_and_is_role_scoped(self):
         self.assertTrue(frappe.db.exists("Workspace", DISTRIBUTION_WORKSPACE))
         workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)
+        self.assertEqual(workspace.title, "Distribution Workspace")
         workspace_roles = {row.role for row in workspace.roles}
         for role in OPERATIONAL_ROLES:
             self.assertIn(role.name, workspace_roles)

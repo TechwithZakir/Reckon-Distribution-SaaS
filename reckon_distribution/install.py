@@ -8,6 +8,7 @@ from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_RO
 
 def after_install() -> None:
     setup_roles()
+    ensure_company_owned_master_fields()
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
@@ -18,6 +19,7 @@ def after_install() -> None:
 
 def after_migrate() -> None:
     setup_roles()
+    ensure_company_owned_master_fields()
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
@@ -203,6 +205,79 @@ def ensure_purchase_receipt_fields() -> None:
         if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
             continue
         frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
+
+
+def ensure_company_owned_master_fields() -> None:
+    """Install and backfill the Company owner on native Distribution masters."""
+    fields = [
+        {"dt": "Item", "insert_after": "item_name"},
+        {"dt": "Customer", "insert_after": "customer_name"},
+        {"dt": "Supplier", "insert_after": "supplier_name"},
+        {"dt": "Item Price", "insert_after": "item_code"},
+        {"dt": "Price List", "insert_after": "price_list_name"},
+    ]
+    for field in fields:
+        if not frappe.db.exists("DocType", field["dt"]):
+            continue
+        if not frappe.db.exists(
+            "Custom Field", {"dt": field["dt"], "fieldname": "rd_company"}
+        ):
+            frappe.get_doc(
+                {
+                    "doctype": "Custom Field",
+                    "dt": field["dt"],
+                    "fieldname": "rd_company",
+                    "label": "Company",
+                    "fieldtype": "Link",
+                    "options": "Company",
+                    "read_only": 1,
+                    "in_list_view": 1,
+                    "insert_after": field["insert_after"],
+                }
+            ).insert(ignore_permissions=True)
+        _set_property(field["dt"], "rd_company", "read_only", "1", "Check")
+        frappe.clear_cache(doctype=field["dt"])
+
+    _backfill_company_owned_masters()
+
+
+def _backfill_company_owned_masters() -> None:
+    mappings = {
+        "Item": "Item",
+        "Customer": "Customer",
+        "Supplier": "Supplier",
+        "Item Price": "Item Price",
+        "Price List": "Price List",
+    }
+    for doctype, master_type in mappings.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        for record in frappe.get_all(doctype, fields=["name", "rd_company"]):
+            companies = set(
+                frappe.get_all(
+                    "Distribution Master Scope",
+                    filters={
+                        "master_type": master_type,
+                        "master_name": record.name,
+                        "active": 1,
+                    },
+                    pluck="company",
+                )
+            )
+            if record.rd_company:
+                if len(companies) > 1 or (companies and record.rd_company not in companies):
+                    frappe.log_error(
+                        title="Distribution Master Ownership Conflict",
+                        message=f"{doctype} {record.name}: field={record.rd_company}, scopes={sorted(companies)}",
+                    )
+                continue
+            if len(companies) == 1:
+                frappe.db.set_value(doctype, record.name, "rd_company", next(iter(companies)))
+            elif len(companies) > 1:
+                frappe.log_error(
+                    title="Distribution Master Ownership Conflict",
+                    message=f"{doctype} {record.name} is scoped to multiple Companies: {sorted(companies)}",
+                )
 
 
 def reload_distribution_layout_doctypes() -> None:

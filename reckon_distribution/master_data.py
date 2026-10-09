@@ -34,6 +34,9 @@ SHARED_MASTER_TYPES = {
     "Price List": "Price List",
 }
 
+COMPANY_OWNED_MASTER_TYPES = frozenset(SHARED_MASTER_TYPES)
+MASTER_COMPANY_FIELD = "rd_company"
+
 
 def get_shared_master_query(user: str | None = None, doctype: str | None = None) -> str:
     """Restrict native ERPNext master lists and link searches to tenant scope."""
@@ -44,7 +47,12 @@ def get_shared_master_query(user: str | None = None, doctype: str | None = None)
     if not master_type:
         return ""
     tenant = require_tenant(user=user)
-    field = "name" if master_type != "Item Price" else "name"
+    if master_type in COMPANY_OWNED_MASTER_TYPES:
+        if not frappe.db.has_column(doctype, MASTER_COMPANY_FIELD):
+            return "1=0"
+        return f"`tab{doctype}`.`{MASTER_COMPANY_FIELD}` = {frappe.db.escape(tenant.company)}"
+
+    field = "name"
     return (
         f"`tab{doctype}`.`{field}` in ("
         "select master_name from `tabDistribution Master Scope` "
@@ -71,6 +79,8 @@ def has_shared_master_permission(
     tenant = require_tenant(user=user)
     if doc.is_new() and permission_type in {"create", "write"}:
         return True
+    if master_type in COMPANY_OWNED_MASTER_TYPES:
+        return doc.get(MASTER_COMPANY_FIELD) == tenant.company
     if not frappe.db.exists(
         "Distribution Master Scope",
         {"company": tenant.company, "master_type": master_type, "master_name": doc.name, "active": 1},
@@ -100,6 +110,21 @@ def auto_scope_shared_master(doc, method=None) -> None:
     if not master_type:
         return
     tenant = require_tenant()
+    if master_type in COMPANY_OWNED_MASTER_TYPES:
+        other_company = frappe.db.exists(
+            "Distribution Master Scope",
+            {
+                "master_type": master_type,
+                "master_name": doc.name,
+                "company": ["!=", tenant.company],
+                "active": 1,
+            },
+        )
+        if other_company:
+            frappe.throw(
+                _("{0} {1} is already owned by another Company.").format(master_type, doc.name),
+                frappe.PermissionError,
+            )
     scope_name = frappe.db.exists(
         "Distribution Master Scope",
         {"company": tenant.company, "master_type": master_type, "master_name": doc.name},
@@ -121,13 +146,45 @@ def normalize_item_code(doc, method=None) -> None:
     """Use the business-facing Item Name as the unique ERPNext Item Code."""
     if doc.doctype != "Item" or user_can_bypass_tenant() or not doc.get("item_name"):
         return
-    doc.item_code = doc.item_name.strip()
+    desired_code = doc.item_name.strip()
+    if not frappe.db.has_column("Item", MASTER_COMPANY_FIELD):
+        doc.item_code = desired_code
+        return
+    existing = frappe.db.get_value(
+        "Item", desired_code, ["name", MASTER_COMPANY_FIELD], as_dict=True
+    )
+    if not existing or existing.name == doc.name:
+        doc.item_code = desired_code
+        return
+
+    # ERPNext Item Code is globally unique. Keep the same business name while
+    # giving a second Company's item a deterministic native code.
+    tenant = require_tenant()
+    abbr = frappe.db.get_value("Company", tenant.company, "abbr") or tenant.company
+    doc.item_code = f"{abbr}-{desired_code}"
 
 
 def validate_shared_master_change(doc, method=None) -> None:
-    if doc.is_new() or user_can_bypass_tenant():
+    if user_can_bypass_tenant():
         return
-    if not has_shared_master_permission(doc, permission_type="write"):
+    if doc.doctype in COMPANY_OWNED_MASTER_TYPES:
+        tenant = require_tenant()
+        if not doc.get(MASTER_COMPANY_FIELD):
+            doc.set(MASTER_COMPANY_FIELD, tenant.company)
+        elif doc.get(MASTER_COMPANY_FIELD) != tenant.company:
+            frappe.throw(
+                _("This {0} belongs to Company {1}, not {2}.").format(
+                    doc.doctype, doc.get(MASTER_COMPANY_FIELD), tenant.company
+                ),
+                frappe.PermissionError,
+            )
+        if doc.doctype == "Item Price":
+            if doc.get("item_code"):
+                validate_master_scope(tenant.company, "Item", doc.item_code)
+            if doc.get("price_list"):
+                validate_master_scope(tenant.company, "Price List", doc.price_list)
+        return
+    if not doc.is_new() and not has_shared_master_permission(doc, permission_type="write"):
         frappe.throw(_("This master is not editable for your Company."), frappe.PermissionError)
 
 
@@ -162,6 +219,15 @@ def validate_master_scope(
         frappe.throw(_("Unsupported distribution master type: {0}").format(master_type))
     if not frappe.db.exists(master_type, master_name):
         frappe.throw(_("{0} {1} does not exist.").format(master_type, master_name))
+    if master_type in COMPANY_OWNED_MASTER_TYPES and frappe.db.has_column(master_type, MASTER_COMPANY_FIELD):
+        linked_company = frappe.db.get_value(master_type, master_name, MASTER_COMPANY_FIELD)
+        if linked_company == tenant.company:
+            return
+        frappe.throw(
+            _("{0} {1} belongs to Company {2}, not {3}.").format(
+                master_type, master_name, linked_company or _("another Company"), tenant.company
+            )
+        )
     if not frappe.db.exists(
         "Distribution Master Scope",
         {
@@ -193,6 +259,17 @@ def search_company_master(
         selected_fields.insert(0, "company")
     if "master_name" not in selected_fields:
         selected_fields.insert(0, "master_name")
+    if master_type in COMPANY_OWNED_MASTER_TYPES and frappe.db.has_column(master_type, MASTER_COMPANY_FIELD):
+        rows = frappe.get_all(
+            master_type,
+            filters={MASTER_COMPANY_FIELD: tenant.company, "name": ["like", f"%{txt}%"]},
+            fields=["name as master_name"],
+            order_by="name asc",
+        )
+        for row in rows:
+            row.update({"company": tenant.company, "master_type": master_type, "access_scope": "Manage"})
+        return rows
+
     return frappe.get_all(
         "Distribution Master Scope",
         filters={

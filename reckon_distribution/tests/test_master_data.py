@@ -6,6 +6,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.master_data import (
+    get_shared_master_query,
     has_shared_master_permission,
     normalize_item_code,
     search_company_master,
@@ -26,9 +27,20 @@ class TestDistributionMasterData(FrappeTestCase):
 
     def test_tenant_item_code_follows_item_name(self):
         item = frappe._dict({"doctype": "Item", "item_name": "Rupchada Tel", "item_code": "OLD-CODE"})
-        with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False):
+        with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False), patch(
+            "reckon_distribution.master_data.frappe.db.has_column", return_value=False
+        ):
             normalize_item_code(item)
         self.assertEqual(item.item_code, "Rupchada Tel")
+
+    def test_native_master_query_uses_company_owner_field(self):
+        with patch("reckon_distribution.master_data.user_can_bypass_tenant", return_value=False), patch(
+            "reckon_distribution.master_data.require_tenant",
+            return_value=frappe._dict(company=self.company_a),
+        ), patch("reckon_distribution.master_data.frappe.db.has_column", return_value=True):
+            condition = get_shared_master_query(user=self.user_a, doctype="Item")
+        self.assertIn("rd_company", condition)
+        self.assertIn(frappe.db.escape(self.company_a), condition)
 
     def setUp(self):
         self.user_a = "master-data-a@example.com"
@@ -162,19 +174,16 @@ class TestDistributionMasterData(FrappeTestCase):
 
         validate_master_scope(self.company_a, "Item Group", "All Item Groups", user=self.user_a)
 
-    def test_standard_erpnext_masters_can_be_scoped_per_company(self):
-        for master_type in ["Item", "Supplier", "Customer", "Price List", "Item Price"]:
-            master_name = frappe.db.get_value(master_type, {}, "name")
-            if not master_name:
-                continue
-
-            self._scope_for(self.company_a, master_type, master_name)
-            self._scope_for(self.company_b, master_type, master_name)
-
-            rows_a = search_company_master(master_type, user=self.user_a)
-            rows_b = search_company_master(master_type, user=self.user_b)
-            self.assertEqual({row.company for row in rows_a}, {self.company_a})
-            self.assertEqual({row.company for row in rows_b}, {self.company_b})
+    def test_native_masters_are_not_shared_by_scope_rows(self):
+        with patch("reckon_distribution.master_data.require_tenant", return_value=frappe._dict(company=self.company_a)), patch(
+            "reckon_distribution.master_data.frappe.db.has_column", return_value=True
+        ), patch(
+            "reckon_distribution.master_data.frappe.get_all",
+            return_value=[frappe._dict(master_name="ITEM-A")],
+        ):
+            rows = search_company_master("Item", user=self.user_a)
+        self.assertEqual(rows[0].company, self.company_a)
+        self.assertEqual(rows[0].master_type, "Item")
 
     def _scope(self, company: str):
         return self._scope_for(company, "Item Group", "All Item Groups")

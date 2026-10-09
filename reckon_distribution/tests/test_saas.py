@@ -89,6 +89,15 @@ class TestSaaSRegistrationAndGate(FrappeTestCase):
                 {"user": self.email, "company": self.company, "active": 1},
             )
         )
+        permission = frappe.db.get_value(
+            "User Permission",
+            {"user": self.email, "allow": "Company", "for_value": self.company},
+            ["apply_to_all_doctypes", "is_default"],
+            as_dict=True,
+        )
+        self.assertTrue(permission)
+        self.assertTrue(permission.apply_to_all_doctypes)
+        self.assertTrue(permission.is_default)
 
     def test_seed_job_is_idempotent_once_per_company_and_version(self):
         frappe.get_doc(

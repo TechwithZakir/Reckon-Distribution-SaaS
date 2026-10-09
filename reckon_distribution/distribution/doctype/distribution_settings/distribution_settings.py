@@ -15,15 +15,28 @@ class DistributionSettings(Document):
 
         if not user_can_bypass_tenant():
             for fieldname, master_type in (
-                ("default_warehouse", "Warehouse"),
                 ("default_price_list", "Price List"),
                 ("default_payment_terms_template", "Payment Terms Template"),
-                ("default_receivable_account", "Account"),
-                ("default_cash_account", "Account"),
             ):
                 master_name = self.get(fieldname)
                 if master_name:
                     validate_master_scope(self.company, master_type, master_name)
+
+            for fieldname, doctype in (
+                ("default_warehouse", "Warehouse"),
+                ("default_receivable_account", "Account"),
+                ("default_cash_account", "Account"),
+            ):
+                master_name = self.get(fieldname)
+                if not master_name:
+                    continue
+                linked_company = frappe.db.get_value(doctype, master_name, "company")
+                if linked_company != self.company:
+                    frappe.throw(
+                        frappe._("{0} {1} belongs to Company {2}, not {3}.").format(
+                            doctype, master_name, linked_company or frappe._("another Company"), self.company
+                        )
+                    )
 
         if self.default_uom_profile:
             profile_company = frappe.db.get_value(

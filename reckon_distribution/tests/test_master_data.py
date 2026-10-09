@@ -126,6 +126,20 @@ class TestDistributionMasterData(FrappeTestCase):
         with self.assertRaises(frappe.ValidationError):
             settings.validate()
 
+    def test_settings_accepts_company_warehouse_without_master_scope(self):
+        warehouse = frappe.db.get_value("Warehouse", {"company": self.company_a}, "name")
+        if not warehouse:
+            self.skipTest("Test site has no warehouse for the tenant company")
+        settings = frappe.get_doc(
+            {
+                "doctype": "Distribution Settings",
+                "company": self.company_a,
+                "supplier_goods_policy": "Supplier Provided Goods Only",
+                "default_warehouse": warehouse,
+            }
+        )
+        settings.validate()
+
     def test_route_is_immutable_and_company_scoped(self):
         route_a = self._route(self.route_a, self.company_a)
         self._route(self.route_b, self.company_b)

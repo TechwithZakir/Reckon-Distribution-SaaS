@@ -84,6 +84,8 @@ def save_company_settings(payload: str | dict) -> str:
         "default_receivable_account": data.get("default_receivable_account"),
         "default_cash_account": data.get("default_cash_account"),
     }
+    if data.get("default_price_list"):
+        _scope(tenant.company, "Price List", data["default_price_list"])
     existing = frappe.db.exists("Distribution Settings", {"company": tenant.company})
     doc = frappe.get_doc("Distribution Settings", existing) if existing else frappe.get_doc({"doctype": "Distribution Settings"})
     doc.update(values)

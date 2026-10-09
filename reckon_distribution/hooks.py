@@ -93,6 +93,11 @@ doc_events = {
     "Warehouse": {
         "validate": "reckon_distribution.warehouse.validate_warehouse",
     },
+    "Tenant User Assignment": {
+        "validate": "reckon_distribution.warehouse.validate_tenant_assignment",
+        "after_insert": "reckon_distribution.warehouse.sync_tenant_user_permission",
+        "on_update": "reckon_distribution.warehouse.sync_tenant_user_permission",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]

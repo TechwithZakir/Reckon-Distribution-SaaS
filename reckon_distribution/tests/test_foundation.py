@@ -219,6 +219,8 @@ class TestFoundation(FrappeTestCase):
         self.assertIn("get_company_query", warehouse)
         self.assertIn("get_children", warehouse)
         self.assertIn('"Company": "reckon_distribution.warehouse.get_company_query"', hooks)
+        self.assertIn("User Permission", warehouse)
+        self.assertIn("apply_to_all_doctypes", warehouse)
 
 
 class TestCompatibilityHelpers(unittest.TestCase):

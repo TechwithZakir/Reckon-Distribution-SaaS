@@ -37,7 +37,9 @@ def has_company_permission(doc, user=None, ptype=None, permission_type=None, deb
 
 
 @frappe.whitelist()
-def get_children(doctype, parent=None, company=None, is_root=False, **kwargs):
+def get_children(
+    doctype, parent=None, company=None, is_root=False, include_disabled=False, **kwargs
+):
     """Use the server tenant Company for the native Warehouse Tree."""
     from erpnext.stock.doctype.warehouse.warehouse import get_children as erpnext_get_children
 
@@ -48,5 +50,58 @@ def get_children(doctype, parent=None, company=None, is_root=False, **kwargs):
         parent=parent,
         company=company,
         is_root=is_root,
-        **kwargs,
+        include_disabled=include_disabled,
     )
+
+
+def validate_tenant_assignment(doc, method=None) -> None:
+    """A normal tenant login may have only one active Company assignment."""
+    if not doc.get("active") or not doc.get("user") or not doc.get("company"):
+        return
+    existing = frappe.get_all(
+        "Tenant User Assignment",
+        filters={"user": doc.user, "active": 1, "name": ["!=", doc.name]},
+        fields=["company"],
+    )
+    other_companies = {row.company for row in existing if row.company and row.company != doc.company}
+    if other_companies:
+        frappe.throw(
+            _("User {0} already has an active Company assignment: {1}.").format(
+                doc.user, ", ".join(sorted(other_companies))
+            ),
+            frappe.PermissionError,
+        )
+
+
+def sync_tenant_user_permission(doc, method=None) -> None:
+    """Materialize the assignment as Frappe's standard Company User Permission."""
+    if not doc.get("user"):
+        return
+    active = frappe.get_all(
+        "Tenant User Assignment",
+        filters={"user": doc.user, "active": 1},
+        fields=["company"],
+    )
+    companies = {row.company for row in active if row.company}
+    if len(companies) > 1:
+        frappe.throw(
+            _("User {0} cannot have access to multiple Companies.").format(doc.user),
+            frappe.PermissionError,
+        )
+
+    for permission in frappe.get_all(
+        "User Permission", filters={"user": doc.user, "allow": "Company"}, pluck="name"
+    ):
+        frappe.delete_doc("User Permission", permission, ignore_permissions=True, force=True)
+
+    if companies:
+        frappe.get_doc(
+            {
+                "doctype": "User Permission",
+                "user": doc.user,
+                "allow": "Company",
+                "for_value": next(iter(companies)),
+                "apply_to_all_doctypes": 1,
+                "is_default": 1,
+            }
+        ).insert(ignore_permissions=True)

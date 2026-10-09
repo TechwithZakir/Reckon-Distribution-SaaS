@@ -34,25 +34,6 @@
     "company-uom-profile",
     "undefined",
   ]);
-  const denseFormRoutes = new Set([
-    "distribution-settings",
-    "distribution-route",
-    "customer",
-    "supplier",
-    "item",
-    "item-price",
-    "price-list",
-    "purchase-receipt",
-    "van-loading-challan",
-    "van-loading-acknowledgement",
-    "dsr-collection-receipt",
-    "sr-order",
-    "outlet-visit",
-    "delivery-note",
-    "return-inspection",
-    "dsr-day-settlement",
-  ]);
-
   function routeName(href) {
     try {
       const url = new URL(href, window.location.origin);
@@ -81,55 +62,6 @@
     });
   }
 
-  function applyDenseFormLayout() {
-    const currentRoute = routeName(window.location.href);
-    const enabled = denseFormRoutes.has(currentRoute);
-    document.documentElement.classList.toggle("rd-distribution-dense-form", enabled);
-    if (!enabled) return;
-
-    const desktop = window.innerWidth >= 992;
-    const tablet = window.innerWidth >= 768;
-    const isSettlement = currentRoute === "dsr-day-settlement";
-    const columns = isSettlement ? (tablet ? 2 : 1) : desktop ? 3 : tablet ? 2 : 1;
-
-    document
-      .querySelectorAll(".layout-main-section, .layout-main-section-wrapper, .form-layout")
-      .forEach((element) => {
-        element.style.setProperty("width", "100%", "important");
-        element.style.setProperty("max-width", "none", "important");
-      });
-
-    document.querySelectorAll(".form-layout .form-section").forEach((section) => {
-      const body = section.querySelector(":scope > .section-body") || section;
-      section.style.setProperty("width", "100%", "important");
-      section.style.setProperty("max-width", "none", "important");
-      body.style.setProperty("width", "100%", "important");
-      body.style.setProperty("max-width", "none", "important");
-      body.style.setProperty("display", "grid", "important");
-      body.style.setProperty(
-        "grid-template-columns",
-        `repeat(${columns}, minmax(0, 1fr))`,
-        "important"
-      );
-      body.style.setProperty("column-gap", desktop ? "24px" : "20px", "important");
-      body.style.setProperty("row-gap", "4px", "important");
-
-      section.querySelectorAll(".form-column").forEach((column) => {
-        column.style.setProperty("display", "contents", "important");
-        column.style.setProperty("float", "none", "important");
-        column.style.setProperty("width", "auto", "important");
-      });
-
-      section.querySelectorAll(".frappe-control").forEach((control) => {
-        control.style.setProperty("width", "auto", "important");
-        control.style.setProperty("min-width", "0", "important");
-        if (control.querySelector(".grid-field")) {
-          control.style.setProperty("grid-column", "1 / -1", "important");
-        }
-      });
-    });
-  }
-
   function enforceDistributionRoute() {
     if (window.location.pathname === "/desk/undefined") {
       window.location.replace("/desk/distribution");
@@ -150,29 +82,21 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     hideInternalSidebarLinks();
-    applyDenseFormLayout();
-    [100, 300, 700, 1200].forEach((delay) => window.setTimeout(applyDenseFormLayout, delay));
     enforceDistributionRoute();
   });
   new MutationObserver(function () {
     hideInternalSidebarLinks();
-    applyDenseFormLayout();
   }).observe(document.documentElement, {
     childList: true,
     subtree: true,
   });
 
   window.addEventListener("popstate", enforceDistributionRoute);
-  window.addEventListener("resize", applyDenseFormLayout);
   const installRouterGuard = window.setInterval(function () {
     if (!window.frappe || !frappe.router || typeof frappe.router.on !== "function") {
       return;
     }
     frappe.router.on("change", enforceDistributionRoute);
-    frappe.router.on("change", applyDenseFormLayout);
-    frappe.router.on("change", function () {
-      [100, 300, 700, 1200].forEach((delay) => window.setTimeout(applyDenseFormLayout, delay));
-    });
     window.clearInterval(installRouterGuard);
     enforceDistributionRoute();
   }, 100);

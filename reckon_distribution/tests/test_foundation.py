@@ -206,6 +206,13 @@ class TestFoundation(FrappeTestCase):
         )
         self.assertEqual(metadata["autoname"], "field:company")
 
+    def test_distribution_exposes_warehouse_setup(self):
+        guard = (Path(__file__).parents[1] / "desk_guard.py").read_text()
+        install = (Path(__file__).parents[1] / "install.py").read_text()
+        self.assertIn('"warehouse"', guard)
+        self.assertIn("Distribution Warehouses", install)
+        self.assertNotIn('"rd_layout_column_2", "fieldtype": "Column Break"', install)
+
 
 class TestCompatibilityHelpers(unittest.TestCase):
     def test_major_version_parser(self):

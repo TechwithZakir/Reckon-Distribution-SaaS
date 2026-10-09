@@ -90,6 +90,9 @@ doc_events = {
         "validate": "reckon_distribution.master_data.validate_shared_master_change",
         "after_insert": "reckon_distribution.master_data.auto_scope_shared_master",
     },
+    "Warehouse": {
+        "validate": "reckon_distribution.warehouse.validate_warehouse",
+    },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
@@ -118,6 +121,7 @@ permission_query_conditions = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Warehouse": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Customer": "reckon_distribution.master_data.get_shared_master_query",
     "Supplier": "reckon_distribution.master_data.get_shared_master_query",
     "Item": "reckon_distribution.master_data.get_shared_master_query",
@@ -143,6 +147,7 @@ has_permission = {
     "Company UOM Profile": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Warehouse": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Customer": "reckon_distribution.master_data.has_shared_master_permission",
     "Supplier": "reckon_distribution.master_data.has_shared_master_permission",
     "Item": "reckon_distribution.master_data.has_shared_master_permission",

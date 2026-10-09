@@ -226,7 +226,6 @@ def ensure_dense_layout_fields() -> None:
         ],
         "Distribution Settings": [
             {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "supplier_goods_policy"},
-            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "default_price_list"},
         ],
         "DSR Collection Receipt": [
             {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
@@ -287,6 +286,14 @@ def ensure_dense_layout_fields() -> None:
     for doctype, fields in layouts.items():
         if not frappe.db.exists("DocType", doctype):
             continue
+
+        if doctype == "Distribution Settings":
+            obsolete = frappe.db.exists(
+                "Custom Field", {"dt": doctype, "fieldname": "rd_layout_column_2"}
+            )
+            if obsolete:
+                frappe.delete_doc("Custom Field", obsolete, ignore_permissions=True, force=True)
+                frappe.clear_cache(doctype=doctype)
 
         if doctype == "DSR Day Settlement":
             # Older migrations created fallback Custom Fields before the native
@@ -433,7 +440,7 @@ def ensure_native_master_permissions() -> None:
         "Customer Group": {"read"},
         "Supplier Group": {"read"},
         "Territory": {"read"},
-        "Warehouse": {"read"},
+        "Warehouse": {"read", "write", "create", "delete", "report", "export", "print"},
         "Payment Terms Template": {"read"},
         "Account": {"read"},
     }
@@ -503,6 +510,7 @@ def _workspace_doc(update: bool = False) -> dict:
         "content": _workspace_content(),
         "shortcuts": [
             {"color": "Blue", "label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
+            {"color": "Blue", "label": "Distribution Warehouses", "link_to": "Warehouse", "type": "DocType"},
             {"color": "Purple", "label": "Team & Access", "link_to": "distribution-team-access", "type": "Page"},
             {"color": "Green", "label": "Field Sales", "link_to": "field-sales", "type": "Page"},
             {"color": "Orange", "label": "Van Loading", "link_to": "van-loading", "type": "Page"},

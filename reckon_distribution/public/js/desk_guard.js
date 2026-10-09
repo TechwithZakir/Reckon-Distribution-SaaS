@@ -4,6 +4,7 @@
     "distribution-master-setup",
     "distribution-team-access",
     "distribution-settings",
+    "warehouse",
     "distribution-route",
     "distribution-master-scope",
     "customer",

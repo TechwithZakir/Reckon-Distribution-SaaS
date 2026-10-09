@@ -1,7 +1,8 @@
 /* Keep native ERPNext forms dense for distributor master and transaction entry. */
 .layout-main-section-wrapper,
 .layout-main-section,
-.layout-main-section .form-layout {
+.layout-main-section .form-layout,
+.form-layout {
   width: 100% !important;
   max-width: none !important;
 }
@@ -11,61 +12,57 @@
 }
 
 @media (min-width: 992px) {
-  .layout-main-section .form-layout .form-section > .section-body,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 24px;
-    row-gap: 4px;
+  .form-layout .form-section > .section-body,
+  .form-layout .form-section:not(:has(> .section-body)) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 24px !important;
+    row-gap: 4px !important;
     align-items: start;
   }
 
-  .layout-main-section .form-layout .form-section > .section-body > .form-column,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-column {
-    display: contents;
+  .form-layout .form-section > .section-body > .form-column,
+  .form-layout .form-section:not(:has(> .section-body)) > .form-column {
+    display: contents !important;
   }
 
   /* A DocType without explicit Column Breaks has one wrapper column. Flatten
      it so each native field participates in the three-column layout. */
-  .layout-main-section .form-layout .form-section .frappe-control {
+  .form-layout .form-section .frappe-control {
     min-width: 0;
     width: auto !important;
   }
 
-  .layout-main-section .form-layout .form-section > .section-body > .form-grid,
-  .layout-main-section .form-layout .form-section > .section-body > .grid-field,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
-    grid-column: 1 / -1;
+  .form-layout .form-section .frappe-control:has(.grid-field),
+  .form-layout .form-section > .section-body > .form-grid,
+  .form-layout .form-section > .section-body > .grid-field,
+  .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
+  .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
+    grid-column: 1 / -1 !important;
   }
 
-  .layout-main-section .form-layout .form-section > .section-body:has(.form-grid),
-  .layout-main-section .form-layout .form-section > .section-body:has(.grid-field),
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)):has(.form-grid),
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)):has(.grid-field) {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
-  .layout-main-section .form-layout .form-section > .section-body,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 20px;
+  .form-layout .form-section > .section-body,
+  .form-layout .form-section:not(:has(> .section-body)) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 20px !important;
     align-items: start;
   }
 
-  .layout-main-section .form-layout .form-section > .section-body > .form-column,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-column {
-    display: contents;
+  .form-layout .form-section > .section-body > .form-column,
+  .form-layout .form-section:not(:has(> .section-body)) > .form-column {
+    display: contents !important;
   }
 
-  .layout-main-section .form-layout .form-section > .section-body > .form-grid,
-  .layout-main-section .form-layout .form-section > .section-body > .grid-field,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
-  .layout-main-section .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
-    grid-column: 1 / -1;
+  .form-layout .form-section .frappe-control:has(.grid-field),
+  .form-layout .form-section > .section-body > .form-grid,
+  .form-layout .form-section > .section-body > .grid-field,
+  .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
+  .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
+    grid-column: 1 / -1 !important;
   }
 }
 

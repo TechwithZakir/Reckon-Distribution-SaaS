@@ -213,6 +213,13 @@ class TestFoundation(FrappeTestCase):
         self.assertIn("Distribution Warehouses", install)
         self.assertNotIn('"rd_layout_column_2", "fieldtype": "Column Break"', install)
 
+    def test_distribution_restricts_company_lookup_for_tenant_users(self):
+        warehouse = (Path(__file__).parents[1] / "warehouse.py").read_text()
+        hooks = (Path(__file__).parents[1] / "hooks.py").read_text()
+        self.assertIn("get_company_query", warehouse)
+        self.assertIn("get_children", warehouse)
+        self.assertIn('"Company": "reckon_distribution.warehouse.get_company_query"', hooks)
+
 
 class TestCompatibilityHelpers(unittest.TestCase):
     def test_major_version_parser(self):

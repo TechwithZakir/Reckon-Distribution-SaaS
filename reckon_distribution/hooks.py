@@ -122,6 +122,7 @@ permission_query_conditions = {
     "Distribution Route": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Warehouse": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Company": "reckon_distribution.warehouse.get_company_query",
     "Customer": "reckon_distribution.master_data.get_shared_master_query",
     "Supplier": "reckon_distribution.master_data.get_shared_master_query",
     "Item": "reckon_distribution.master_data.get_shared_master_query",
@@ -148,6 +149,7 @@ has_permission = {
     "Distribution Route": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Distribution Master Scope": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Warehouse": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Company": "reckon_distribution.warehouse.has_company_permission",
     "Customer": "reckon_distribution.master_data.has_shared_master_permission",
     "Supplier": "reckon_distribution.master_data.has_shared_master_permission",
     "Item": "reckon_distribution.master_data.has_shared_master_permission",
@@ -157,6 +159,7 @@ has_permission = {
 
 override_whitelisted_methods = {
     "frappe.desk.desk_page.getpage": "reckon_distribution.desk_guard.getpage",
+    "erpnext.stock.doctype.warehouse.warehouse.get_children": "reckon_distribution.warehouse.get_children",
 }
 
 fixtures = [

@@ -11,6 +11,7 @@ def after_install() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
 
@@ -19,6 +20,7 @@ def after_migrate() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
 
@@ -199,6 +201,103 @@ def ensure_purchase_receipt_fields() -> None:
         if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
             continue
         frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
+
+
+def ensure_dense_layout_fields() -> None:
+    """Add native layout markers when older sites missed DocType JSON sync.
+
+    These fields contain no business data. They make the three-column layout
+    explicit to Frappe's native form renderer and keep long table/reconciliation
+    sections full width. The names are prefixed so they cannot collide with
+    standard or previously exported DocFields.
+    """
+    layouts = {
+        "Distribution Route": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "route_code"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "route_name"},
+        ],
+        "Distribution Settings": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "supplier_goods_policy"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "default_price_list"},
+        ],
+        "DSR Collection Receipt": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "collection_date"},
+            {"fieldname": "rd_layout_section_details", "fieldtype": "Section Break", "label": "Collection details", "insert_after": "reference_no"},
+            {"fieldname": "rd_layout_column_3", "fieldtype": "Column Break", "insert_after": "note"},
+            {"fieldname": "rd_layout_section_gps", "fieldtype": "Section Break", "label": "Location", "insert_after": "payment_entry"},
+        ],
+        "DSR Day Settlement": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "settlement_date"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "status"},
+            {"fieldname": "rd_layout_section_cash", "fieldtype": "Section Break", "label": "Cash reconciliation", "insert_after": "approved_expenses"},
+            {"fieldname": "rd_layout_column_3", "fieldtype": "Column Break", "insert_after": "cash_handover"},
+            {"fieldname": "rd_layout_column_4", "fieldtype": "Column Break", "insert_after": "counted_cash"},
+            {"fieldname": "rd_layout_section_stock", "fieldtype": "Section Break", "label": "Stock reconciliation", "insert_after": "cash_variance_reason"},
+            {"fieldname": "rd_layout_section_approval", "fieldtype": "Section Break", "label": "Approval", "insert_after": "stock_items"},
+        ],
+        "DSR Due Assignment": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "effective_from"},
+            {"fieldname": "rd_layout_section_approval", "fieldtype": "Section Break", "label": "Approval", "insert_after": "opening_unapplied_credit"},
+        ],
+        "Outlet Visit": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "visited_on"},
+            {"fieldname": "rd_layout_section_gps", "fieldtype": "Section Break", "label": "Location", "insert_after": "idempotency_key"},
+        ],
+        "Retailer Route Assignment": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "assigned_user"},
+        ],
+        "Return Inspection": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "delivery_note"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "dsr"},
+            {"fieldname": "rd_layout_section_review", "fieldtype": "Section Break", "label": "Inspection", "insert_after": "uom"},
+            {"fieldname": "rd_layout_column_3", "fieldtype": "Column Break", "insert_after": "condition"},
+            {"fieldname": "rd_layout_section_approval", "fieldtype": "Section Break", "label": "Approval", "insert_after": "status"},
+        ],
+        "SR Order": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "customer"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "order_date"},
+            {"fieldname": "rd_layout_section_gps", "fieldtype": "Section Break", "label": "Location", "insert_after": "idempotency_key"},
+            {"fieldname": "rd_layout_section_items", "fieldtype": "Section Break", "label": "Order items", "insert_after": "gps_captured_on"},
+        ],
+        "Van Loading Challan": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "posting_date"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "van_warehouse"},
+            {"fieldname": "rd_layout_section_items", "fieldtype": "Section Break", "label": "Loading items", "insert_after": "dsr"},
+            {"fieldname": "rd_layout_section_audit", "fieldtype": "Section Break", "label": "Approval and audit", "insert_after": "items"},
+        ],
+        "Van Loading Acknowledgement": [
+            {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "challan"},
+            {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "acknowledged_on"},
+            {"fieldname": "rd_layout_section_items", "fieldtype": "Section Break", "label": "Acknowledged items", "insert_after": "acknowledged_on"},
+        ],
+    }
+
+    for doctype, fields in layouts.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+
+        existing = {field.fieldname for field in frappe.get_meta(doctype).fields if field.fieldname}
+        for field in fields:
+            if field["fieldname"] in existing or frappe.db.exists(
+                "Custom Field", {"dt": doctype, "fieldname": field["fieldname"]}
+            ):
+                continue
+            values = {
+                "doctype": "Custom Field",
+                "dt": doctype,
+                "fieldname": field["fieldname"],
+                "fieldtype": field["fieldtype"],
+                "insert_after": field["insert_after"],
+            }
+            if field.get("label"):
+                values["label"] = field["label"]
+            frappe.get_doc("Custom Field", values).insert(ignore_permissions=True)
+            existing.add(field["fieldname"])
+        frappe.clear_cache(doctype=doctype)
 
 
 def setup_roles() -> None:

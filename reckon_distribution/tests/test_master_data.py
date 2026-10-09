@@ -6,7 +6,9 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.master_data import (
+    COMPANY_OWNED_MASTER_TYPES,
     get_shared_master_query,
+    get_company_owned_master_registry,
     has_shared_master_permission,
     normalize_item_code,
     search_company_master,
@@ -17,6 +19,16 @@ from reckon_distribution.tenant_security import validate_tenant_owned_doc
 
 
 class TestDistributionMasterData(FrappeTestCase):
+    def test_company_owned_master_registry_is_explicit(self):
+        self.assertEqual(
+            set(get_company_owned_master_registry()),
+            set(COMPANY_OWNED_MASTER_TYPES),
+        )
+        self.assertEqual(
+            {spec["company_field"] for spec in get_company_owned_master_registry().values()},
+            {"rd_company"},
+        )
+
     def test_new_shared_master_uses_frappe_ptype_hook_argument(self):
         item = frappe._dict({"doctype": "Item", "name": "new-item-test"})
         item.is_new = lambda: True

@@ -38,6 +38,14 @@ COMPANY_OWNED_MASTER_TYPES = frozenset(SHARED_MASTER_TYPES)
 MASTER_COMPANY_FIELD = "rd_company"
 
 
+def get_company_owned_master_registry() -> dict[str, dict[str, str]]:
+    """Return the single ownership contract used by migration and validation."""
+    return {
+        doctype: {"ownership": "company-owned", "company_field": MASTER_COMPANY_FIELD}
+        for doctype in sorted(COMPANY_OWNED_MASTER_TYPES)
+    }
+
+
 def get_shared_master_query(user: str | None = None, doctype: str | None = None) -> str:
     """Restrict native ERPNext master lists and link searches to tenant scope."""
     user = user or frappe.session.user
@@ -161,7 +169,13 @@ def normalize_item_code(doc, method=None) -> None:
     # giving a second Company's item a deterministic native code.
     tenant = require_tenant()
     abbr = frappe.db.get_value("Company", tenant.company, "abbr") or tenant.company
-    doc.item_code = f"{abbr}-{desired_code}"
+    base_code = f"{abbr}-{desired_code}"
+    candidate = base_code
+    suffix = 2
+    while frappe.db.exists("Item", candidate) and candidate != doc.name:
+        candidate = f"{base_code}-{suffix}"
+        suffix += 1
+    doc.item_code = candidate
 
 
 def validate_shared_master_change(doc, method=None) -> None:
@@ -194,6 +208,18 @@ def validate_master_reference(doc) -> None:
         frappe.throw(_("Unsupported distribution master type: {0}").format(doc.master_type))
     if not frappe.db.exists(doc.master_type, doc.master_name):
         frappe.throw(_("{0} {1} does not exist.").format(doc.master_type, doc.master_name))
+    if (
+        doc.master_type in COMPANY_OWNED_MASTER_TYPES
+        and frappe.db.has_column(doc.master_type, MASTER_COMPANY_FIELD)
+    ):
+        linked_company = frappe.db.get_value(doc.master_type, doc.master_name, MASTER_COMPANY_FIELD)
+        if linked_company and linked_company != doc.company:
+            frappe.throw(
+                _("{0} {1} belongs to Company {2}, not {3}.").format(
+                    doc.master_type, doc.master_name, linked_company, doc.company
+                ),
+                frappe.PermissionError,
+            )
     duplicate = frappe.db.exists(
         "Distribution Master Scope",
         {
@@ -287,3 +313,42 @@ def search_company_master(
 def assert_company_master(company: str, master_type: str, master_name: str) -> dict:
     validate_master_scope(company, master_type, master_name)
     return {"company": company, "master_type": master_type, "master_name": master_name}
+
+
+@frappe.whitelist()
+def get_master_ownership_conflicts() -> list[dict]:
+    """Return unresolved native-master ownership for administrator diagnostics."""
+    if not user_can_bypass_tenant():
+        frappe.throw(_("Only a system administrator can inspect ownership conflicts."), frappe.PermissionError)
+
+    conflicts = []
+    for doctype, master_type in SHARED_MASTER_TYPES.items():
+        if not frappe.db.exists("DocType", doctype) or not frappe.db.has_column(
+            doctype, MASTER_COMPANY_FIELD
+        ):
+            continue
+        for record in frappe.get_all(doctype, fields=["name", MASTER_COMPANY_FIELD]):
+            companies = sorted(
+                set(
+                    frappe.get_all(
+                        "Distribution Master Scope",
+                        filters={
+                            "master_type": master_type,
+                            "master_name": record.name,
+                            "active": 1,
+                        },
+                        pluck="company",
+                    )
+                )
+            )
+            if not record.get(MASTER_COMPANY_FIELD) or len(companies) > 1:
+                conflicts.append(
+                    {
+                        "doctype": doctype,
+                        "name": record.name,
+                        "company": record.get(MASTER_COMPANY_FIELD),
+                        "scoped_companies": ", ".join(companies),
+                        "reason": "multiple scope companies" if len(companies) > 1 else "missing Company owner",
+                    }
+                )
+    return conflicts

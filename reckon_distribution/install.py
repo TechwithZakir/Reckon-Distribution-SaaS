@@ -209,12 +209,18 @@ def ensure_purchase_receipt_fields() -> None:
 
 def ensure_company_owned_master_fields() -> None:
     """Install and backfill the Company owner on native Distribution masters."""
+    from reckon_distribution.master_data import get_company_owned_master_registry
+
+    insert_after = {
+        "Item": "item_name",
+        "Customer": "customer_name",
+        "Supplier": "supplier_name",
+        "Item Price": "item_code",
+        "Price List": "price_list_name",
+    }
     fields = [
-        {"dt": "Item", "insert_after": "item_name"},
-        {"dt": "Customer", "insert_after": "customer_name"},
-        {"dt": "Supplier", "insert_after": "supplier_name"},
-        {"dt": "Item Price", "insert_after": "item_code"},
-        {"dt": "Price List", "insert_after": "price_list_name"},
+        {"dt": doctype, "insert_after": insert_after[doctype]}
+        for doctype in get_company_owned_master_registry()
     ]
     for field in fields:
         if not frappe.db.exists("DocType", field["dt"]):
@@ -242,13 +248,9 @@ def ensure_company_owned_master_fields() -> None:
 
 
 def _backfill_company_owned_masters() -> None:
-    mappings = {
-        "Item": "Item",
-        "Customer": "Customer",
-        "Supplier": "Supplier",
-        "Item Price": "Item Price",
-        "Price List": "Price List",
-    }
+    from reckon_distribution.master_data import get_company_owned_master_registry
+
+    mappings = {doctype: doctype for doctype in get_company_owned_master_registry()}
     for doctype, master_type in mappings.items():
         if not frappe.db.exists("DocType", doctype):
             continue
@@ -277,6 +279,11 @@ def _backfill_company_owned_masters() -> None:
                 frappe.log_error(
                     title="Distribution Master Ownership Conflict",
                     message=f"{doctype} {record.name} is scoped to multiple Companies: {sorted(companies)}",
+                )
+            else:
+                frappe.log_error(
+                    title="Distribution Master Ownership Missing",
+                    message=f"{doctype} {record.name} has no unambiguous Company owner.",
                 )
 
 

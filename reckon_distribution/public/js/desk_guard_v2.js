@@ -34,6 +34,24 @@
     "company-uom-profile",
     "undefined",
   ]);
+  const denseFormRoutes = new Set([
+    "distribution-settings",
+    "distribution-route",
+    "customer",
+    "supplier",
+    "item",
+    "item-price",
+    "price-list",
+    "purchase-receipt",
+    "van-loading-challan",
+    "van-loading-acknowledgement",
+    "dsr-collection-receipt",
+    "sr-order",
+    "outlet-visit",
+    "delivery-note",
+    "return-inspection",
+    "dsr-day-settlement",
+  ]);
 
   function routeName(href) {
     try {
@@ -64,9 +82,14 @@
   }
 
   function applyDenseFormLayout() {
+    const currentRoute = routeName(window.location.href);
+    const enabled = denseFormRoutes.has(currentRoute);
+    document.documentElement.classList.toggle("rd-distribution-dense-form", enabled);
+    if (!enabled) return;
+
     const desktop = window.innerWidth >= 992;
     const tablet = window.innerWidth >= 768;
-    const isSettlement = routeName(window.location.href) === "dsr-day-settlement";
+    const isSettlement = currentRoute === "dsr-day-settlement";
     const columns = isSettlement ? (tablet ? 2 : 1) : desktop ? 3 : tablet ? 2 : 1;
 
     document

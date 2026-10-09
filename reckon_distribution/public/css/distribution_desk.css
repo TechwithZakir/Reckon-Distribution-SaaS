@@ -1,21 +1,21 @@
 /* Keep native ERPNext forms dense for distributor master and transaction entry. */
-.layout-main-section-wrapper,
-.layout-main-section,
-.layout-main-section .form-layout,
-.form-layout,
-.form-layout .form-section,
-.form-layout .form-section .section-body {
+.rd-distribution-dense-form .layout-main-section-wrapper,
+.rd-distribution-dense-form .layout-main-section,
+.rd-distribution-dense-form .layout-main-section .form-layout,
+.rd-distribution-dense-form .form-layout,
+.rd-distribution-dense-form .form-layout .form-section,
+.rd-distribution-dense-form .form-layout .form-section .section-body {
   width: 100% !important;
   max-width: none !important;
 }
 
-.layout-main-section {
+.rd-distribution-dense-form .layout-main-section {
   flex: 1 1 auto;
 }
 
 @media (min-width: 992px) {
-  .form-layout .form-section > .section-body,
-  .form-layout .form-section:not(:has(> .section-body)) {
+  .rd-distribution-dense-form .form-layout .form-section > .section-body,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     column-gap: 24px !important;
@@ -23,9 +23,9 @@
     align-items: start;
   }
 
-  .form-layout .form-section > .section-body > .form-column,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-column,
-  .form-layout .form-section .form-column {
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .form-column,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .form-column,
+  .rd-distribution-dense-form .form-layout .form-section .form-column {
     display: contents !important;
     float: none !important;
     width: auto !important;
@@ -33,56 +33,56 @@
 
   /* A DocType without explicit Column Breaks has one wrapper column. Flatten
      it so each native field participates in the three-column layout. */
-  .form-layout .form-section .frappe-control {
+  .rd-distribution-dense-form .form-layout .form-section .frappe-control {
     min-width: 0;
     width: auto !important;
     max-width: none !important;
   }
 
-  .form-layout .form-section .frappe-control:has(.grid-field),
-  .form-layout .form-section > .section-body > .form-grid,
-  .form-layout .form-section > .section-body > .grid-field,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
-  .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
+  .rd-distribution-dense-form .form-layout .form-section .frappe-control:has(.grid-field),
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .form-grid,
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .grid-field,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
     grid-column: 1 / -1 !important;
   }
 
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
-  .form-layout .form-section > .section-body,
-  .form-layout .form-section:not(:has(> .section-body)) {
+  .rd-distribution-dense-form .form-layout .form-section > .section-body,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     column-gap: 20px !important;
     align-items: start;
   }
 
-  .form-layout .form-section > .section-body > .form-column,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-column,
-  .form-layout .form-section .form-column {
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .form-column,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .form-column,
+  .rd-distribution-dense-form .form-layout .form-section .form-column {
     display: contents !important;
     float: none !important;
     width: auto !important;
   }
 
-  .form-layout .form-section .frappe-control {
+  .rd-distribution-dense-form .form-layout .form-section .frappe-control {
     min-width: 0;
     width: auto !important;
     max-width: none !important;
   }
 
-  .form-layout .form-section .frappe-control:has(.grid-field),
-  .form-layout .form-section > .section-body > .form-grid,
-  .form-layout .form-section > .section-body > .grid-field,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
-  .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
+  .rd-distribution-dense-form .form-layout .form-section .frappe-control:has(.grid-field),
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .form-grid,
+  .rd-distribution-dense-form .form-layout .form-section > .section-body > .grid-field,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .form-grid,
+  .rd-distribution-dense-form .form-layout .form-section:not(:has(> .section-body)) > .grid-field {
     grid-column: 1 / -1 !important;
   }
 }
 
 /* Child tables remain readable and never get squeezed into one form column. */
-.layout-main-section .form-layout .grid-field,
-.layout-main-section .form-layout .form-grid {
+.rd-distribution-dense-form .layout-main-section .form-layout .grid-field,
+.rd-distribution-dense-form .layout-main-section .form-layout .form-grid {
   min-width: 0;
 }

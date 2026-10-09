@@ -74,23 +74,28 @@ def validate_tenant_assignment(doc, method=None) -> None:
 
 
 def sync_tenant_user_permission(doc, method=None) -> None:
-    """Materialize the assignment as Frappe's standard Company User Permission."""
-    if not doc.get("user"):
+    """Materialize an assignment as Frappe's standard Company User Permission."""
+    sync_user_company_permission(doc.get("user"))
+
+
+def sync_user_company_permission(user: str | None) -> None:
+    """Idempotently synchronize all active assignments for one user."""
+    if not user:
         return
     active = frappe.get_all(
         "Tenant User Assignment",
-        filters={"user": doc.user, "active": 1},
+        filters={"user": user, "active": 1},
         fields=["company"],
     )
     companies = {row.company for row in active if row.company}
     if len(companies) > 1:
         frappe.throw(
-            _("User {0} cannot have access to multiple Companies.").format(doc.user),
+            _("User {0} cannot have access to multiple Companies.").format(user),
             frappe.PermissionError,
         )
 
     for permission in frappe.get_all(
-        "User Permission", filters={"user": doc.user, "allow": "Company"}, pluck="name"
+        "User Permission", filters={"user": user, "allow": "Company"}, pluck="name"
     ):
         frappe.delete_doc("User Permission", permission, ignore_permissions=True, force=True)
 
@@ -98,7 +103,7 @@ def sync_tenant_user_permission(doc, method=None) -> None:
         frappe.get_doc(
             {
                 "doctype": "User Permission",
-                "user": doc.user,
+                "user": user,
                 "allow": "Company",
                 "for_value": next(iter(companies)),
                 "apply_to_all_doctypes": 1,

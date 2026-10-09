@@ -9,6 +9,7 @@ from reckon_distribution.tenant_security import (
     require_tenant,
     user_can_bypass_tenant,
 )
+from reckon_distribution.warehouse import sync_user_company_permission
 
 ROLE_MAP = {
     "Company Admin": "Reckon Distribution Admin",
@@ -84,6 +85,7 @@ def create_team_access(payload: str | dict) -> str:
             }
         )
         assignment.insert(ignore_permissions=True)
+    sync_user_company_permission(user.name)
     _ensure_role(user, ROLE_MAP[profile])
     return assignment.name
 
@@ -95,6 +97,7 @@ def deactivate_team_access(assignment: str) -> str:
     doc.active = 0
     doc.is_default = 0
     doc.save(ignore_permissions=True)
+    sync_user_company_permission(doc.user)
     return doc.name
 
 
@@ -112,6 +115,7 @@ def update_team_access(payload: str | dict) -> str:
     assignment.route_scope = data.get("route") or ""
     assignment.active = 1 if data.get("active", True) else 0
     assignment.save(ignore_permissions=True)
+    sync_user_company_permission(assignment.user)
     user = frappe.get_doc("User", assignment.user)
     password = data.get("password") or ""
     password_confirm = data.get("password_confirm") or ""

@@ -66,7 +66,8 @@
   function applyDenseFormLayout() {
     const desktop = window.innerWidth >= 992;
     const tablet = window.innerWidth >= 768;
-    const columns = desktop ? 3 : tablet ? 2 : 1;
+    const isSettlement = routeName(window.location.href) === "dsr-day-settlement";
+    const columns = isSettlement ? (tablet ? 2 : 1) : desktop ? 3 : tablet ? 2 : 1;
 
     document
       .querySelectorAll(".layout-main-section, .layout-main-section-wrapper, .form-layout")

@@ -11,6 +11,7 @@ def after_install() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -20,6 +21,7 @@ def after_migrate() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     ensure_purchase_receipt_fields()
+    reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -203,6 +205,12 @@ def ensure_purchase_receipt_fields() -> None:
         frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
 
 
+def reload_distribution_layout_doctypes() -> None:
+    """Reload layout-owned DocTypes whose field order is part of app source."""
+    if frappe.db.exists("DocType", "DSR Day Settlement"):
+        frappe.reload_doc("distribution", "doctype", "dsr_day_settlement")
+
+
 def ensure_dense_layout_fields() -> None:
     """Add native layout markers when older sites missed DocType JSON sync.
 
@@ -278,6 +286,26 @@ def ensure_dense_layout_fields() -> None:
 
     for doctype, fields in layouts.items():
         if not frappe.db.exists("DocType", doctype):
+            continue
+
+        if doctype == "DSR Day Settlement":
+            # Older migrations created fallback Custom Fields before the native
+            # DocType layout was reloaded. Remove only those layout-only fields.
+            for fieldname in (
+                "rd_layout_column_1",
+                "rd_layout_column_2",
+                "rd_layout_column_3",
+                "rd_layout_column_4",
+                "rd_layout_section_cash",
+                "rd_layout_section_stock",
+                "rd_layout_section_approval",
+            ):
+                custom_field = frappe.db.exists(
+                    "Custom Field", {"dt": doctype, "fieldname": fieldname}
+                )
+                if custom_field:
+                    frappe.delete_doc("Custom Field", custom_field, ignore_permissions=True, force=True)
+            frappe.clear_cache(doctype=doctype)
             continue
 
         existing = {field.fieldname for field in frappe.get_meta(doctype).fields if field.fieldname}

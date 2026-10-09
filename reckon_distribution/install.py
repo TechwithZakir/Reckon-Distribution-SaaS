@@ -295,7 +295,7 @@ def ensure_dense_layout_fields() -> None:
             }
             if field.get("label"):
                 values["label"] = field["label"]
-            frappe.get_doc("Custom Field", values).insert(ignore_permissions=True)
+            frappe.get_doc(values).insert(ignore_permissions=True)
             existing.add(field["fieldname"])
         frappe.clear_cache(doctype=doctype)
 

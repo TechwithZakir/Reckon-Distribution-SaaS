@@ -162,6 +162,10 @@ def restrict_distribution_desk_request() -> None:
     if not _is_distribution_only_user():
         return
 
+    from reckon_distribution.warehouse import ensure_current_user_company_permission
+
+    ensure_current_user_company_permission()
+
     path = _request_path()
     if path.startswith("/api/"):
         _guard_distribution_api_request(path)

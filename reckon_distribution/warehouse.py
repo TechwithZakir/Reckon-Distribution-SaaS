@@ -110,3 +110,41 @@ def sync_user_company_permission(user: str | None) -> None:
                 "is_default": 1,
             }
         ).insert(ignore_permissions=True)
+
+
+def ensure_current_user_company_permission(user: str | None = None) -> None:
+    """Repair a missing or stale Company permission when a tenant opens Desk."""
+    user = user or frappe.session.user
+    if not user or user in {"Guest", "Administrator"}:
+        return
+    active = frappe.get_all(
+        "Tenant User Assignment",
+        filters={"user": user, "active": 1},
+        fields=["company"],
+    )
+    companies = {row.company for row in active if row.company}
+    if len(companies) > 1:
+        frappe.throw(
+            _("User {0} cannot have access to multiple Companies.").format(user),
+            frappe.PermissionError,
+        )
+    if not companies:
+        frappe.throw(
+            _("User {0} has no active Company assignment.").format(user),
+            frappe.PermissionError,
+        )
+
+    company = next(iter(companies))
+    permissions = frappe.get_all(
+        "User Permission",
+        filters={"user": user, "allow": "Company"},
+        fields=["for_value", "apply_to_all_doctypes", "is_default"],
+    )
+    if (
+        len(permissions) == 1
+        and permissions[0].for_value == company
+        and permissions[0].apply_to_all_doctypes
+        and permissions[0].is_default
+    ):
+        return
+    sync_user_company_permission(user)

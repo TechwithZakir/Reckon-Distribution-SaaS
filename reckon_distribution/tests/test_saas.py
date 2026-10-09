@@ -99,6 +99,23 @@ class TestSaaSRegistrationAndGate(FrappeTestCase):
         self.assertTrue(permission.apply_to_all_doctypes)
         self.assertTrue(permission.is_default)
 
+    def test_opening_distribution_repairs_missing_company_permission(self):
+        self._registration()
+        from reckon_distribution.warehouse import ensure_current_user_company_permission
+
+        for name in frappe.get_all(
+            "User Permission", filters={"user": self.email, "allow": "Company"}, pluck="name"
+        ):
+            frappe.delete_doc("User Permission", name, ignore_permissions=True, force=True)
+
+        ensure_current_user_company_permission(self.email)
+        self.assertTrue(
+            frappe.db.exists(
+                "User Permission",
+                {"user": self.email, "allow": "Company", "for_value": self.company},
+            )
+        )
+
     def test_seed_job_is_idempotent_once_per_company_and_version(self):
         frappe.get_doc(
             {

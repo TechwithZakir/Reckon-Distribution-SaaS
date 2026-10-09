@@ -355,8 +355,31 @@ def setup_roles() -> None:
 def ensure_distribution_permissions() -> None:
     """Grant navigation and native-master access to Distribution roles."""
     ensure_assigned_user_roles()
+    ensure_tenant_user_permissions()
     ensure_distribution_page_roles()
     ensure_native_master_permissions()
+
+
+def ensure_tenant_user_permissions() -> None:
+    """Backfill standard Company User Permissions for existing assignments."""
+    if not frappe.db.exists("DocType", "Tenant User Assignment"):
+        return
+    from reckon_distribution.warehouse import sync_tenant_user_permission
+
+    users = frappe.get_all("Tenant User Assignment", filters={"active": 1}, pluck="user")
+    for user in set(users):
+        companies = frappe.get_all(
+            "Tenant User Assignment",
+            filters={"user": user, "active": 1},
+            pluck="company",
+        )
+        if len({company for company in companies if company}) != 1:
+            frappe.log_error(
+                title="Distribution Company Permission Conflict",
+                message=f"User {user} has multiple active Company assignments: {companies}",
+            )
+            continue
+        sync_tenant_user_permission(frappe._dict({"user": user}))
 
 
 def ensure_assigned_user_roles() -> None:

@@ -93,10 +93,6 @@ doc_events = {
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
-# Distribution no longer injects global form CSS. Native Frappe admin and
-# Customize Form styling must remain untouched.
-app_include_js = ["/assets/reckon_distribution/js/desk_guard_v3.js"]
-
 reckon_saas_modules = [
     "reckon_distribution.saas_module.get_module_definition",
 ]

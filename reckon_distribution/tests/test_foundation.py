@@ -190,6 +190,11 @@ class TestFoundation(FrappeTestCase):
 
         self.assertEqual(get_module_definition()["workspace"], "app/distribution")
 
+    def test_distribution_does_not_register_global_desk_assets(self):
+        hooks = (Path(__file__).parents[1] / "hooks.py").read_text()
+        self.assertNotIn("app_include_css", hooks)
+        self.assertNotIn("app_include_js", hooks)
+
 
 class TestCompatibilityHelpers(unittest.TestCase):
     def test_major_version_parser(self):

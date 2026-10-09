@@ -77,6 +77,10 @@
 
     document.querySelectorAll(".form-layout .form-section").forEach((section) => {
       const body = section.querySelector(":scope > .section-body") || section;
+      section.style.setProperty("width", "100%", "important");
+      section.style.setProperty("max-width", "none", "important");
+      body.style.setProperty("width", "100%", "important");
+      body.style.setProperty("max-width", "none", "important");
       body.style.setProperty("display", "grid", "important");
       body.style.setProperty(
         "grid-template-columns",
@@ -86,8 +90,10 @@
       body.style.setProperty("column-gap", desktop ? "24px" : "20px", "important");
       body.style.setProperty("row-gap", "4px", "important");
 
-      section.querySelectorAll(":scope > .section-body > .form-column").forEach((column) => {
+      section.querySelectorAll(".form-column").forEach((column) => {
         column.style.setProperty("display", "contents", "important");
+        column.style.setProperty("float", "none", "important");
+        column.style.setProperty("width", "auto", "important");
       });
 
       section.querySelectorAll(".frappe-control").forEach((control) => {
@@ -121,6 +127,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     hideInternalSidebarLinks();
     applyDenseFormLayout();
+    [100, 300, 700, 1200].forEach((delay) => window.setTimeout(applyDenseFormLayout, delay));
     enforceDistributionRoute();
   });
   new MutationObserver(function () {
@@ -139,6 +146,9 @@
     }
     frappe.router.on("change", enforceDistributionRoute);
     frappe.router.on("change", applyDenseFormLayout);
+    frappe.router.on("change", function () {
+      [100, 300, 700, 1200].forEach((delay) => window.setTimeout(applyDenseFormLayout, delay));
+    });
     window.clearInterval(installRouterGuard);
     enforceDistributionRoute();
   }, 100);

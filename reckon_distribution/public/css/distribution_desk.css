@@ -2,7 +2,9 @@
 .layout-main-section-wrapper,
 .layout-main-section,
 .layout-main-section .form-layout,
-.form-layout {
+.form-layout,
+.form-layout .form-section,
+.form-layout .form-section .section-body {
   width: 100% !important;
   max-width: none !important;
 }
@@ -22,8 +24,11 @@
   }
 
   .form-layout .form-section > .section-body > .form-column,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-column {
+  .form-layout .form-section:not(:has(> .section-body)) > .form-column,
+  .form-layout .form-section .form-column {
     display: contents !important;
+    float: none !important;
+    width: auto !important;
   }
 
   /* A DocType without explicit Column Breaks has one wrapper column. Flatten
@@ -31,6 +36,7 @@
   .form-layout .form-section .frappe-control {
     min-width: 0;
     width: auto !important;
+    max-width: none !important;
   }
 
   .form-layout .form-section .frappe-control:has(.grid-field),
@@ -53,8 +59,17 @@
   }
 
   .form-layout .form-section > .section-body > .form-column,
-  .form-layout .form-section:not(:has(> .section-body)) > .form-column {
+  .form-layout .form-section:not(:has(> .section-body)) > .form-column,
+  .form-layout .form-section .form-column {
     display: contents !important;
+    float: none !important;
+    width: auto !important;
+  }
+
+  .form-layout .form-section .frappe-control {
+    min-width: 0;
+    width: auto !important;
+    max-width: none !important;
   }
 
   .form-layout .form-section .frappe-control:has(.grid-field),

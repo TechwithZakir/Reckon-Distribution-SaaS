@@ -49,7 +49,7 @@ The runner creates uniquely named fixtures and cleans them up; it refuses ordina
 production-looking site names:
 
 ```bash
-./scripts/test_multi_company.sh --site distribution-test.localhost
+apps/reckon_distribution/scripts/test_multi_company.sh --site distribution-test.localhost
 ```
 
 The class verifies SaaS onboarding, Company Team & Access, standard Company User

@@ -13,6 +13,20 @@ DISTRIBUTION_PAGE = "distribution"
 DISTRIBUTION_USER_ROLES = frozenset(
     {role.name for role in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
 )
+DISTRIBUTION_QUERY_REPORTS = frozenset(
+    {"Stock Balance", "Sales Register", "Purchase Register", "Accounts Payable"}
+)
+DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
+    {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Company Admin",
+        "Company Manager",
+    }
+)
+DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
+    {"Sales Register", "Purchase Register", "Accounts Payable"}
+)
 ALLOWED_DISTRIBUTION_PAGES = {
     "distribution",
     "distribution-master-setup",
@@ -40,6 +54,9 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "delivery-note",
     "return-inspection",
     "dsr-day-settlement",
+    "distribution-reports",
+    "stock-ledger-entry",
+    "query-report",
     "user-profile",
     "home",
 }
@@ -70,6 +87,9 @@ ALLOWED_DESK_PREFIXES = (
     "/app/delivery-note",
     "/app/return-inspection",
     "/app/dsr-day-settlement",
+    "/app/distribution-reports",
+    "/app/stock-ledger-entry",
+    "/app/query-report",
     "/app/user-profile",
     "/app/home",
 )
@@ -119,6 +139,8 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Payment Entry Reference",
         "Delivery Note",
         "Stock Entry",
+        "Stock Ledger Entry",
+        "Report",
         # Frappe stores saved list filters in this user-scoped metadata DocType.
         # It is required by every native list view and contains no tenant data.
         "List Filter",
@@ -193,9 +215,14 @@ def restrict_distribution_desk_request() -> None:
             _redirect_to_distribution()
 
     if path.startswith("/desk/"):
-        desk_route = path.removeprefix("/desk/").split("/", 1)[0]
+        desk_path = path.removeprefix("/desk/")
+        desk_route = desk_path.split("/", 1)[0]
         if desk_route not in ALLOWED_DISTRIBUTION_PAGES:
             _redirect_to_distribution()
+        if desk_route == "query-report":
+            report_name = unquote(desk_path.removeprefix("query-report/")).strip("/")
+            if not _can_access_distribution_report(report_name):
+                _redirect_to_distribution()
 
 
 def _guard_distribution_api_request(path: str) -> None:
@@ -213,6 +240,10 @@ def _guard_distribution_api_request(path: str) -> None:
         page_name = frappe.local.form_dict.get("page") or frappe.local.form_dict.get("name")
         if page_name not in ALLOWED_DISTRIBUTION_PAGES:
             frappe.throw(_("Page {0} is outside the Distribution workspace.").format(page_name))
+        return
+
+    if method.startswith("frappe.desk.query_report."):
+        _assert_distribution_report()
         return
 
     if not method.startswith(GENERIC_DESK_API_PREFIXES):
@@ -236,6 +267,34 @@ def _assert_distribution_doctype(doctype: str) -> None:
             _("{0} is not available in the Distribution workspace.").format(doctype),
             frappe.PermissionError,
         )
+
+
+def _assert_distribution_report() -> None:
+    report_name = frappe.local.form_dict.get("report_name") or frappe.local.form_dict.get("report")
+    if not report_name:
+        args = frappe.local.form_dict.get("args")
+        if isinstance(args, str):
+            try:
+                values = json.loads(args)
+                report_name = values.get("report_name") or values.get("report")
+            except (TypeError, ValueError, AttributeError):
+                report_name = None
+    if not _can_access_distribution_report(report_name):
+        frappe.throw(
+            _("Report {0} is not available in the Distribution workspace.").format(
+                report_name or _("requested report")
+            ),
+            frappe.PermissionError,
+        )
+
+
+def _can_access_distribution_report(report_name: str | None) -> bool:
+    if report_name not in DISTRIBUTION_QUERY_REPORTS:
+        return False
+    if report_name not in DISTRIBUTION_MANAGEMENT_QUERY_REPORTS:
+        return True
+    roles = set(frappe.get_roles())
+    return bool(roles.intersection(DISTRIBUTION_MANAGEMENT_ROLES | DESK_BYPASS_ROLES))
 
 
 @frappe.whitelist()

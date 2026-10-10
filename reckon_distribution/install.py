@@ -1002,6 +1002,7 @@ def ensure_distribution_page_roles() -> None:
         "field-sales",
         "dsr-delivery",
         "dsr-day-settlement",
+        "distribution-reports",
     }
     roles = [role.name for role in OPERATIONAL_ROLES]
     for page_name in page_names:
@@ -1065,6 +1066,8 @@ def ensure_native_master_permissions() -> None:
         # Payment Entry resolves this Link master while loading its form.
         "Mode of Payment": {"read"},
         "Account": {"read"},
+        "Report": {"read"},
+        "Stock Ledger Entry": {"read", "report", "export", "print"},
         "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Receipt": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Invoice": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
@@ -1080,6 +1083,7 @@ def ensure_native_master_permissions() -> None:
     }
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
     procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
+    operational_report_doctypes = {"Stock Ledger Entry"}
     procurement_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",
@@ -1126,6 +1130,8 @@ def ensure_native_master_permissions() -> None:
                 perm.insert(ignore_permissions=True)
             if doctype in procurement_doctypes and role not in procurement_roles:
                 rights = set()
+            elif doctype in operational_report_doctypes:
+                rights = full_rights
             else:
                 rights = full_rights if role in full_access_roles else {"read"}
             for right in full_rights:
@@ -1308,63 +1314,67 @@ def ensure_workspace_sidebar() -> None:
 
 def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
     """Return the native left-rail definition used by the active Desk shell."""
+    def section(label: str, icon: str) -> dict:
+        return {
+            "label": label,
+            "type": "Section Break",
+            "icon": icon,
+            "child": 0,
+            "indent": 0,
+            "collapsible": 1,
+            "keep_closed": 0,
+            "show_arrow": 0,
+        }
+
+    def link(label: str, link_to: str, link_type: str, icon: str) -> dict:
+        return {
+            "label": label,
+            "link_to": link_to,
+            "link_type": link_type,
+            "type": "Link",
+            "icon": icon,
+            "child": 0,
+            "indent": 0,
+            "collapsible": 1,
+            "show_arrow": 0,
+        }
+
     items = [
-        {
-            "label": "Distribution Home",
-            "link_to": "distribution",
-            "link_type": "Page",
-            "type": "Link",
-            "icon": "house",
-            "child": 0,
-            "indent": 0,
-            "collapsible": 1,
-            "show_arrow": 0,
-        },
-        {
-            "label": "DSR Challan",
-            "link_to": "DSR Challan",
-            "link_type": "DocType",
-            "type": "Link",
-            "icon": "package-check",
-            "child": 0,
-            "indent": 0,
-            "collapsible": 1,
-            "show_arrow": 0,
-        },
+        link("Distribution Home", "distribution", "Page", "house"),
+        section("Sales & Delivery", "shopping-bag"),
+        link("Field Sales", "field-sales", "Page", "map-pin"),
+        link("SR Orders", "SR Order", "DocType", "clipboard-list"),
+        link("Outlet Visits", "Outlet Visit", "DocType", "map-pinned"),
+        link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck"),
+        link("Delivery Notes", "Delivery Note", "DocType", "file-check-2"),
+        link("DSR Collections", "DSR Collection Receipt", "DocType", "wallet-cards"),
+        link("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator"),
+        section("Procurement", "package-plus"),
+        link("Purchase Orders", "Purchase Order", "DocType", "clipboard-list"),
+        link("Purchase Received", "Purchase Receipt", "DocType", "package-check"),
+        link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text"),
+        link("Supplier Advances & Payments", "Payment Entry", "DocType", "landmark"),
+        section("Inventory & Stock", "boxes"),
+        link("DSR Challan", "DSR Challan", "DocType", "package-check"),
+        link("Stock Entries", "Stock Entry", "DocType", "arrow-right-left"),
+        link("Stock Ledger", "Stock Ledger Entry", "DocType", "book-open"),
+        link("Warehouses", "Warehouse", "DocType", "warehouse"),
+        section("Reports", "chart-no-axes-combined"),
+        link("Distribution Reports", "distribution-reports", "Page", "chart-column"),
+        section("Administration", "settings"),
+        link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2"),
+        link("Item Units & Conversion", "distribution-item-uom-setup", "Page", "ruler"),
+        link("Company Team & Access", "distribution-team-access", "Page", "users"),
     ]
-    for label, link_to, link_type, icon in (
-        ("Purchase Orders", "Purchase Order", "DocType", "clipboard-list"),
-        ("Purchase Received", "Purchase Receipt", "DocType", "package-plus"),
-        ("Purchase Invoices", "Purchase Invoice", "DocType", "file-text"),
-        ("Supplier Advances & Payments", "Payment Entry", "DocType", "wallet-cards"),
-        ("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator"),
-        ("Field Sales", "field-sales", "Page", "map-pin"),
-        ("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2"),
-        ("Company Team & Access", "distribution-team-access", "Page", "users"),
-        ("DSR Delivery & Collection", "dsr-delivery", "Page", "truck"),
-        ("Item Units & Conversion", "distribution-item-uom-setup", "Page", "ruler"),
-    ):
-        items.append(
-            {
-                "label": label,
-                "link_to": link_to,
-                "link_type": link_type,
-                "type": "Link",
-                "icon": icon,
-                "child": 0,
-                "indent": 0,
-                "collapsible": 1,
-                "show_arrow": 0,
-            }
-        )
     # ERPNext standard DocTypes can be unavailable during app installation
     # ordering. Do not make the whole install fail; after_migrate will append
     # the links once the native modules are present.
     items = [
         item
         for item in items
-        if item.get("link_type") != "DocType"
-        or frappe.db.exists("DocType", item.get("link_to"))
+        if item.get("type") != "Link"
+        or item.get("link_type") not in {"DocType", "Report"}
+        or frappe.db.exists(item.get("link_type"), item.get("link_to"))
     ]
     return {
         "doctype": "Workspace Sidebar",

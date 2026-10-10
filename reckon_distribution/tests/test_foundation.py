@@ -118,6 +118,31 @@ class TestFoundation(FrappeTestCase):
             }.issubset(links)
         )
 
+    def test_distribution_sidebar_groups_operational_lists_and_reports(self):
+        sidebar_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "sidebar"
+            / "distribution"
+            / "distribution.json"
+        )
+        sidebar = json.loads(sidebar_path.read_text())
+        links = {item.get("link_to") for item in sidebar["items"]}
+        labels = {item.get("label") for item in sidebar["items"]}
+        self.assertTrue(
+            {
+                "SR Order",
+                "Outlet Visit",
+                "Delivery Note",
+                "DSR Collection Receipt",
+                "Stock Ledger Entry",
+                "distribution-reports",
+            }.issubset(links)
+        )
+        self.assertTrue(
+            {"Sales & Delivery", "Procurement", "Inventory & Stock", "Reports"}.issubset(labels)
+        )
+
     def test_procurement_permissions_are_limited_to_management_roles(self):
         for doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"):
             self.assertTrue(frappe.db.exists("DocType", doctype), doctype)
@@ -193,6 +218,29 @@ class TestFoundation(FrappeTestCase):
             if frappe.db.exists("DocType", doctype):
                 self.assertEqual(links.get(doctype), "DocType")
 
+    def test_distribution_workspace_sidebar_includes_native_operational_history(self):
+        if not frappe.db.exists("DocType", "Workspace Sidebar"):
+            self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
+        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
+        links = {item.link_to: item.link_type for item in sidebar.items}
+        for doctype in ("SR Order", "Outlet Visit", "Delivery Note", "DSR Collection Receipt"):
+            if frappe.db.exists("DocType", doctype):
+                self.assertEqual(links.get(doctype), "DocType")
+        self.assertEqual(links.get("distribution-reports"), "Page")
+
+    def test_distribution_roles_can_read_stock_ledger_entries(self):
+        if not frappe.db.exists("DocType", "Stock Ledger Entry"):
+            self.skipTest("Stock Ledger Entry is unavailable in this ERPNext version")
+        permissions = {
+            row.role: row
+            for row in frappe.get_meta("Stock Ledger Entry").permissions
+            if row.role
+            in {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Distribution User"}
+        }
+        for role in permissions.values():
+            self.assertTrue(role.read)
+            self.assertTrue(role.report)
+
     def test_distribution_roles_can_read_native_doctype_metadata(self):
         permission = frappe.db.exists(
             "DocPerm",
@@ -206,6 +254,8 @@ class TestFoundation(FrappeTestCase):
             ALLOWED_DESK_PREFIXES,
             ALLOWED_DISTRIBUTION_DOCTYPES,
             ALLOWED_DISTRIBUTION_PAGES,
+            DISTRIBUTION_MANAGEMENT_QUERY_REPORTS,
+            DISTRIBUTION_QUERY_REPORTS,
         )
 
         self.assertIn("print", ALLOWED_DISTRIBUTION_PAGES)
@@ -213,6 +263,9 @@ class TestFoundation(FrappeTestCase):
         self.assertTrue(
             {"Letter Head", "Print Format"}.issubset(ALLOWED_DISTRIBUTION_DOCTYPES)
         )
+        self.assertIn("query-report", ALLOWED_DISTRIBUTION_PAGES)
+        self.assertIn("Stock Balance", DISTRIBUTION_QUERY_REPORTS)
+        self.assertIn("Accounts Payable", DISTRIBUTION_MANAGEMENT_QUERY_REPORTS)
 
     def test_distribution_roles_can_read_native_form_dependencies(self):
         role_names = {

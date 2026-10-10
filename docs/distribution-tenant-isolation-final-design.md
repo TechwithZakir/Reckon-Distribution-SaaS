@@ -207,3 +207,27 @@ The Company may be displayed as read-only context where useful, but the server r
 ## 12. Approval gate
 
 The first implementation stage is the migration and tests for Company-owned native masters plus the shared User Permission synchronization service. UI refinements come after those security invariants are passing.
+
+## 13. Operational Navigation and Reporting
+
+The Distribution shell groups work by operational purpose: **Sales & Delivery**,
+**Procurement**, **Inventory & Stock**, **Reports**, and **Administration**. This
+layout is navigation only; it does not introduce parallel transaction records.
+
+`Field Sales` remains the guided field-work page. Its history is stored in the
+native `SR Order` and `Outlet Visit` lists. `DSR Delivery & Collection` remains
+the guided execution page, with native `Delivery Note` and `DSR Collection
+Receipt` lists as its history and audit trail. These lists are available in the
+left navigation and Distribution Home.
+
+Stock movement is represented by ERPNext `Stock Ledger Entry`; no custom stock
+ledger is maintained. Distribution users may read, print, export, and report on
+only entries in their resolved Company. The `Distribution Reports` page exposes
+the permitted native stock reports. Managers and administrators additionally
+receive procurement and supplier-payable reporting; field roles remain limited
+to the reports required to run routes and reconcile stock.
+
+The Distribution Home dashboard gets its Company only from the authenticated
+tenant context. It displays server-calculated KPI totals and recent records for
+that Company and period. Browsers never provide a Company identifier for
+dashboard, ledger, or report data.

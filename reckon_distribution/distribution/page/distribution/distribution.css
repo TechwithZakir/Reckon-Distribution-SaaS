@@ -1,57 +1,185 @@
 .reckon-distribution-desk {
+  max-width: 1280px;
   padding: 24px;
-  max-width: 1040px;
 }
 
-.rd-desk-hero {
+.rd-dashboard-heading,
+.rd-section-heading,
+.rd-dashboard-period,
+.rd-activity-row,
+.rd-dashboard-action,
+.rd-record-list-link {
+  display: flex;
+}
+
+.rd-dashboard-heading {
+  align-items: flex-end;
+  gap: 20px;
+  justify-content: space-between;
   margin-bottom: 24px;
 }
 
-.rd-kicker {
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.rd-desk-hero h2 {
+.rd-dashboard-heading h2 {
   margin: 0 0 8px;
-  font-size: 32px;
+  font-size: 30px;
   letter-spacing: 0;
 }
 
-.rd-desk-hero p {
+.rd-dashboard-heading p,
+.rd-section-heading p {
   color: var(--text-muted);
   margin: 0;
 }
 
-.rd-desk-grid {
+.rd-dashboard-period {
+  align-items: end;
+  gap: 8px;
+}
+
+.rd-dashboard-period label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rd-dashboard-period input {
+  display: block;
+  height: 32px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--text-color);
+}
+
+.rd-dashboard-kpis,
+.rd-dashboard-actions,
+.rd-dashboard-lists {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
-.rd-desk-card {
+.rd-dashboard-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  margin-bottom: 30px;
+}
+
+.rd-kpi-card {
+  min-height: 126px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-top: 3px solid var(--primary);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.rd-kpi-card--green { border-top-color: #1f9d65; }
+.rd-kpi-card--orange { border-top-color: #d97706; }
+.rd-kpi-card--purple { border-top-color: #7c5ce0; }
+.rd-kpi-card--teal { border-top-color: #0f8d8d; }
+.rd-kpi-card--red { border-top-color: #c2410c; }
+
+.rd-kpi-card span,
+.rd-kpi-card small {
+  color: var(--text-muted);
+}
+
+.rd-kpi-card strong {
   display: block;
-  min-height: 120px;
-  padding: 18px;
+  margin: 10px 0 8px;
+  font-size: 22px;
+}
+
+.rd-dashboard-section {
+  margin-top: 28px;
+}
+
+.rd-section-heading {
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rd-section-heading h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.rd-dashboard-actions {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.rd-dashboard-action,
+.rd-record-list-link {
+  flex-direction: column;
+  justify-content: center;
+  min-height: 92px;
+  padding: 14px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--card-bg);
   color: var(--text-color);
-  text-decoration: none;
+  text-align: left;
 }
 
-.rd-desk-card:hover {
-  text-decoration: none;
+.rd-dashboard-action:hover,
+.rd-record-list-link:hover {
   border-color: var(--primary);
 }
 
-.rd-desk-card h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
+.rd-dashboard-action span {
+  color: var(--text-muted);
+  margin-top: 6px;
 }
 
-.rd-desk-card p {
+.rd-dashboard-two-column {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+}
+
+.rd-activity-list {
+  border-top: 1px solid var(--border-color);
+}
+
+.rd-activity-row {
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  text-align: left;
+}
+
+.rd-activity-row span,
+.rd-activity-row small {
+  display: block;
+}
+
+.rd-activity-row small {
   color: var(--text-muted);
-  margin: 0;
+  margin-top: 3px;
+}
+
+.rd-dashboard-lists {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rd-record-list-link {
+  min-height: 72px;
+}
+
+.rd-dashboard-report-link {
+  padding-bottom: 24px;
+}
+
+@media (max-width: 760px) {
+  .reckon-distribution-desk { padding: 16px; }
+  .rd-dashboard-heading { align-items: stretch; flex-direction: column; }
+  .rd-dashboard-period { align-items: end; flex-wrap: wrap; }
+  .rd-dashboard-two-column { grid-template-columns: 1fr; }
 }

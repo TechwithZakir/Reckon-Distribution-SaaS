@@ -235,3 +235,33 @@ The standalone tests cover the permission synchronization and master ownership
 service with mocked Frappe calls. The class documented here covers the real
 database, hooks, roles, User Permission records, native masters, and tenant
 context on a bench site.
+
+## SR/DSR transaction regression suite
+
+The tenant-isolation class is complemented by the transaction runner:
+
+```bash
+apps/reckon_distribution/scripts/test_distribution_transactions.sh \
+  --site distribution-test.localhost
+```
+
+It runs these transaction modules in order:
+
+1. `test_field_sales`: SR outlet visits, SR orders, UOM conversion, GPS, and
+   field queue validation.
+2. `test_collection`: DSR cash, cheque, bank, and MFS collection states,
+   confirmation, verification, cancellation, and idempotency.
+3. `test_due_assignment`: DSR retailer due assignment approval, overlap, and
+   cancellation rules.
+4. `test_settlement`: DSR cash and stock reconciliation equations, variance
+   explanations, submission, and approval.
+5. `test_delivery`: distribution delivery assignment, saleable/supplier-free
+   controls, return inspection, stock receipt approval, and cancellation.
+6. `test_van_loading`: manager approval, stock transfer linkage, DSR loading
+   acknowledgement, rejection reasons, cancellation, and amendment rules.
+7. `test_purchase_receipt`: supplier-free stock and purchase-receipt
+   reconciliation controls.
+
+This suite is a transaction-controller regression suite. The multi-company
+class above is the database-backed ownership and permission test. Both runners
+must pass before a release is considered functionally verified.

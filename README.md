@@ -57,3 +57,15 @@ Permission materialization, assignment changes, native master list/link filterin
 automatic company context, item-code generation, and cross-company mutation/link
 rejection. It requires the `reckon_saas_platform` and `erpnext` apps to be installed
 on the selected site.
+
+Run the SR/DSR transaction regression suite separately:
+
+```bash
+apps/reckon_distribution/scripts/test_distribution_transactions.sh \
+  --site distribution-test.localhost
+```
+
+This runs the existing transaction tests for SR field sales and DSR collection,
+due assignment, day settlement, delivery/returns, van loading, and purchase
+receipt support in sequence. It is also restricted to a dedicated test or
+staging site.

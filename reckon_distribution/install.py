@@ -21,6 +21,7 @@ def after_install() -> None:
     remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
+    ensure_office_expense_defaults()
     ensure_simplified_procurement_layout()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -37,6 +38,7 @@ def after_migrate() -> None:
     remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
+    ensure_office_expense_defaults()
     ensure_simplified_procurement_layout()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -55,6 +57,16 @@ def ensure_company_sales_price_lists() -> None:
 
     for company in frappe.get_all("Distribution Settings", pluck="company"):
         get_or_create_company_sales_price_list(company)
+
+
+def ensure_office_expense_defaults() -> None:
+    """Backfill the additive office-expense seed for all provisioned tenants."""
+    if not frappe.db.exists("DocType", "Office Expense Settings"):
+        return
+    from reckon_distribution.seed import ensure_office_expense_defaults as seed_defaults
+
+    for company in frappe.get_all("Distribution Settings", pluck="company"):
+        seed_defaults(company)
 
 
 def ensure_master_quick_entry() -> None:

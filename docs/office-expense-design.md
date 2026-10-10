@@ -23,6 +23,16 @@ non-group records owned by that Company. Expense category accounts must have
 the `Expense` root type and payment accounts must have the `Cash` or `Bank`
 account type.
 
+During installation and tenant provisioning, the app creates an additive
+Company-owned default setup. It seeds Direct Expenses and Indirect Expenses
+groups with Freight & Delivery, Loading & Unloading, Vehicle Fuel, Office Rent,
+Utilities, Telephone & Internet, Office Supplies, Travel & Conveyance, Repairs
+& Maintenance, and Miscellaneous Office Expense. It reuses an existing Cash
+account and active Cost Center when available; otherwise it creates Office Cash
+and Main for that Company. Cash is the default payment method, and Bank is
+added when the Company already has an active bank ledger. Existing Office
+Expense Setup records are never overwritten.
+
 ## User Workflow
 
 The Office Expenses form exposes only:

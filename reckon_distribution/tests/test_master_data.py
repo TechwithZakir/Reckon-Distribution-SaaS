@@ -135,6 +135,14 @@ class TestDistributionMasterData(FrappeTestCase):
             frappe.db.get_value("Distribution Settings", self.company_a, "supplier_goods_policy"),
             "Supplier Provided Goods Only",
         )
+        office_expense_settings = frappe.get_doc("Office Expense Settings", self.company_a)
+        categories = {row.category: row.expense_account for row in office_expense_settings.categories}
+        self.assertIn("Office Supplies", categories)
+        self.assertIn("Freight & Delivery", categories)
+        self.assertEqual(office_expense_settings.default_expense_category, "Office Supplies")
+        self.assertEqual(office_expense_settings.default_payment_method, "Cash")
+        self.assertTrue(office_expense_settings.default_cost_center)
+        self.assertTrue(office_expense_settings.payment_methods[0].payment_account)
 
     def test_settings_cannot_use_another_company_uom_profile(self):
         run_distribution_seed(self.company_b, "test-1")

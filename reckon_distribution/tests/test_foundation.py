@@ -38,6 +38,7 @@ class TestFoundation(FrappeTestCase):
         self.assertEqual(
             frappe.get_controller("DSR Challan Item").__name__, "DSRChallanItem"
         )
+        self.assertTrue(frappe.db.exists("DocType", "DSR Challan Item"))
 
     def test_dsr_challan_is_permitted_for_distribution_roles(self):
         permissions = {

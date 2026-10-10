@@ -307,6 +307,13 @@ def _backfill_company_owned_masters() -> None:
 
 def reload_distribution_layout_doctypes() -> None:
     """Reload layout-owned DocTypes whose field order is part of app source."""
+    # Frappe v16 can remove a child DocType during orphan cleanup when an older
+    # site has lost its controller metadata. Reload it after cleanup so the
+    # parent table field is immediately usable again.
+    if frappe.db.exists("DocType", "DSR Challan Item") or frappe.db.exists(
+        "DocType", "DSR Challan"
+    ):
+        frappe.reload_doc("distribution", "doctype", "dsr_challan_item")
     if frappe.db.exists("DocType", "DSR Day Settlement"):
         frappe.reload_doc("distribution", "doctype", "dsr_day_settlement")
 

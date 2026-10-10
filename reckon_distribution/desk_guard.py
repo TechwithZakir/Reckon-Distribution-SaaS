@@ -100,6 +100,9 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Warehouse",
         "Payment Terms Template",
         "Account",
+        # Native list/form bootstrapping reads DocType metadata before it
+        # loads the requested Distribution document.
+        "DocType",
         "Purchase Receipt",
         "Delivery Note",
         "Stock Entry",

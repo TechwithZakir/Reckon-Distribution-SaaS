@@ -37,6 +37,15 @@ class TestFoundation(FrappeTestCase):
     def test_distribution_workspace_contains_dsr_challan_shortcut(self):
         workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)
         self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.shortcuts))
+        self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.links))
+
+    def test_distribution_roles_can_read_native_doctype_metadata(self):
+        permission = frappe.db.exists(
+            "Custom DocPerm",
+            {"parent": "DocType", "role": "Reckon Distribution User", "permlevel": 0},
+        )
+        self.assertTrue(permission)
+        self.assertTrue(frappe.db.get_value("Custom DocPerm", permission, "read"))
 
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission

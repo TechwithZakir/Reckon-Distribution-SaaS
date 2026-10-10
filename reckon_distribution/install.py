@@ -550,6 +550,9 @@ def ensure_distribution_page_roles() -> None:
 def ensure_native_master_permissions() -> None:
     master_permissions = {
         "Page": {"read"},
+        # Frappe's native list and form loaders read DocType metadata even
+        # when the requested document itself is already role-permitted.
+        "DocType": {"read"},
         "Customer": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Supplier": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Item": {"read", "write", "create", "delete", "report", "export", "print", "email"},
@@ -757,7 +760,14 @@ def _workspace_doc(update: bool = False) -> dict:
             {"color": "Green", "label": "Deliver & Collect", "link_to": "dsr-delivery", "type": "Page"},
             {"color": "Red", "label": "Day Settlement", "link_to": "dsr-day-settlement", "type": "Page"},
         ],
-        "links": [],
+        "links": [
+            {
+                "label": "DSR Challan",
+                "link_to": "DSR Challan",
+                "link_type": "DocType",
+                "type": "Link",
+            },
+        ],
         "charts": [],
         "number_cards": [],
     }

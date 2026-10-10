@@ -42,6 +42,79 @@ NATIVE_COMPANY_MASTER_FIELDS = {
 }
 
 
+def get_or_create_company_sales_price_list(company: str) -> str:
+    """Return an enabled selling Price List owned by ``company``.
+
+    Field sales and DSR billable stock require a selling list.  Older tenant
+    data can have an empty default or a legacy global buying list, neither of
+    which is valid for a company-isolated sales transaction.  Repair that
+    configuration deterministically instead of falling back to another
+    company's Price List.
+    """
+    settings_name = frappe.db.exists("Distribution Settings", {"company": company})
+    configured_price_list = (
+        frappe.db.get_value("Distribution Settings", settings_name, "default_price_list")
+        if settings_name
+        else None
+    )
+
+    candidates = [configured_price_list] if configured_price_list else []
+    candidates.extend(
+        frappe.get_all(
+            "Price List",
+            filters={MASTER_COMPANY_FIELD: company, "selling": 1, "enabled": 1},
+            pluck="name",
+            order_by="modified desc",
+        )
+    )
+    price_list = next(
+        (
+            candidate
+            for candidate in candidates
+            if candidate
+            and frappe.db.exists(
+                "Price List",
+                {
+                    "name": candidate,
+                    MASTER_COMPANY_FIELD: company,
+                    "selling": 1,
+                    "enabled": 1,
+                },
+            )
+        ),
+        None,
+    )
+
+    if not price_list:
+        base_name = f"{company} Sales"
+        price_list_name = base_name
+        suffix = 2
+        while frappe.db.exists("Price List", {"price_list_name": price_list_name}):
+            price_list_name = f"{base_name} {suffix}"
+            suffix += 1
+        price_list = frappe.get_doc(
+            {
+                "doctype": "Price List",
+                "price_list_name": price_list_name,
+                "selling": 1,
+                "buying": 0,
+                "enabled": 1,
+                "currency": frappe.db.get_value("Company", company, "default_currency") or "BDT",
+                MASTER_COMPANY_FIELD: company,
+            }
+        ).insert(ignore_permissions=True).name
+
+    if settings_name and configured_price_list != price_list:
+        frappe.db.set_value(
+            "Distribution Settings",
+            settings_name,
+            "default_price_list",
+            price_list,
+            update_modified=False,
+        )
+    return price_list
+
+
 def get_company_owned_master_registry() -> dict[str, dict[str, str]]:
     """Return the single ownership contract used by migration and validation."""
     return {

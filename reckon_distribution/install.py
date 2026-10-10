@@ -7,6 +7,7 @@ from reckon_distribution.constants import (
     DISTRIBUTION_SIDEBAR,
     DISTRIBUTION_WORKSPACE,
     OPERATIONAL_ROLES,
+    TENANT_ROLE_NAMES,
 )
 
 
@@ -1045,6 +1046,8 @@ def ensure_native_master_permissions() -> None:
         "Territory": {"read"},
         "Warehouse": {"read", "write", "create", "delete", "report", "export", "print"},
         "Payment Terms Template": {"read"},
+        # Payment Entry resolves this Link master while loading its form.
+        "Mode of Payment": {"read"},
         "Account": {"read"},
         "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Receipt": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
@@ -1067,9 +1070,13 @@ def ensure_native_master_permissions() -> None:
         "Company Admin",
         "Company Manager",
     }
-    permission_roles = {
-        role for role in full_access_roles | read_only_roles if frappe.db.exists("Role", role)
-    }
+    permission_role_names = (
+        full_access_roles
+        | read_only_roles
+        | {role.name for role in OPERATIONAL_ROLES}
+        | set(TENANT_ROLE_NAMES)
+    )
+    permission_roles = {role for role in permission_role_names if frappe.db.exists("Role", role)}
     for doctype, full_rights in master_permissions.items():
         if not frappe.db.exists("DocType", doctype):
             continue

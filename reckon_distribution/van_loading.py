@@ -4,7 +4,10 @@ import frappe
 from frappe import _
 from frappe.utils import flt, now_datetime, nowdate
 
-from reckon_distribution.master_data import validate_master_scope
+from reckon_distribution.master_data import (
+    get_or_create_company_sales_price_list,
+    validate_master_scope,
+)
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
     require_tenant,
@@ -86,13 +89,8 @@ def _get_challan_price_list(company: str) -> str | None:
     if price_list:
         validate_master_scope(company, "Price List", price_list)
         return price_list
-    price_list = frappe.db.get_value(
-        "Distribution Master Scope",
-        {"company": company, "master_type": "Price List", "active": 1},
-        "master_name",
-    )
-    if price_list:
-        validate_master_scope(company, "Price List", price_list)
+    price_list = get_or_create_company_sales_price_list(company)
+    validate_master_scope(company, "Price List", price_list)
     return price_list
 
 

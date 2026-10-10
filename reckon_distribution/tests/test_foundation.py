@@ -214,13 +214,13 @@ class TestFoundation(FrappeTestCase):
             {"Letter Head", "Print Format"}.issubset(ALLOWED_DISTRIBUTION_DOCTYPES)
         )
 
-    def test_distribution_roles_can_read_native_print_dependencies(self):
+    def test_distribution_roles_can_read_native_form_dependencies(self):
         role_names = {
             "Reckon Distribution Admin",
             "Reckon Distribution Manager",
             "Reckon Distribution User",
         }
-        for doctype in ("Letter Head", "Print Format"):
+        for doctype in ("Letter Head", "Print Format", "Mode of Payment"):
             permissions = {
                 row.role: row
                 for row in frappe.get_meta(doctype).permissions

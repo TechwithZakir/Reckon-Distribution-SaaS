@@ -4,7 +4,10 @@ import frappe
 from frappe import _
 from frappe.utils import cstr, nowdate
 
-from reckon_distribution.master_data import validate_master_scope
+from reckon_distribution.master_data import (
+    get_or_create_company_sales_price_list,
+    validate_master_scope,
+)
 from reckon_distribution.tenant_security import (
     get_user_companies,
     require_tenant,
@@ -188,9 +191,7 @@ def create_product(payload: str | dict) -> dict:
     if price not in (None, ""):
         price_list = data.get("price_list") or _default_price_list(tenant.company)
         if not price_list:
-            price_list_doc = frappe.get_doc({"doctype": "Price List", "price_list_name": f"{tenant.company} Sales", "selling": 1, "buying": 0, "currency": "BDT"})
-            price_list_doc.insert(ignore_permissions=True)
-            price_list = price_list_doc.name
+            price_list = get_or_create_company_sales_price_list(tenant.company)
         item_price_name = frappe.db.exists("Item Price", {"item_code": item.name, "price_list": price_list, "uom": uom, "selling": 1})
         item_price = frappe.get_doc("Item Price", item_price_name) if item_price_name else frappe.get_doc({"doctype": "Item Price"})
         item_price.update({"item_code": item.name, "price_list": price_list, "uom": uom, "price_list_rate": price, "selling": 1})

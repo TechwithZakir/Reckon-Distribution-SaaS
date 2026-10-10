@@ -6,7 +6,10 @@ import frappe
 from frappe import _
 from frappe.utils import nowdate
 
-from reckon_distribution.master_data import validate_master_scope
+from reckon_distribution.master_data import (
+    get_or_create_company_sales_price_list,
+    validate_master_scope,
+)
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
     get_user_companies,
@@ -123,13 +126,7 @@ def get_supplier_free_availability(warehouse: str, route: str | None = None) -> 
 @frappe.whitelist()
 def get_sales_catalog(price_list: str | None = None) -> list[dict]:
     tenant = require_tenant()
-    price_list = price_list or frappe.db.get_value(
-        "Distribution Master Scope",
-        {"company": tenant.company, "master_type": "Price List", "active": 1},
-        "master_name",
-    )
-    if not price_list:
-        frappe.throw(_("No Company sales Price List is configured."))
+    price_list = price_list or get_or_create_company_sales_price_list(tenant.company)
     validate_master_scope(tenant.company, "Price List", price_list)
     item_codes = frappe.get_all(
         "Distribution Master Scope",

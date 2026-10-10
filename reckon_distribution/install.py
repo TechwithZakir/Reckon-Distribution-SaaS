@@ -705,22 +705,19 @@ def setup_workspace() -> None:
 
 
 def ensure_workspace_sidebar() -> None:
-    """Keep the native DSR Challan link in the Distribution workspace sidebar."""
+    """Update the legacy sidebar only when an older site still has one.
+
+    Frappe v16 imports module-owned ``Sidebar`` records and removes orphaned
+    ``Workspace Sidebar`` records during migration. Creating or saving a legacy
+    row here makes migration fail after Frappe has already removed it.
+    """
     if not frappe.db.exists("DocType", "Workspace Sidebar"):
         return
 
     sidebar_name = DISTRIBUTION_WORKSPACE
-    if frappe.db.exists("Workspace Sidebar", sidebar_name):
-        sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
-    else:
-        sidebar = frappe.get_doc(
-            {
-                "doctype": "Workspace Sidebar",
-                "name": sidebar_name,
-                "module": "Distribution",
-                "items": [],
-            }
-        )
+    if not frappe.db.exists("Workspace Sidebar", sidebar_name):
+        return
+    sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
     if not any(item.link_to == "DSR Challan" for item in sidebar.items):
         sidebar.append(
@@ -736,7 +733,7 @@ def ensure_workspace_sidebar() -> None:
                 "show_arrow": 0,
             },
         )
-    sidebar.save(ignore_permissions=True) if sidebar.name else sidebar.insert(ignore_permissions=True)
+    sidebar.save(ignore_permissions=True)
 
 
 def _workspace_doc(update: bool = False) -> dict:

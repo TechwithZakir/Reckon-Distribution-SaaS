@@ -612,6 +612,7 @@ def ensure_native_master_permissions() -> None:
 def ensure_distribution_transaction_permissions() -> None:
     """Give operational roles the transaction access used by custom pages."""
     transaction_permissions = {
+        "DSR Challan": {"read", "write", "create", "submit", "print"},
         "Delivery Note": {"read", "write", "create", "submit", "print"},
         "DSR Collection Receipt": {"read", "write", "create"},
     }
@@ -697,6 +698,42 @@ def setup_workspace() -> None:
         workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)
         workspace.update(_workspace_doc(update=True))
         workspace.save(ignore_permissions=True)
+    ensure_workspace_sidebar()
+
+
+def ensure_workspace_sidebar() -> None:
+    """Keep the native DSR Challan link in the Distribution workspace sidebar."""
+    if not frappe.db.exists("DocType", "Workspace Sidebar"):
+        return
+
+    sidebar_name = DISTRIBUTION_WORKSPACE
+    if frappe.db.exists("Workspace Sidebar", sidebar_name):
+        sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
+    else:
+        sidebar = frappe.get_doc(
+            {
+                "doctype": "Workspace Sidebar",
+                "name": sidebar_name,
+                "module": "Distribution",
+                "items": [],
+            }
+        )
+
+    if not any(item.link_to == "DSR Challan" for item in sidebar.items):
+        sidebar.append(
+            "items",
+            {
+                "label": "DSR Challan",
+                "link_to": "DSR Challan",
+                "link_type": "DocType",
+                "type": "Link",
+                "indent": 0,
+                "child": 0,
+                "collapsible": 1,
+                "show_arrow": 0,
+            },
+        )
+    sidebar.save(ignore_permissions=True) if sidebar.name else sidebar.insert(ignore_permissions=True)
 
 
 def _workspace_doc(update: bool = False) -> dict:

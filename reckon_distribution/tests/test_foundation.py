@@ -34,6 +34,10 @@ class TestFoundation(FrappeTestCase):
     def test_dsr_challan_is_the_native_doctype(self):
         self.assertEqual(frappe.get_meta("DSR Challan").name, "DSR Challan")
 
+    def test_distribution_workspace_contains_dsr_challan_shortcut(self):
+        workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)
+        self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.shortcuts))
+
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission
 

@@ -5,7 +5,6 @@ from frappe.utils import cint
 
 from reckon_distribution.master_data import get_or_create_company_sales_price_list
 
-
 OFFICE_EXPENSE_CATEGORIES = (
     ("Freight & Delivery", "Direct Expenses"),
     ("Loading & Unloading", "Direct Expenses"),

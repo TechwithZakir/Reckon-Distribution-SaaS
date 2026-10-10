@@ -126,6 +126,27 @@ class TestFoundation(FrappeTestCase):
             self.assertTrue(permissions["Reckon Distribution Admin"].read, doctype)
             self.assertTrue(permissions["Reckon Distribution Manager"].read, doctype)
 
+    def test_procurement_forms_hide_advanced_fields(self):
+        expected = {
+            "Purchase Order": "supplier_name",
+            "Purchase Receipt": "supplier_name",
+            "Purchase Invoice": "update_stock",
+            "Payment Entry": "party_name",
+        }
+        for doctype, fieldname in expected.items():
+            self.assertTrue(
+                frappe.db.exists(
+                    "Property Setter",
+                    {
+                        "doc_type": doctype,
+                        "field_name": fieldname,
+                        "property": "hidden",
+                        "value": "1",
+                    },
+                ),
+                f"{doctype}.{fieldname}",
+            )
+
     def test_distribution_workspace_sidebar_contains_dsr_challan(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")

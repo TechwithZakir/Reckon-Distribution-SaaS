@@ -1,6 +1,5 @@
 frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
-  frappe.require("/assets/reckon_distribution/js/distribution_link_control.js");
   const page = frappe.ui.make_app_page({
     parent: wrapper,
     title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"),
@@ -68,8 +67,8 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   let lines = [];
   let deliveryKey = null;
   let collectionKey = null;
-  const warehouseControl = window.reckonDistribution.makeLinkControl(body.find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse / ভ্যান গুদাম"), "Warehouse");
-  const accountControl = window.reckonDistribution.makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving account / গ্রহণের অ্যাকাউন্ট"), "Account");
+  const warehouseControl = makeLinkControl(body.find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse / ভ্যান গুদাম"), "Warehouse");
+  const accountControl = makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving account / গ্রহণের অ্যাকাউন্ট"), "Account");
 
   loadOutlets();
   body.find("[data-search]").on("input", function () { renderOutlets(this.value); });
@@ -179,4 +178,13 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   function setState(value) { state.text(value); }
   function formatMoney(value) { return `৳${Number(value || 0).toFixed(2)}`; }
   function esc(value) { return frappe.utils.escape_html(String(value || "")); }
+  function makeLinkControl(parent, fieldname, label, options) {
+    const control = frappe.ui.form.make_control({
+      parent,
+      df: { fieldname, fieldtype: "Link", label, options },
+      render_input: true,
+    });
+    control.refresh();
+    return control;
+  }
 };

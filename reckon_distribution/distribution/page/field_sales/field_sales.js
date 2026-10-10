@@ -1,6 +1,5 @@
 frappe.pages["field-sales"].on_page_load = function (wrapper) {
   frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
-  frappe.require("/assets/reckon_distribution/js/distribution_link_control.js");
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Field Sales"), single_column: true });
   let selected = null;
   let catalog = [];
@@ -25,8 +24,8 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   const outlets = $(page.body).find("[data-outlets]");
   const panel = $(page.body).find("[data-retailer-panel]");
   const state = $(page.body).find("[data-sync-state]");
-  const warehouseControl = window.reckonDistribution.makeLinkControl($(page.body).find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse"), "Warehouse");
-  const accountControl = window.reckonDistribution.makeLinkControl($(page.body).find("[data-account-field]")[0], "receiving_account", __("DSR custody account"), "Account");
+  const warehouseControl = makeLinkControl($(page.body).find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse"), "Warehouse");
+  const accountControl = makeLinkControl($(page.body).find("[data-account-field]")[0], "receiving_account", __("DSR custody account"), "Account");
   let assigned = [];
 
   loadOutlets();
@@ -137,4 +136,13 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
 
   function setState(label) { state.text(label); }
   function formatMoney(value) { return `৳${Number(value || 0).toLocaleString()}`; }
+  function makeLinkControl(parent, fieldname, label, options) {
+    const control = frappe.ui.form.make_control({
+      parent,
+      df: { fieldname, fieldtype: "Link", label, options },
+      render_input: true,
+    });
+    control.refresh();
+    return control;
+  }
 };

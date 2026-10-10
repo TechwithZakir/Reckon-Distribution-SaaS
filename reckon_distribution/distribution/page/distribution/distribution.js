@@ -20,9 +20,9 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
         )}</p>
       </section>
       <section class="rd-desk-grid">
-        <a class="rd-desk-card" href="/desk/van-loading">
-          <h3>${__("Van Loading")}</h3>
-          <p>${__("Create loading requests, approve the van load, and receive it as a DSR.")}</p>
+        <a class="rd-desk-card" href="/desk/van-loading-challan">
+          <h3>${__("DSR Challan Entry")}</h3>
+          <p>${__("Prepare, submit, transfer, and cancel van stock through one native challan record.")}</p>
         </a>
         <a class="rd-desk-card" href="/desk/distribution-master-setup">
           <h3>${__("Master Setup")}</h3>

@@ -11,6 +11,7 @@ from reckon_distribution.van_loading import (
     amend_van_loading_challan,
     approve_van_loading_challan,
     cancel_van_loading_challan,
+    create_van_loading_stock_entry,
     validate_van_loading_acknowledgement,
     validate_van_loading_stock_entry,
 )
@@ -174,6 +175,28 @@ class TestVanLoadingControls(FrappeTestCase):
         self.assertEqual(challan.stock_entry, "STE-NEW-001")
         get_doc.assert_called_once()
         self.assertEqual(get_doc.call_args.args[0]["doctype"], "Stock Entry")
+
+    def test_native_submission_creates_stock_entry_and_marks_challan_submitted(self):
+        challan = self._challan(status="Draft")
+        challan.update(
+            {
+                "posting_date": "2026-10-07",
+                "distributor_warehouse": "Distributor - TCA",
+                "van_warehouse": "Van - TCA",
+                "db_set": lambda field, value: setattr(challan, field, value),
+            }
+        )
+        stock_entry = frappe._dict(
+            {"name": "STE-NATIVE-001", "insert": lambda: None, "submit": lambda: None}
+        )
+        with patch("reckon_distribution.van_loading._validate_available_stock"), patch(
+            "reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry
+        ):
+            result = create_van_loading_stock_entry(challan)
+
+        self.assertEqual(result, "STE-NATIVE-001")
+        self.assertEqual(challan.status, "Submitted")
+        self.assertEqual(challan.stock_entry, "STE-NATIVE-001")
 
     def test_cancel_is_idempotent_and_cancels_submitted_stock_entry(self):
         challan = self._challan(status="Approved")

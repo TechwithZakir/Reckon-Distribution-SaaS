@@ -45,6 +45,11 @@ class TestFoundation(FrappeTestCase):
         )
         self.assertTrue(frappe.db.exists("DocType", "DSR Challan Item"))
 
+    def test_generated_stock_entry_links_to_dsr_challan(self):
+        field = frappe.get_meta("Stock Entry").get_field("rd_van_loading_challan")
+        self.assertIsNotNone(field)
+        self.assertEqual(field.options, "DSR Challan")
+
     def test_dsr_challan_is_permitted_for_distribution_roles(self):
         permissions = {
             row.role: row

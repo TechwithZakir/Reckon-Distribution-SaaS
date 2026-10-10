@@ -92,7 +92,7 @@ def _set_property(doctype: str, fieldname: str | None, property_name: str, value
 
 
 def remove_legacy_challan_pages() -> None:
-    """Remove page launchers so the native challan DocType is the only entry point."""
+    """Remove obsolete challan launchers and references after the DSR rename."""
     removed = False
     for page_name in ("van-loading",):
         if frappe.db.exists("Page", page_name):
@@ -100,6 +100,16 @@ def remove_legacy_challan_pages() -> None:
             removed = True
     for setter_name in frappe.get_all(
         "Property Setter", filters={"doc_type": "Van Loading Challan"}, pluck="name"
+    ):
+        frappe.delete_doc("Property Setter", setter_name, force=True, ignore_permissions=True)
+        removed = True
+    for field_name in frappe.get_all(
+        "Custom Field", filters={"options": "Van Loading Challan"}, pluck="name"
+    ):
+        frappe.delete_doc("Custom Field", field_name, force=True, ignore_permissions=True)
+        removed = True
+    for setter_name in frappe.get_all(
+        "Property Setter", filters={"value": "Van Loading Challan"}, pluck="name"
     ):
         frappe.delete_doc("Property Setter", setter_name, force=True, ignore_permissions=True)
         removed = True
@@ -262,7 +272,16 @@ def ensure_purchase_receipt_fields() -> None:
         },
     ]
     for field in fields:
-        if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
+        existing = frappe.db.exists(
+            "Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}
+        )
+        if existing:
+            custom_field = frappe.get_doc("Custom Field", existing)
+            # Custom fields predate the DSR Challan rename on some sites. Update
+            # their options instead of preserving a link to the removed DocType.
+            if custom_field.options != field.get("options"):
+                custom_field.options = field.get("options")
+                custom_field.save(ignore_permissions=True)
             continue
         frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
 

@@ -86,6 +86,19 @@ class TestFoundation(FrappeTestCase):
             )
         )
 
+    def test_distribution_sidebar_home_uses_the_distribution_page(self):
+        sidebar_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "sidebar"
+            / "distribution"
+            / "distribution.json"
+        )
+        sidebar = json.loads(sidebar_path.read_text())
+        home = next(item for item in sidebar["items"] if item.get("label") == "Distribution Home")
+        self.assertEqual(home["link_type"], "Page")
+        self.assertEqual(home["link_to"], "distribution")
+
     def test_distribution_sidebar_contains_procurement_documents(self):
         sidebar_path = (
             Path(__file__).parents[1]
@@ -162,6 +175,14 @@ class TestFoundation(FrappeTestCase):
                 for item in sidebar.items
             )
         )
+
+    def test_distribution_workspace_sidebar_home_uses_the_distribution_page(self):
+        if not frappe.db.exists("DocType", "Workspace Sidebar"):
+            self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
+        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
+        home = next(item for item in sidebar.items if item.label == "Distribution Home")
+        self.assertEqual(home.link_type, "Page")
+        self.assertEqual(home.link_to, "distribution")
 
     def test_distribution_workspace_sidebar_uses_native_procurement_doctypes(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):

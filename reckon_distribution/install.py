@@ -1285,8 +1285,8 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
     items = [
         {
             "label": "Distribution Home",
-            "link_to": DISTRIBUTION_WORKSPACE,
-            "link_type": "Workspace",
+            "link_to": "distribution",
+            "link_type": "Page",
             "type": "Link",
             "icon": "house",
             "child": 0,

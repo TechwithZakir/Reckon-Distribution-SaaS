@@ -6,8 +6,8 @@
     {
       "type": "Link",
       "label": "Distribution Home",
-      "link_type": "Workspace",
-      "link_to": "Distribution Workspace",
+      "link_type": "Page",
+      "link_to": "distribution",
       "icon": "house",
       "hidden": 0,
       "child": 0,

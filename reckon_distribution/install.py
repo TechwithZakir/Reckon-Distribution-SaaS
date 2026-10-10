@@ -616,6 +616,26 @@ def ensure_distribution_transaction_permissions() -> None:
     for doctype, full_rights in transaction_permissions.items():
         if not frappe.db.exists("DocType", doctype):
             continue
+        if not frappe.get_meta(doctype).is_submittable:
+            # Older installs may have copied submit/cancel flags onto this
+            # non-submittable receipt. Clear both permission stores before
+            # Frappe validates any subsequent permission update.
+            frappe.db.sql(
+                """
+                update `tabDocPerm`
+                set `submit` = 0, `cancel` = 0, `amend` = 0
+                where parent = %s and permlevel = 0
+                """,
+                doctype,
+            )
+            frappe.db.sql(
+                """
+                update `tabCustom DocPerm`
+                set `submit` = 0, `cancel` = 0, `amend` = 0
+                where parent = %s and permlevel = 0
+                """,
+                doctype,
+            )
         permissions.setup_custom_perms(doctype)
         for role in operational_roles:
             existing = frappe.db.exists(

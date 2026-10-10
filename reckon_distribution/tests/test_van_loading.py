@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -219,7 +219,7 @@ class TestVanLoadingControls(FrappeTestCase):
             }
         )
         stock_entry = frappe._dict(
-            {"name": "STE-NEW-001", "insert": lambda: None, "submit": lambda: None}
+            {"name": "STE-NEW-001", "insert": Mock(), "submit": Mock()}
         )
         with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=challan), patch(
             "reckon_distribution.van_loading._require_manager"
@@ -234,6 +234,8 @@ class TestVanLoadingControls(FrappeTestCase):
         self.assertEqual(challan.stock_entry, "STE-NEW-001")
         get_doc.assert_called_once()
         self.assertEqual(get_doc.call_args.args[0]["doctype"], "Stock Entry")
+        stock_entry.insert.assert_called_once_with(ignore_permissions=True)
+        stock_entry.submit.assert_called_once_with()
 
     def test_native_submission_creates_stock_entry_and_marks_challan_submitted(self):
         challan = self._challan(status="Draft")
@@ -246,7 +248,7 @@ class TestVanLoadingControls(FrappeTestCase):
             }
         )
         stock_entry = frappe._dict(
-            {"name": "STE-NATIVE-001", "insert": lambda: None, "submit": lambda: None}
+            {"name": "STE-NATIVE-001", "insert": Mock(), "submit": Mock()}
         )
         with patch("reckon_distribution.van_loading._validate_available_stock"), patch(
             "reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry
@@ -256,17 +258,26 @@ class TestVanLoadingControls(FrappeTestCase):
         self.assertEqual(result, "STE-NATIVE-001")
         self.assertEqual(challan.status, "Submitted")
         self.assertEqual(challan.stock_entry, "STE-NATIVE-001")
+        stock_entry.insert.assert_called_once_with(ignore_permissions=True)
+        stock_entry.submit.assert_called_once_with()
 
     def test_cancel_is_idempotent_and_cancels_submitted_stock_entry(self):
         challan = self._challan(status="Approved")
         challan.save = lambda: None
-        stock_entry = frappe._dict({"docstatus": 1, "cancel": lambda: setattr(stock_entry, "docstatus", 2)})
+        stock_entry = frappe._dict(
+            {
+                "docstatus": 1,
+                "flags": frappe._dict(),
+                "cancel": lambda: setattr(stock_entry, "docstatus", 2),
+            }
+        )
         with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=challan), patch(
             "reckon_distribution.van_loading._require_manager"
         ), patch("reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry):
             self.assertEqual(cancel_van_loading_challan(challan.name), challan.name)
             self.assertEqual(challan.status, "Cancelled")
             self.assertEqual(stock_entry.docstatus, 2)
+            self.assertTrue(stock_entry.flags.ignore_permissions)
 
         cancelled = self._challan(status="Cancelled")
         with patch("reckon_distribution.van_loading.get_tenant_doc", return_value=cancelled), patch(

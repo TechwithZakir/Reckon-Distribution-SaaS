@@ -228,8 +228,7 @@ def approve_van_loading_challan(challan: str) -> str:
             ],
         }
     )
-    stock_entry.insert()
-    stock_entry.submit()
+    _submit_generated_stock_entry(stock_entry)
 
     doc.stock_entry = stock_entry.name
     doc.save()
@@ -266,8 +265,7 @@ def create_van_loading_stock_entry(doc) -> str:
             ],
         }
     )
-    stock_entry.insert()
-    stock_entry.submit()
+    _submit_generated_stock_entry(stock_entry)
     doc.db_set("stock_entry", stock_entry.name)
     return stock_entry.name
 
@@ -279,7 +277,7 @@ def cancel_van_loading_stock_entry(doc) -> None:
         return
     stock_entry = frappe.get_doc("Stock Entry", doc.stock_entry)
     if stock_entry.docstatus == 1:
-        stock_entry.cancel()
+        _cancel_generated_stock_entry(stock_entry)
     doc.db_set("status", "Cancelled")
 
 
@@ -314,10 +312,22 @@ def cancel_van_loading_challan(challan: str) -> str:
     if doc.stock_entry:
         stock_entry = frappe.get_doc("Stock Entry", doc.stock_entry)
         if stock_entry.docstatus == 1:
-            stock_entry.cancel()
+            _cancel_generated_stock_entry(stock_entry)
     doc.status = "Cancelled"
     doc.save()
     return doc.name
+
+
+def _submit_generated_stock_entry(stock_entry) -> None:
+    """Post the transfer derived from an already-authorized DSR Challan."""
+    stock_entry.insert(ignore_permissions=True)
+    stock_entry.submit()
+
+
+def _cancel_generated_stock_entry(stock_entry) -> None:
+    """Reverse a generated transfer without granting standalone stock access."""
+    stock_entry.flags.ignore_permissions = True
+    stock_entry.cancel()
 
 
 @frappe.whitelist()

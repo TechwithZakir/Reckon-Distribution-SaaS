@@ -41,6 +41,37 @@ def get_assigned_outlets(route: str | None = None, txt: str = "") -> list[dict]:
 
 
 @frappe.whitelist()
+def get_dsr_delivery_context() -> dict:
+    """Return company-scoped defaults for the DSR delivery workspace."""
+    tenant = require_tenant()
+    routes = frappe.get_all(
+        "Distribution Route",
+        filters={"company": tenant.company, "assigned_user": frappe.session.user, "active": 1},
+        fields=["name", "route_name"],
+        order_by="route_name asc",
+    )
+    default_warehouse = frappe.db.get_value(
+        "Distribution Settings", {"company": tenant.company}, "default_warehouse"
+    )
+    if default_warehouse and frappe.db.get_value("Warehouse", default_warehouse, "company") != tenant.company:
+        default_warehouse = None
+    if not default_warehouse:
+        fallback = frappe.get_all(
+            "Warehouse",
+            {"company": tenant.company, "is_group": 0, "disabled": 0},
+            pluck="name",
+            order_by="warehouse_name asc",
+        )
+        default_warehouse = fallback[0] if fallback else None
+    return {
+        "company": tenant.company,
+        "routes": routes,
+        "default_route": routes[0].name if routes else None,
+        "default_warehouse": default_warehouse,
+    }
+
+
+@frappe.whitelist()
 def get_retailer_summary(customer: str, route: str | None = None) -> dict:
     tenant = require_tenant()
     _assert_assigned_customer(tenant.company, customer, route)
@@ -103,9 +134,13 @@ def get_sales_catalog(price_list: str | None = None) -> list[dict]:
     catalog = []
     for item_code in item_codes:
         item = frappe.get_doc("Item", item_code)
-        rate = frappe.db.get_value(
-            "Item Price", {"item_code": item_code, "price_list": price_list, "selling": 1}, "price_list_rate"
+        prices = frappe.get_all(
+            "Item Price",
+            filters={"item_code": item_code, "price_list": price_list, "selling": 1},
+            fields=["uom", "price_list_rate"],
         )
+        price_by_uom = {row.uom or item.stock_uom: row.price_list_rate for row in prices}
+        rate = price_by_uom.get(item.stock_uom) or next(iter(price_by_uom.values()), None)
         if rate is None:
             continue
         catalog.append(
@@ -115,6 +150,7 @@ def get_sales_catalog(price_list: str | None = None) -> list[dict]:
                 "stock_uom": item.stock_uom,
                 "uoms": [{"uom": row.uom, "conversion_factor": row.conversion_factor} for row in item.get("uoms") or []],
                 "rate": rate,
+                "prices": [{"uom": uom, "rate": item_rate} for uom, item_rate in price_by_uom.items()],
                 "price_list": price_list,
             }
         )

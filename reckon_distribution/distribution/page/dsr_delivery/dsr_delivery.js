@@ -16,6 +16,10 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
         </div>
         <span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span>
       </header>
+      <section class="rd-dsr-context rd-dsr-section">
+        <div data-route-field></div>
+        <div data-warehouse-field></div>
+      </section>
       <label class="rd-dsr-search">
         <span>${__("Search retailer / রিটেইলার খুঁজুন")}</span>
         <input data-search placeholder="${__("Retailer name / দোকানের নাম")}" />
@@ -30,10 +34,11 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
           <h4>${__("1. Delivery / ১. ডেলিভারি")}</h4>
           <p class="text-muted">${__("Add only physically delivered stock. Supplier free goods need their submitted receipt source. / বাস্তবে দেওয়া পণ্যই যোগ করুন। সরবরাহকারীর ফ্রি পণ্যের জমা দেওয়া রসিদের উৎস দিন।")}</p>
           <div class="rd-dsr-fields">
-            <div data-warehouse-field></div>
             <label>${__("Product / পণ্য")}<select data-item></select></label>
             <label>${__("Sales unit / বিক্রয় ইউনিট")}<select data-uom></select></label>
             <label>${__("Quantity / পরিমাণ")}<input data-qty type="number" min="0.001" step="0.001" /></label>
+            <label>${__("Unit price / একক মূল্য")}<input data-rate type="number" readonly /></label>
+            <label>${__("Line total / মোট মূল্য")}<input data-line-total type="number" readonly /></label>
             <label>${__("Stock type / স্টকের ধরন")}<select data-category><option value="Saleable">${__("Saleable / বিক্রয়যোগ্য")}</option><option value="Supplier Free">${__("Supplier free / সরবরাহকারীর ফ্রি")}</option></select></label>
             <label>${__("Source receipt for free goods / ফ্রি পণ্যের উৎস রসিদ")}<input data-source placeholder="PR-00001" /></label>
           </div>
@@ -67,18 +72,36 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   let lines = [];
   let deliveryKey = null;
   let collectionKey = null;
+  const routeControl = makeLinkControl(body.find("[data-route-field]")[0], "route", __("Route / রুট"), "Distribution Route", reloadRoute);
   const warehouseControl = makeLinkControl(body.find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse / ভ্যান গুদাম"), "Warehouse");
   const accountControl = makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving account / গ্রহণের অ্যাকাউন্ট"), "Account");
 
-  loadOutlets();
+  loadContext();
   body.find("[data-search]").on("input", function () { renderOutlets(this.value); });
   body.find("[data-item]").on("change", renderUoms);
+  body.find("[data-uom]").on("change", updatePricePreview);
+  body.find("[data-qty]").on("input", updatePricePreview);
   body.find("[data-add-line]").on("click", addLine);
   body.find("[data-submit-delivery]").on("click", submitDelivery);
   body.find("[data-submit-collection]").on("click", submitCollection);
 
-  function loadOutlets() {
-    frappe.call({ method: "reckon_distribution.field_sales.get_assigned_outlets" }).then((response) => {
+  function loadContext() {
+    frappe.call({ method: "reckon_distribution.field_sales.get_dsr_delivery_context" }).then((response) => {
+      const context = response.message || {};
+      if (context.default_route) routeControl.set_value(context.default_route);
+      if (context.default_warehouse) warehouseControl.set_value(context.default_warehouse);
+      loadOutlets(routeControl.get_value());
+    }).catch(() => loadOutlets());
+  }
+
+  function reloadRoute() {
+    selected = null;
+    panel.prop("hidden", true);
+    loadOutlets(routeControl.get_value());
+  }
+
+  function loadOutlets(route) {
+    frappe.call({ method: "reckon_distribution.field_sales.get_assigned_outlets", args: { route: route || "" } }).then((response) => {
       assigned = response.message || [];
       renderOutlets();
       setState(__("Ready / প্রস্তুত"));
@@ -125,26 +148,28 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
     const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
     const uoms = item ? [{ uom: item.stock_uom, conversion_factor: 1 }, ...(item.uoms || [])] : [];
     body.find("[data-uom]").html(uoms.map((row) => `<option value="${esc(row.uom)}">${esc(row.uom)} ×${row.conversion_factor}</option>`).join(""));
+    updatePricePreview();
   }
 
   function addLine() {
     const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
     const qty = Number(body.find("[data-qty]").val());
     if (!item || !qty || qty <= 0) return showMessage(__("Choose a product and quantity first. / আগে পণ্য ও পরিমাণ নির্বাচন করুন।"), true);
-    lines.push({ item_code: item.item_code, uom: body.find("[data-uom]").val() || item.stock_uom, qty, rd_stock_category: body.find("[data-category]").val(), rd_supplier_free_source: body.find("[data-source]").val() });
+    const uom = body.find("[data-uom]").val() || item.stock_uom;
+    lines.push({ item_code: item.item_code, uom, qty, rate: getRate(item, uom), rd_stock_category: body.find("[data-category]").val(), rd_supplier_free_source: body.find("[data-source]").val() });
     body.find("[data-qty], [data-source]").val("");
     renderLines();
   }
 
   function renderLines() {
     const target = body.find("[data-lines]");
-    target.html(lines.length ? lines.map((line, index) => `<div class="rd-dsr-line"><span>${esc(line.item_code)} · ${esc(line.uom)} × ${line.qty}</span><small>${esc(line.rd_stock_category)}</small><button class="btn btn-xs btn-default" data-remove-line="${index}">${__("Remove")}</button></div>`).join("") : `<p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p>`);
+    target.html(lines.length ? lines.map((line, index) => `<div class="rd-dsr-line"><span><strong>${esc(line.item_code)}</strong><small>${esc(line.uom)} × ${line.qty} @ ৳${Number(line.rate || 0).toFixed(2)} = ৳${(Number(line.qty) * Number(line.rate || 0)).toFixed(2)}</small></span><small>${esc(line.rd_stock_category)}</small><button class="btn btn-xs btn-default" data-remove-line="${index}">${__("Remove")}</button></div>`).join("") : `<p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p>`);
     target.find("[data-remove-line]").on("click", function () { lines.splice(Number($(this).data("remove-line")), 1); renderLines(); });
   }
 
   function submitDelivery() {
     if (!selected || !lines.length) return showMessage(__("Select a retailer and add delivery lines. / রিটেইলার নির্বাচন করে ডেলিভারি লাইন যোগ করুন।"), true);
-    const payload = { customer: selected.customer, route: selected.route, warehouse: warehouseControl.get_value(), items: lines, idempotency_key: deliveryKey };
+    const payload = { customer: selected.customer, route: routeControl.get_value() || selected.route, warehouse: warehouseControl.get_value(), items: lines, idempotency_key: deliveryKey };
     withGps((gps) => {
       Object.assign(payload, gps);
       frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((response) => {
@@ -178,10 +203,21 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   function setState(value) { state.text(value); }
   function formatMoney(value) { return `৳${Number(value || 0).toFixed(2)}`; }
   function esc(value) { return frappe.utils.escape_html(String(value || "")); }
-  function makeLinkControl(parent, fieldname, label, options) {
+  function getRate(item, uom) {
+    const match = (item.prices || []).find((row) => row.uom === uom);
+    return Number((match && match.rate) || item.rate || 0);
+  }
+  function updatePricePreview() {
+    const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
+    const rate = item ? getRate(item, body.find("[data-uom]").val() || item.stock_uom) : 0;
+    const qty = Number(body.find("[data-qty]").val() || 0);
+    body.find("[data-rate]").val(rate.toFixed(2));
+    body.find("[data-line-total]").val((qty * rate).toFixed(2));
+  }
+  function makeLinkControl(parent, fieldname, label, options, onchange) {
     const control = frappe.ui.form.make_control({
       parent,
-      df: { fieldname, fieldtype: "Link", label, options },
+      df: { fieldname, fieldtype: "Link", label, options, onchange },
       render_input: true,
     });
     control.refresh();

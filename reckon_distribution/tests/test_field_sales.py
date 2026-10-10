@@ -8,12 +8,26 @@ from frappe.tests.utils import FrappeTestCase
 from reckon_distribution.field_sales import (
     _order_item,
     get_assigned_outlets,
+    get_dsr_delivery_context,
     get_retailer_summary,
     save_sr_order,
 )
 
 
 class TestFieldSales(FrappeTestCase):
+    def test_delivery_context_defaults_to_assigned_route_and_company_warehouse(self):
+        tenant = frappe._dict({"company": "_Test Tenant Company A"})
+        routes = [frappe._dict({"name": "_Test Route A", "route_name": "Route A"})]
+        with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(
+            "reckon_distribution.field_sales.frappe.session.user", "dsr@example.com"
+        ), patch("reckon_distribution.field_sales.frappe.get_all", side_effect=[routes, ["Van - TCA"]]), patch(
+            "reckon_distribution.field_sales.frappe.db.get_value", side_effect=[None]
+        ):
+            result = get_dsr_delivery_context()
+
+        self.assertEqual(result["default_route"], "_Test Route A")
+        self.assertEqual(result["default_warehouse"], "Van - TCA")
+
     def test_retailer_summary_uses_erpnext_v16_balance_signature(self):
         tenant = frappe._dict({"company": "_Test Tenant Company A"})
         with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(

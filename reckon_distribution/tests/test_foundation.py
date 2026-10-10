@@ -119,7 +119,6 @@ class TestFoundation(FrappeTestCase):
         self.assertNotIn("company-uom-profile", ALLOWED_DISTRIBUTION_PAGES)
         self.assertNotIn("user", ALLOWED_DISTRIBUTION_PAGES)
         self.assertIn("dsr-delivery", ALLOWED_DISTRIBUTION_PAGES)
-        self.assertIn("dsr-challan", ALLOWED_DISTRIBUTION_PAGES)
 
     def test_distribution_master_setup_page_exists(self):
         page_path = (

@@ -94,10 +94,9 @@ It creates two users and assigns one active Company to each user. The Company A
 user receives the Company Admin role and the Company B user receives the Master
 Data Manager role.
 
-The setup also provisions only missing ERPNext reference fixtures needed by a
+The setup provisions only missing ERPNext reference fixtures needed by a
 minimal test site:
 
-- Warehouse Type: `Transit`
 - Item Group
 - UOM
 - non-group Customer Group
@@ -189,9 +188,12 @@ cannot receive two active Company assignments.
 
 ## Fixture problems found and fixed
 
-The first run failed before security assertions because the minimal test site
-did not contain ERPNext's `Warehouse Type: Transit`. Company creation uses this
-reference, so the test now provisions it only when missing.
+The first run failed before security assertions because ERPNext company
+creation tried to bootstrap default warehouses and the minimal test site did
+not contain `Warehouse Type: Transit`. That warehouse setup is unrelated to
+tenant isolation, so the tests now bypass ERPNext's Company `on_update`
+warehouse bootstrap while creating temporary test companies. Production
+company creation is not changed, and no global ERPNext asset is modified.
 
 The second run exposed missing default Item Group and UOM records. The test now
 creates temporary reference records when required.
@@ -206,6 +208,13 @@ test now models the approved immutable-assignment lifecycle.
 
 These failures were test-environment and test-fixture issues. They did not
 indicate a bypass of tenant isolation.
+
+The transaction suite also exposed two Frappe 16 test-mocking issues. Delivery
+approval and Van Loading approval tests patched `frappe.get_doc` with mock
+objects containing local lambdas; Frappe's timezone cache then attempted to
+pickle those objects. Those tests now mock the module-local `now_datetime`
+dependency instead. The Purchase Receipt test had its own direct Company
+fixture and now uses the same test-only Company bootstrap isolation.
 
 ## Expected result
 
@@ -245,6 +254,21 @@ apps/reckon_distribution/scripts/test_distribution_transactions.sh \
   --site distribution-test.localhost
 ```
 
+The runner accepts either form below and should be invoked from the bench
+root:
+
+```bash
+bash apps/reckon_distribution/scripts/test_distribution_transactions.sh \
+  --site distribution-test.localhost
+
+bash apps/reckon_distribution/scripts/test_distribution_transactions.sh \
+  --site=distribution-test.localhost
+```
+
+It rejects production-looking site names, requires `bench` on `PATH`, reports
+the exact module that failed, and stops at the first failing module. Using
+`bash` explicitly also avoids executable-bit problems after a server checkout.
+
 It runs these transaction modules in order:
 
 1. `test_field_sales`: SR outlet visits, SR orders, UOM conversion, GPS, and
@@ -265,3 +289,31 @@ It runs these transaction modules in order:
 This suite is a transaction-controller regression suite. The multi-company
 class above is the database-backed ownership and permission test. Both runners
 must pass before a release is considered functionally verified.
+
+## Latest verified workflow
+
+The following sequence was used on ERPNext/Frappe 16:
+
+```bash
+cd ~/frappe-bench
+git -C apps/reckon_distribution fetch origin main
+git -C apps/reckon_distribution reset --hard origin/main
+
+bench --site distribution-test.localhost run-tests \
+  --app reckon_distribution \
+  --module reckon_distribution.tests.test_multi_company_isolation
+
+bash apps/reckon_distribution/scripts/test_distribution_transactions.sh \
+  --site distribution-test.localhost
+```
+
+The multi-company suite completed with:
+
+```text
+Ran 7 tests
+OK
+```
+
+The final test-runner fixes are represented by commits `665dc78`, `801a220`,
+`5a09d51`, `d49fbd2`, `5c37cca`, and `6441cb0`. A later checkout should always
+pull the current `origin/main` rather than cherry-picking these individually.

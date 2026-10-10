@@ -7,7 +7,6 @@ from frappe.utils import getdate
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
-    get_user_companies,
     require_tenant,
     user_can_bypass_tenant,
     validate_tenant_owned_doc,
@@ -23,7 +22,7 @@ def validate_route_assignment(doc, method=None) -> None:
         frappe.throw(_("The route is not active for this Company."))
     if route.assigned_user != doc.assigned_user:
         frappe.throw(_("The outlet assignee must match the route DSR/SR."))
-    if doc.assigned_user not in get_user_companies(doc.assigned_user) and not user_can_bypass_tenant():
+    if not _has_active_company_assignment(doc.assigned_user, doc.company) and not user_can_bypass_tenant():
         frappe.throw(_("The outlet assignee is not assigned to this Company."))
     if getdate(doc.effective_from) > getdate(doc.effective_to):
         frappe.throw(_("Assignment end date cannot be before its start date."))
@@ -39,3 +38,13 @@ def validate_route_assignment(doc, method=None) -> None:
         },
     ):
         frappe.throw(_("This retailer already has an overlapping active route assignment."))
+
+
+def _has_active_company_assignment(user: str, company: str) -> bool:
+    """Use the assignment record as the authoritative user-company link."""
+    return bool(
+        frappe.db.exists(
+            "Tenant User Assignment",
+            {"user": user, "company": company, "active": 1},
+        )
+    )

@@ -4,7 +4,7 @@ import json
 from urllib.parse import unquote
 
 import frappe
-from frappe import _
+from frappe import _, permissions
 from werkzeug.exceptions import HTTPException
 
 from reckon_distribution.constants import OPERATIONAL_ROLES
@@ -158,6 +158,7 @@ def get_user_home_page(user: str):
 
 def restrict_distribution_desk_request() -> None:
     _ensure_current_distribution_role()
+    _ensure_current_user_metadata_access()
     if not _is_distribution_only_user():
         return
 
@@ -283,6 +284,59 @@ def _ensure_current_distribution_role() -> None:
         return
     frappe.get_doc("User", user).add_roles(role)
     frappe.clear_cache(user=user)
+
+
+def _ensure_current_user_metadata_access() -> None:
+    """Repair the native metadata permission before Desk loads a Distribution list.
+
+    Frappe's native list boot calls permission checks for the ``DocType`` metadata
+    record before it can load the requested document. Older tenant users may have
+    received their Distribution role before this permission was introduced, so a
+    migration alone is not enough for an already-open production site. This is an
+    idempotent backfill for the current Distribution role only.
+    """
+    user = frappe.session.user
+    if not user or user in {"Guest", "Administrator"}:
+        return
+    if not frappe.db.exists("DocType", "DocType"):
+        return
+
+    roles = set(frappe.get_roles(user))
+    distribution_roles = {role.name for role in OPERATIONAL_ROLES}
+    applicable_roles = roles.intersection(distribution_roles)
+    if not applicable_roles:
+        return
+
+    changed = False
+    permissions.setup_custom_perms("DocType")
+    for role in applicable_roles:
+        name = frappe.db.exists(
+            "Custom DocPerm",
+            {"parent": "DocType", "role": role, "permlevel": 0, "if_owner": 0},
+        )
+        if name:
+            if not frappe.db.get_value("Custom DocPerm", name, "read"):
+                frappe.db.set_value("Custom DocPerm", name, "read", 1, update_modified=False)
+                changed = True
+            continue
+
+        frappe.get_doc(
+            {
+                "doctype": "Custom DocPerm",
+                "parent": "DocType",
+                "parenttype": "DocType",
+                "parentfield": "permissions",
+                "role": role,
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+            }
+        ).insert(ignore_permissions=True)
+        changed = True
+
+    if changed:
+        frappe.clear_cache(doctype="DocType")
+        frappe.clear_cache(user=user)
 
 
 def _request_path() -> str:

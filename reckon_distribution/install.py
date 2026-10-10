@@ -65,7 +65,14 @@ def ensure_office_expense_defaults() -> None:
         return
     from reckon_distribution.seed import ensure_office_expense_defaults as seed_defaults
 
-    for company in frappe.get_all("Distribution Settings", pluck="company"):
+    companies = set(frappe.get_all("Distribution Settings", pluck="company"))
+    if frappe.db.exists("DocType", "Tenant User Assignment"):
+        companies.update(
+            frappe.get_all(
+                "Tenant User Assignment", filters={"active": 1}, pluck="company"
+            )
+        )
+    for company in sorted(filter(None, companies)):
         seed_defaults(company)
 
 

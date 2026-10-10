@@ -5,7 +5,7 @@
   "items": [
     {
       "type": "Link",
-      "label": "Distribution",
+      "label": "Distribution Home",
       "link_type": "Workspace",
       "link_to": "Distribution Workspace",
       "icon": "house",
@@ -41,7 +41,7 @@
     },
     {
       "type": "Link",
-      "label": "Purchase Receipts",
+      "label": "Purchase Received",
       "link_type": "DocType",
       "link_to": "Purchase Receipt",
       "icon": "package-plus",

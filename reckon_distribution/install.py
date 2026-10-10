@@ -860,7 +860,11 @@ def ensure_workspace_sidebar() -> None:
 
     existing_links = {item.link_to for item in sidebar.items}
     for item in _workspace_sidebar_doc()["items"]:
-        if item["link_to"] in existing_links:
+        existing = next((row for row in sidebar.items if row.link_to == item["link_to"]), None)
+        if existing:
+            existing.label = item.get("label")
+            existing.icon = item.get("icon")
+            existing.link_type = item.get("link_type")
             continue
         sidebar.append("items", item)
     sidebar.save(ignore_permissions=True, ignore_links=True)
@@ -870,7 +874,7 @@ def _workspace_sidebar_doc() -> dict:
     """Return the native left-rail definition used by the active Desk shell."""
     items = [
         {
-            "label": "Distribution",
+            "label": "Distribution Home",
             "link_to": DISTRIBUTION_WORKSPACE,
             "link_type": "Workspace",
             "type": "Link",
@@ -894,7 +898,7 @@ def _workspace_sidebar_doc() -> dict:
     ]
     for label, page, icon in (
         ("Purchase Orders", "Purchase Order", "clipboard-list"),
-        ("Purchase Receipts", "Purchase Receipt", "package-plus"),
+        ("Purchase Received", "Purchase Receipt", "package-plus"),
         ("Purchase Invoices", "Purchase Invoice", "file-text"),
         ("Supplier Advances & Payments", "Payment Entry", "wallet-cards"),
         ("DSR Day Settlement", "dsr-day-settlement", "calculator"),

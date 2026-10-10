@@ -12,6 +12,7 @@ def after_install() -> None:
     ensure_distribution_permissions()
     ensure_challan_label()
     setup_workspace()
+    remove_legacy_van_loading_page()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -24,6 +25,7 @@ def after_migrate() -> None:
     ensure_distribution_permissions()
     ensure_challan_label()
     setup_workspace()
+    remove_legacy_van_loading_page()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -88,6 +90,13 @@ def ensure_challan_label() -> None:
     if frappe.db.exists("DocType", "Van Loading Challan"):
         _set_property("Van Loading Challan", None, "label", "DSR Challan", "Data")
         frappe.clear_cache(doctype="Van Loading Challan")
+
+
+def remove_legacy_van_loading_page() -> None:
+    """Remove the obsolete Page so the sidebar uses the native challan list route."""
+    if frappe.db.exists("Page", "van-loading"):
+        frappe.delete_doc("Page", "van-loading", force=True, ignore_permissions=True)
+        frappe.clear_cache()
 
 
 def ensure_purchase_receipt_fields() -> None:

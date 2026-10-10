@@ -49,13 +49,16 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         )
         self.stock_uom = self._ensure_reference_master("UOM", "Nos", {"uom_name": "Nos"})
         self.customer_group = self._ensure_reference_master(
-            "Customer Group", "All Customer Groups", {"customer_group_name": "All Customer Groups", "is_group": 1}
+            "Customer Group", "All Customer Groups", {"customer_group_name": "All Customer Groups", "is_group": 0},
+            filters={"is_group": 0},
         )
         self.supplier_group = self._ensure_reference_master(
-            "Supplier Group", "All Supplier Groups", {"supplier_group_name": "All Supplier Groups", "is_group": 1}
+            "Supplier Group", "All Supplier Groups", {"supplier_group_name": "All Supplier Groups", "is_group": 0},
+            filters={"is_group": 0},
         )
         self.territory = self._ensure_reference_master(
-            "Territory", "All Territories", {"territory_name": "All Territories", "is_group": 1}
+            "Territory", "All Territories", {"territory_name": "All Territories", "is_group": 0},
+            filters={"is_group": 0},
         )
         self._ensure_company(self.company_a, f"RDA{token[:3].upper()}")
         self._ensure_company(self.company_b, f"RDB{token[:3].upper()}")
@@ -341,10 +344,15 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         )
         self.created_warehouse_types.append(name)
 
-    def _ensure_reference_master(self, doctype: str, preferred: str, values: dict) -> str:
-        existing = frappe.get_all(doctype, pluck="name", limit=1)
+    def _ensure_reference_master(
+        self, doctype: str, preferred: str, values: dict, filters: dict | None = None
+    ) -> str:
+        existing = frappe.get_all(doctype, filters=filters or {}, pluck="name", limit=1)
         if existing:
             return existing[0]
+        if frappe.db.exists(doctype, preferred):
+            name_field = next(field for field in values if field.endswith("_name"))
+            values[name_field] = f"{preferred} {frappe.generate_hash(length=6)}"
         doc = frappe.get_doc({"doctype": doctype, **values}).insert(ignore_permissions=True)
         self.created_reference_masters.append((doctype, doc.name))
         return doc.name

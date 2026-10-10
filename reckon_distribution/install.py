@@ -874,7 +874,7 @@ def ensure_workspace_sidebar() -> None:
             existing.link_type = item.get("link_type")
             continue
         sidebar.append("items", item)
-    sidebar.save(ignore_permissions=True, ignore_links=True)
+    sidebar.save(ignore_permissions=True)
 
 
 def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:

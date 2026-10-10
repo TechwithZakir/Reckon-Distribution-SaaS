@@ -41,3 +41,19 @@ For an existing site that already has `reckon_distribution`, pull the code first
 install `reckon_saas_platform`, then migrate. The SaaS DocTypes are owned by the
 platform app; `reckon_distribution` depends on it and registers itself as a SaaS
 module.
+
+## Multi-company integration test
+
+Run the end-to-end isolation class only against a dedicated test or staging site.
+The runner creates uniquely named fixtures and cleans them up; it refuses ordinary
+production-looking site names:
+
+```bash
+./scripts/test_multi_company.sh --site distribution-test.localhost
+```
+
+The class verifies SaaS onboarding, Company Team & Access, standard Company User
+Permission materialization, assignment changes, native master list/link filtering,
+automatic company context, item-code generation, and cross-company mutation/link
+rejection. It requires the `reckon_saas_platform` and `erpnext` apps to be installed
+on the selected site.

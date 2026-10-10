@@ -618,6 +618,12 @@ def ensure_native_master_permissions() -> None:
         # Frappe's native list and form loaders read DocType metadata even
         # when the requested document itself is already role-permitted.
         "DocType": {"read"},
+        # The native Purchase Order, Receipt, Invoice, and Payment Entry forms
+        # fetch the selected Company's defaults before rendering.
+        "Company": {"read"},
+        # ERPNext purchase controllers read maintain_same_rate from this
+        # singleton during form boot.
+        "Buying Settings": {"read"},
         "Customer": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Supplier": {"read", "write", "create", "delete", "report", "export", "print", "email"},
         "Item": {"read", "write", "create", "delete", "report", "export", "print", "email"},

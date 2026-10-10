@@ -116,6 +116,16 @@ class TestFoundation(FrappeTestCase):
             self.assertTrue(permissions["Reckon Distribution Manager"].create, doctype)
             self.assertFalse(permissions["Reckon Distribution User"].create, doctype)
 
+    def test_procurement_support_doctypes_are_readable_by_management_roles(self):
+        for doctype in ("Company", "Buying Settings"):
+            permissions = {
+                row.role: row
+                for row in frappe.get_meta(doctype).permissions
+                if row.role in {"Reckon Distribution Admin", "Reckon Distribution Manager"}
+            }
+            self.assertTrue(permissions["Reckon Distribution Admin"].read, doctype)
+            self.assertTrue(permissions["Reckon Distribution Manager"].read, doctype)
+
     def test_distribution_workspace_sidebar_contains_dsr_challan(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")

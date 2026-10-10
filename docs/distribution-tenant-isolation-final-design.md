@@ -218,7 +218,7 @@ layout is navigation only; it does not introduce parallel transaction records.
 native `SR Order` and `Outlet Visit` lists. `DSR Delivery & Collection` remains
 the guided execution page, with native `Delivery Note` and `DSR Collection
 Receipt` lists as its history and audit trail. These lists are available in the
-left navigation and Distribution Home.
+Distribution Home without cluttering the left navigation.
 
 Stock movement is represented by ERPNext `Stock Ledger Entry`; no custom stock
 ledger is maintained. Distribution users may read, print, export, and report on
@@ -231,3 +231,50 @@ The Distribution Home dashboard gets its Company only from the authenticated
 tenant context. It displays server-calculated KPI totals and recent records for
 that Company and period. Browsers never provide a Company identifier for
 dashboard, ledger, or report data.
+
+## 14. Next Development: Tenant Transaction IDs
+
+Add an immutable, user-facing `rd_transaction_id` to each approved transaction
+DocType. This is a business identifier only; Frappe's native `name` remains the
+technical primary key for links, amendments, accounting references, and routes.
+The native identifier is hidden from normal form, list, print, and user-facing
+message layouts.
+
+The visible format is:
+
+```text
+<DOCTYPE>-<DDMMYY>-<SEQUENCE>
+```
+
+Examples:
+
+```text
+DN-101026-000023
+DCR-101026-000023
+PR-101026-000023
+```
+
+The required database rule is:
+
+```text
+Company + rd_transaction_id = unique
+```
+
+The sequence is therefore independent for each Company, DocType, and document
+date. Two tenants may legitimately use the same visible transaction ID; one
+tenant may not create the same ID twice. The server resolves Company from the
+authenticated tenant, validates the document party and date, atomically
+allocates the next sequence, and never accepts a browser-supplied identifier.
+
+Initial scope: `Delivery Note`, `DSR Collection Receipt`, `SR Order`,
+`Purchase Receipt`, and `Purchase Invoice`. DSR Challan does not contain a
+Customer, so it requires a separate route/DSR-based identifier rule if included.
+Supplier transactions use the same Company-scoped uniqueness rule but do not
+embed customer information.
+
+Identifiers are allocated on submission using the final posting date. They are
+never edited, reused after cancellation, or copied unchanged to amendments.
+Retries must resolve an existing idempotency key before a new identifier is
+allocated. The implementation requires an internal, lock-protected counter
+keyed by Company, DocType, and document date, plus an explicit composite unique
+database index.

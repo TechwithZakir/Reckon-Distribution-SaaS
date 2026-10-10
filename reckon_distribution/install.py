@@ -637,6 +637,9 @@ def ensure_standard_doc_type_read_permission(role: str) -> None:
     permission rows. Native Desk list/form boot therefore requires a standard
     ``tabDocPerm`` row for each Distribution role.
     """
+    if not frappe.db.exists("Role", role):
+        return
+
     existing = frappe.db.exists(
         "DocPerm", {"parent": "DocType", "role": role, "permlevel": 0, "if_owner": 0}
     )

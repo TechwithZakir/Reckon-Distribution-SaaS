@@ -302,6 +302,30 @@ def _ensure_current_user_metadata_access() -> None:
         return
 
     roles = set(frappe.get_roles(user))
+    # Resolve the assignment directly as well as the cached User roles. This
+    # closes the first-request gap immediately after a tenant user is created
+    # or after an older site receives the role backfill during migration.
+    role_map = {
+        "Company Admin": "Reckon Distribution Admin",
+        "Company Manager": "Reckon Distribution Manager",
+        "Master Data Manager": "Reckon Master Data Manager",
+        "SR": "Reckon Distribution User",
+        "DSR": "Reckon Distribution User",
+    }
+    profile = frappe.db.get_value(
+        "Tenant User Assignment",
+        {"user": user, "active": 1, "is_default": 1},
+        "role_profile",
+    )
+    if not profile:
+        profile = frappe.db.get_value(
+            "Tenant User Assignment", {"user": user, "active": 1}, "role_profile"
+        )
+    if profile:
+        roles.add(profile)
+        if role_map.get(profile):
+            roles.add(role_map[profile])
+
     distribution_roles = {role.name for role in OPERATIONAL_ROLES} | TENANT_ROLE_NAMES
     applicable_roles = roles.intersection(distribution_roles)
     if not applicable_roles:

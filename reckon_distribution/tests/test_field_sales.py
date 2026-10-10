@@ -5,10 +5,32 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.field_sales import _order_item, get_assigned_outlets, save_sr_order
+from reckon_distribution.field_sales import (
+    _order_item,
+    get_assigned_outlets,
+    get_retailer_summary,
+    save_sr_order,
+)
 
 
 class TestFieldSales(FrappeTestCase):
+    def test_retailer_summary_uses_erpnext_v16_balance_signature(self):
+        tenant = frappe._dict({"company": "_Test Tenant Company A"})
+        with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(
+            "reckon_distribution.field_sales._assert_assigned_customer"
+        ), patch("reckon_distribution.field_sales.nowdate", return_value="2026-10-10"), patch(
+            "erpnext.accounts.utils.get_balance_on", return_value=1250
+        ) as get_balance:
+            result = get_retailer_summary("_Test Customer A", "_Test Route A")
+
+        self.assertEqual(result["net_due"], 1250)
+        get_balance.assert_called_once_with(
+            party_type="Customer",
+            party="_Test Customer A",
+            date="2026-10-10",
+            company="_Test Tenant Company A",
+        )
+
     def test_uom_conversion_is_server_calculated(self):
         item = frappe._dict(
             {

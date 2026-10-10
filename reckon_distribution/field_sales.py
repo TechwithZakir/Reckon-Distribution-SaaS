@@ -46,7 +46,12 @@ def get_retailer_summary(customer: str, route: str | None = None) -> dict:
     _assert_assigned_customer(tenant.company, customer, route)
     from erpnext.accounts.utils import get_balance_on
 
-    balance = get_balance_on("Customer", customer, date=nowdate(), company=tenant.company)
+    balance = get_balance_on(
+        party_type="Customer",
+        party=customer,
+        date=nowdate(),
+        company=tenant.company,
+    )
     return {
         "company": tenant.company,
         "customer": customer,

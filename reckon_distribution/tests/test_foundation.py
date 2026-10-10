@@ -118,7 +118,7 @@ class TestFoundation(FrappeTestCase):
             }.issubset(links)
         )
 
-    def test_distribution_sidebar_groups_operational_lists_and_reports(self):
+    def test_distribution_sidebar_groups_core_work_and_reports(self):
         sidebar_path = (
             Path(__file__).parents[1]
             / "distribution"
@@ -131,17 +131,22 @@ class TestFoundation(FrappeTestCase):
         labels = {item.get("label") for item in sidebar["items"]}
         self.assertTrue(
             {
-                "SR Order",
-                "Outlet Visit",
-                "Delivery Note",
-                "DSR Collection Receipt",
+                "field-sales",
+                "dsr-delivery",
+                "DSR Challan",
                 "Stock Ledger Entry",
                 "distribution-reports",
             }.issubset(links)
         )
         self.assertTrue(
-            {"Sales & Delivery", "Procurement", "Inventory & Stock", "Reports"}.issubset(labels)
+            {"Sales & Delivery", "Purchase", "Reports", "Setup & Access"}.issubset(labels)
         )
+        self.assertNotIn("SR Order", links)
+        self.assertNotIn("Outlet Visit", links)
+        self.assertNotIn("Delivery Note", links)
+        self.assertNotIn("DSR Collection Receipt", links)
+        self.assertNotIn("Stock Entry", links)
+        self.assertNotIn("Warehouse", links)
 
     def test_procurement_permissions_are_limited_to_management_roles(self):
         for doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"):
@@ -218,12 +223,12 @@ class TestFoundation(FrappeTestCase):
             if frappe.db.exists("DocType", doctype):
                 self.assertEqual(links.get(doctype), "DocType")
 
-    def test_distribution_workspace_sidebar_includes_native_operational_history(self):
+    def test_distribution_workspace_sidebar_includes_core_operational_destinations(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
         sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
         links = {item.link_to: item.link_type for item in sidebar.items}
-        for doctype in ("SR Order", "Outlet Visit", "Delivery Note", "DSR Collection Receipt"):
+        for doctype in ("DSR Challan", "Stock Ledger Entry"):
             if frappe.db.exists("DocType", doctype):
                 self.assertEqual(links.get(doctype), "DocType")
         self.assertEqual(links.get("distribution-reports"), "Page")

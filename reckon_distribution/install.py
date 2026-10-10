@@ -1326,14 +1326,16 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
             "show_arrow": 0,
         }
 
-    def link(label: str, link_to: str, link_type: str, icon: str) -> dict:
+    def link(
+        label: str, link_to: str, link_type: str, icon: str, *, child: bool = False
+    ) -> dict:
         return {
             "label": label,
             "link_to": link_to,
             "link_type": link_type,
             "type": "Link",
             "icon": icon,
-            "child": 0,
+            "child": int(child),
             "indent": 0,
             "collapsible": 1,
             "show_arrow": 0,
@@ -1342,29 +1344,21 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
     items = [
         link("Distribution Home", "distribution", "Page", "house"),
         section("Sales & Delivery", "shopping-bag"),
-        link("Field Sales", "field-sales", "Page", "map-pin"),
-        link("SR Orders", "SR Order", "DocType", "clipboard-list"),
-        link("Outlet Visits", "Outlet Visit", "DocType", "map-pinned"),
-        link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck"),
-        link("Delivery Notes", "Delivery Note", "DocType", "file-check-2"),
-        link("DSR Collections", "DSR Collection Receipt", "DocType", "wallet-cards"),
-        link("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator"),
-        section("Procurement", "package-plus"),
-        link("Purchase Orders", "Purchase Order", "DocType", "clipboard-list"),
-        link("Purchase Received", "Purchase Receipt", "DocType", "package-check"),
-        link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text"),
-        link("Supplier Advances & Payments", "Payment Entry", "DocType", "landmark"),
-        section("Inventory & Stock", "boxes"),
-        link("DSR Challan", "DSR Challan", "DocType", "package-check"),
-        link("Stock Entries", "Stock Entry", "DocType", "arrow-right-left"),
-        link("Stock Ledger", "Stock Ledger Entry", "DocType", "book-open"),
-        link("Warehouses", "Warehouse", "DocType", "warehouse"),
+        link("Field Sales", "field-sales", "Page", "map-pin", child=True),
+        link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck", child=True),
+        link("DSR Challan", "DSR Challan", "DocType", "package-check", child=True),
+        link("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator", child=True),
+        section("Purchase", "package-plus"),
+        link("Purchase Orders", "Purchase Order", "DocType", "clipboard-list", child=True),
+        link("Purchase Received", "Purchase Receipt", "DocType", "package-check", child=True),
+        link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text", child=True),
+        link("Supplier Payments", "Payment Entry", "DocType", "landmark", child=True),
         section("Reports", "chart-no-axes-combined"),
-        link("Distribution Reports", "distribution-reports", "Page", "chart-column"),
-        section("Administration", "settings"),
-        link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2"),
-        link("Item Units & Conversion", "distribution-item-uom-setup", "Page", "ruler"),
-        link("Company Team & Access", "distribution-team-access", "Page", "users"),
+        link("Distribution Reports", "distribution-reports", "Page", "chart-column", child=True),
+        link("Stock Ledger", "Stock Ledger Entry", "DocType", "book-open", child=True),
+        section("Setup & Access", "settings"),
+        link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),
+        link("Company Team & Access", "distribution-team-access", "Page", "users", child=True),
     ]
     # ERPNext standard DocTypes can be unavailable during app installation
     # ordering. Do not make the whole install fail; after_migrate will append

@@ -49,7 +49,6 @@ def get_retailer_summary(customer: str, route: str | None = None) -> dict:
     balance = get_balance_on(
         party_type="Customer",
         party=customer,
-        date=nowdate(),
         company=tenant.company,
     )
     return {

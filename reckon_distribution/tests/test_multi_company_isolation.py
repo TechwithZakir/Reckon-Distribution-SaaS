@@ -41,8 +41,22 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         self.assignment_names: list[str] = []
         self.permission_names: list[str] = []
         self.created_warehouse_types: list[str] = []
+        self.created_reference_masters: list[tuple[str, str]] = []
         self.user_names = [self.user_a, self.user_b, self.team_user]
         self._ensure_warehouse_type("Transit")
+        self.item_group = self._ensure_reference_master(
+            "Item Group", "All Item Groups", {"item_group_name": "All Item Groups", "is_group": 1}
+        )
+        self.stock_uom = self._ensure_reference_master("UOM", "Nos", {"uom_name": "Nos"})
+        self.customer_group = self._ensure_reference_master(
+            "Customer Group", "All Customer Groups", {"customer_group_name": "All Customer Groups", "is_group": 1}
+        )
+        self.supplier_group = self._ensure_reference_master(
+            "Supplier Group", "All Supplier Groups", {"supplier_group_name": "All Supplier Groups", "is_group": 1}
+        )
+        self.territory = self._ensure_reference_master(
+            "Territory", "All Territories", {"territory_name": "All Territories", "is_group": 1}
+        )
         self._ensure_company(self.company_a, f"RDA{token[:3].upper()}")
         self._ensure_company(self.company_b, f"RDB{token[:3].upper()}")
         self._ensure_user(self.user_a, "Isolation A")
@@ -72,6 +86,8 @@ class TestMultiCompanyIsolation(FrappeTestCase):
             self._delete("Company", company)
         for warehouse_type in self.created_warehouse_types:
             self._delete("Warehouse Type", warehouse_type)
+        for doctype, name in self.created_reference_masters:
+            self._delete(doctype, name)
         super().tearDown()
 
     def test_saas_onboarding_creates_one_company_permission(self):
@@ -187,13 +203,13 @@ class TestMultiCompanyIsolation(FrappeTestCase):
 
     def test_new_forms_bind_company_and_item_code_is_name_based(self):
         with self._as_user(self.user_a):
-            customer = frappe.get_doc({"doctype": "Customer", "customer_name": "New Retailer"})
+            customer = frappe.new_doc("Customer")
+            customer.customer_name = "New Retailer"
             bind_form_company(customer)
             self.assertEqual(customer.rd_company, self.company_a)
 
-            item = frappe.get_doc(
-                {"doctype": "Item", "item_name": f"Same Name {frappe.generate_hash(length=6)}"}
-            )
+            item = frappe.new_doc("Item")
+            item.item_name = f"Same Name {frappe.generate_hash(length=6)}"
             normalize_item_code(item)
             self.assertEqual(item.item_code, item.item_name)
 
@@ -204,9 +220,17 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         doc = frappe.get_doc("Tenant User Assignment", assignment)
         doc.active = 0
         doc.save(ignore_permissions=True)
-        doc.company = self.company_b
-        doc.active = 1
-        doc.save(ignore_permissions=True)
+        replacement = frappe.get_doc(
+            {
+                "doctype": "Tenant User Assignment",
+                "user": self.user_a,
+                "company": self.company_b,
+                "role_profile": "Company Admin",
+                "active": 1,
+                "is_default": 1,
+            }
+        ).insert(ignore_permissions=True, ignore_links=True)
+        self.assignment_names.append(replacement.name)
         sync_user_company_permission(self.user_a, expected_company=self.company_b)
 
         permissions = frappe.get_all(
@@ -238,8 +262,8 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                     "doctype": "Item",
                     "item_code": f"RD-{token}-{key}",
                     "item_name": f"Isolation Item {token} {key}",
-                    "item_group": "All Item Groups",
-                    "stock_uom": "Nos",
+                    "item_group": self.item_group,
+                    "stock_uom": self.stock_uom,
                     "is_stock_item": 0,
                     "is_sales_item": 1,
                     "is_purchase_item": 1,
@@ -251,8 +275,8 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                 {
                     "doctype": "Customer",
                     "customer_name": f"Isolation Retailer {token} {key}",
-                    "customer_group": "All Customer Groups",
-                    "territory": "All Territories",
+                    "customer_group": self.customer_group,
+                    "territory": self.territory,
                     "customer_type": "Company",
                     "rd_company": company,
                 }
@@ -262,7 +286,7 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                 {
                     "doctype": "Supplier",
                     "supplier_name": f"Isolation Supplier {token} {key}",
-                    "supplier_group": "All Supplier Groups",
+                    "supplier_group": self.supplier_group,
                     "supplier_type": "Company",
                     "rd_company": company,
                 }
@@ -316,6 +340,14 @@ class TestMultiCompanyIsolation(FrappeTestCase):
             ignore_permissions=True
         )
         self.created_warehouse_types.append(name)
+
+    def _ensure_reference_master(self, doctype: str, preferred: str, values: dict) -> str:
+        existing = frappe.get_all(doctype, pluck="name", limit=1)
+        if existing:
+            return existing[0]
+        doc = frappe.get_doc({"doctype": doctype, **values}).insert(ignore_permissions=True)
+        self.created_reference_masters.append((doctype, doc.name))
+        return doc.name
 
     def _ensure_user(self, email: str, full_name: str) -> None:
         if not frappe.db.exists("User", email):

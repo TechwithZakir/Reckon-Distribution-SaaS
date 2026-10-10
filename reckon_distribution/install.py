@@ -897,23 +897,23 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
             "show_arrow": 0,
         },
     ]
-    for label, page, icon in (
-        ("Purchase Orders", "Purchase Order", "clipboard-list"),
-        ("Purchase Received", "Purchase Receipt", "package-plus"),
-        ("Purchase Invoices", "Purchase Invoice", "file-text"),
-        ("Supplier Advances & Payments", "Payment Entry", "wallet-cards"),
-        ("DSR Day Settlement", "dsr-day-settlement", "calculator"),
-        ("Field Sales", "field-sales", "map-pin"),
-        ("Distribution Master Setup", "distribution-master-setup", "settings-2"),
-        ("Company Team & Access", "distribution-team-access", "users"),
-        ("DSR Delivery & Collection", "dsr-delivery", "truck"),
-        ("Item Units & Conversion", "distribution-item-uom-setup", "ruler"),
+    for label, link_to, link_type, icon in (
+        ("Purchase Orders", "Purchase Order", "DocType", "clipboard-list"),
+        ("Purchase Received", "Purchase Receipt", "DocType", "package-plus"),
+        ("Purchase Invoices", "Purchase Invoice", "DocType", "file-text"),
+        ("Supplier Advances & Payments", "Payment Entry", "DocType", "wallet-cards"),
+        ("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator"),
+        ("Field Sales", "field-sales", "Page", "map-pin"),
+        ("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2"),
+        ("Company Team & Access", "distribution-team-access", "Page", "users"),
+        ("DSR Delivery & Collection", "dsr-delivery", "Page", "truck"),
+        ("Item Units & Conversion", "distribution-item-uom-setup", "Page", "ruler"),
     ):
         items.append(
             {
                 "label": label,
-                "link_to": page,
-                "link_type": "Page",
+                "link_to": link_to,
+                "link_type": link_type,
                 "type": "Link",
                 "icon": icon,
                 "child": 0,

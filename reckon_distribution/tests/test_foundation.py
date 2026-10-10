@@ -127,6 +127,15 @@ class TestFoundation(FrappeTestCase):
             )
         )
 
+    def test_distribution_workspace_sidebar_uses_native_procurement_doctypes(self):
+        if not frappe.db.exists("DocType", "Workspace Sidebar"):
+            self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
+        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
+        links = {item.link_to: item.link_type for item in sidebar.items}
+        for doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"):
+            if frappe.db.exists("DocType", doctype):
+                self.assertEqual(links.get(doctype), "DocType")
+
     def test_distribution_roles_can_read_native_doctype_metadata(self):
         permission = frappe.db.exists(
             "DocPerm",

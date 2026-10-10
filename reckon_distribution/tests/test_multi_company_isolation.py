@@ -8,6 +8,7 @@ standalone unit tests do not provide a Frappe database.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -326,15 +327,22 @@ class TestMultiCompanyIsolation(FrappeTestCase):
 
     def _ensure_company(self, name: str, abbr: str) -> None:
         if not frappe.db.exists("Company", name):
-            frappe.get_doc(
-                {
-                    "doctype": "Company",
-                    "company_name": name,
-                    "abbr": abbr,
-                    "default_currency": "BDT",
-                    "country": "Bangladesh",
-                }
-            ).insert(ignore_permissions=True)
+            # Company creation in ERPNext also bootstraps default warehouses.
+            # That unrelated bootstrap assumes Warehouse Type: Transit exists
+            # on the site, while this suite only needs company records for
+            # isolation checks.
+            with patch(
+                "erpnext.setup.doctype.company.company.Company.create_default_warehouses"
+            ):
+                frappe.get_doc(
+                    {
+                        "doctype": "Company",
+                        "company_name": name,
+                        "abbr": abbr,
+                        "default_currency": "BDT",
+                        "country": "Bangladesh",
+                    }
+                ).insert(ignore_permissions=True)
 
     def _ensure_warehouse_type(self, name: str) -> None:
         if frappe.db.exists("Warehouse Type", name):

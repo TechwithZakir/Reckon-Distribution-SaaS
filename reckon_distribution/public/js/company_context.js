@@ -4,6 +4,7 @@
     "DSR Challan", "Van Loading Acknowledgement", "DSR Collection Receipt",
     "DSR Due Assignment", "Retailer Route Assignment", "Outlet Visit", "SR Order",
     "Return Inspection", "DSR Day Settlement", "Distribution Settings", "Company UOM Profile",
+    "Office Expense", "Office Expense Settings",
     "Distribution Route", "Distribution Master Scope", "Warehouse", "Customer", "Supplier",
     "Item", "Item Price", "Price List",
   ];

@@ -118,6 +118,44 @@ class TestFoundation(FrappeTestCase):
             }.issubset(links)
         )
 
+    def test_office_expense_documents_are_in_the_sidebar(self):
+        sidebar_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "sidebar"
+            / "distribution"
+            / "distribution.json"
+        )
+        sidebar = json.loads(sidebar_path.read_text())
+        links = {item.get("link_to") for item in sidebar["items"]}
+        self.assertTrue({"Office Expense", "Office Expense Settings"}.issubset(links))
+
+    def test_office_expense_permissions_are_limited_to_admin_and_manager(self):
+        expense_permissions = {
+            row.role: row
+            for row in frappe.get_meta("Office Expense").permissions
+            if row.role
+            in {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+                "Reckon Distribution User",
+            }
+        }
+        self.assertTrue(expense_permissions["Reckon Distribution Admin"].create)
+        self.assertTrue(expense_permissions["Reckon Distribution Admin"].submit)
+        self.assertTrue(expense_permissions["Reckon Distribution Manager"].create)
+        self.assertTrue(expense_permissions["Reckon Distribution Manager"].submit)
+        self.assertNotIn("Reckon Distribution User", expense_permissions)
+
+        setup_permissions = {
+            row.role: row
+            for row in frappe.get_meta("Office Expense Settings").permissions
+            if row.role in {"Reckon Distribution Admin", "Reckon Distribution Manager"}
+        }
+        self.assertTrue(setup_permissions["Reckon Distribution Admin"].write)
+        self.assertTrue(setup_permissions["Reckon Distribution Manager"].read)
+        self.assertFalse(setup_permissions["Reckon Distribution Manager"].write)
+
     def test_distribution_sidebar_groups_core_work_and_reports(self):
         sidebar_path = (
             Path(__file__).parents[1]

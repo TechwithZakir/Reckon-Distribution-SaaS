@@ -1080,6 +1080,7 @@ def ensure_native_master_permissions() -> None:
         # Payment Entry resolves this Link master while loading its form.
         "Mode of Payment": {"read"},
         "Account": {"read"},
+        "Cost Center": {"read"},
         "Report": {"read"},
         "Stock Ledger Entry": {"read", "report", "export", "print"},
         "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
@@ -1406,6 +1407,8 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Purchase Received", "Purchase Receipt", "DocType", "package-check", child=True),
         link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text", child=True),
         link("Supplier Payments", "Payment Entry", "DocType", "landmark", child=True),
+        section("Office Expenses", "wallet-cards"),
+        link("Office Expenses", "Office Expense", "DocType", "receipt-text", child=True),
         section("Reports", "chart-no-axes-combined"),
         link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
         link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
@@ -1413,6 +1416,7 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
         link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
         section("Setup & Access", "settings"),
+        link("Office Expense Setup", "Office Expense Settings", "DocType", "wallet-cards", child=True),
         link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),
         link("Company Team & Access", "distribution-team-access", "Page", "users", child=True),
     ]

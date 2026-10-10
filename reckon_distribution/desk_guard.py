@@ -60,6 +60,8 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "delivery-note",
     "return-inspection",
     "dsr-day-settlement",
+    "office-expense",
+    "office-expense-settings",
     "query-report",
     "user-profile",
     "home",
@@ -91,6 +93,8 @@ ALLOWED_DESK_PREFIXES = (
     "/app/delivery-note",
     "/app/return-inspection",
     "/app/dsr-day-settlement",
+    "/app/office-expense",
+    "/app/office-expense-settings",
     "/app/query-report",
     "/app/user-profile",
     "/app/home",
@@ -166,6 +170,11 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Return Inspection",
         "DSR Day Settlement",
         "DSR Day Settlement Item",
+        "Office Expense",
+        "Office Expense Item",
+        "Office Expense Settings",
+        "Office Expense Category Setup",
+        "Office Expense Payment Setup",
     }
 )
 

@@ -63,11 +63,17 @@ def get_dsr_delivery_context() -> dict:
             order_by="warehouse_name asc",
         )
         default_warehouse = fallback[0] if fallback else None
+    default_account = frappe.db.get_value(
+        "Distribution Settings", {"company": tenant.company}, "default_cash_account"
+    )
+    if default_account and frappe.db.get_value("Account", default_account, "company") != tenant.company:
+        default_account = None
     return {
         "company": tenant.company,
         "routes": routes,
         "default_route": routes[0].name if routes else None,
         "default_warehouse": default_warehouse,
+        "default_account": default_account,
     }
 
 

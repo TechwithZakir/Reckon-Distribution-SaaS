@@ -21,7 +21,7 @@ class TestFieldSales(FrappeTestCase):
         with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(
             "reckon_distribution.field_sales.frappe.session.user", "dsr@example.com"
         ), patch("reckon_distribution.field_sales.frappe.get_all", side_effect=[routes, ["Van - TCA"]]), patch(
-            "reckon_distribution.field_sales.frappe.db.get_value", side_effect=[None]
+            "reckon_distribution.field_sales.frappe.db.get_value", side_effect=[None, None]
         ):
             result = get_dsr_delivery_context()
 

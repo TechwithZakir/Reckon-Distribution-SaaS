@@ -1,226 +1,47 @@
 frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
-  const page = frappe.ui.make_app_page({
-    parent: wrapper,
-    title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"),
-    single_column: true,
-  });
-
+  const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"), single_column: true });
   $(page.body).html(`
     <main class="rd-dsr-delivery rd-theme-page">
-      <header class="rd-dsr-hero">
-        <div>
-          <p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p>
-          <h2>${__("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ")}</h2>
-          <p>${__("Complete delivery and collection independently for each assigned retailer. / নির্ধারিত প্রতিটি রিটেইলারের ডেলিভারি ও টাকা আলাদাভাবে সম্পন্ন করুন।")}</p>
-        </div>
-        <span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span>
-      </header>
-      <section class="rd-dsr-context rd-dsr-section">
-        <div data-route-field></div>
-        <div data-warehouse-field></div>
-      </section>
-      <label class="rd-dsr-search">
-        <span>${__("Search retailer / রিটেইলার খুঁজুন")}</span>
-        <input data-search placeholder="${__("Retailer name / দোকানের নাম")}" />
-      </label>
-      <section class="rd-dsr-outlets" data-outlets><p class="text-muted">${__("Loading assigned retailers... / নির্ধারিত রিটেইলার লোড হচ্ছে...")}</p></section>
+      <header class="rd-dsr-hero"><div><p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p><h2>${__("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ")}</h2><p>${__("Complete delivery and collection independently for each assigned retailer. / নির্ধারিত প্রতিটি রিটেইলারের ডেলিভারি ও টাকা আলাদাভাবে সম্পন্ন করুন।")}</p></div><span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span></header>
+      <section class="rd-dsr-context rd-dsr-section"><div data-route-field></div><div data-warehouse-field></div></section>
+      <div class="rd-dsr-search" data-retailer-field></div>
       <section class="rd-dsr-panel" data-panel hidden>
-        <div class="rd-dsr-customer-head">
-          <div><p class="text-muted">${__("Selected retailer / নির্বাচিত রিটেইলার")}</p><h3 data-customer></h3></div>
-          <div class="rd-dsr-due"><span>${__("Current net due / বর্তমান বকেয়া")}</span><strong data-due>৳0</strong><small data-overdue></small></div>
-        </div>
-        <section class="rd-dsr-section">
-          <h4>${__("1. Delivery / ১. ডেলিভারি")}</h4>
-          <p class="text-muted">${__("Add only physically delivered stock. Supplier free goods need their submitted receipt source. / বাস্তবে দেওয়া পণ্যই যোগ করুন। সরবরাহকারীর ফ্রি পণ্যের জমা দেওয়া রসিদের উৎস দিন।")}</p>
-          <div class="rd-dsr-fields">
-            <label>${__("Product / পণ্য")}<select data-item></select></label>
-            <label>${__("Sales unit / বিক্রয় ইউনিট")}<select data-uom></select></label>
-            <label>${__("Quantity / পরিমাণ")}<input data-qty type="number" min="0.001" step="0.001" /></label>
-            <label>${__("Unit price / একক মূল্য")}<input data-rate type="number" readonly /></label>
-            <label>${__("Line total / মোট মূল্য")}<input data-line-total type="number" readonly /></label>
-            <label>${__("Stock type / স্টকের ধরন")}<select data-category><option value="Saleable">${__("Saleable / বিক্রয়যোগ্য")}</option><option value="Supplier Free">${__("Supplier free / সরবরাহকারীর ফ্রি")}</option></select></label>
-            <label>${__("Source receipt for free goods / ফ্রি পণ্যের উৎস রসিদ")}<input data-source placeholder="PR-00001" /></label>
-          </div>
-          <button class="btn btn-default" data-add-line>${__("Add delivery line / ডেলিভারি লাইন যোগ করুন")}</button>
-          <div class="rd-dsr-lines" data-lines><p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p></div>
-          <button class="btn btn-primary" data-submit-delivery>${__("Submit delivery / ডেলিভারি জমা দিন")}</button>
+        <div class="rd-dsr-customer-head"><div><p class="text-muted">${__("Selected retailer / নির্বাচিত রিটেইলার")}</p><h3 data-customer></h3></div><div class="rd-dsr-due"><span>${__("Current net due / বর্তমান বকেয়া")}</span><strong data-due>৳0</strong><small data-overdue></small></div></div>
+        <section class="rd-dsr-section"><h4>${__("1. Delivery / ১. ডেলিভারি")}</h4><p class="text-muted">${__("Add only physically delivered stock. Supplier free goods need their submitted receipt source. / বাস্তবে দেওয়া পণ্যই যোগ করুন। সরবরাহকারীর ফ্রি পণ্যের জমা দেওয়া রসিদের উৎস দিন।")}</p>
+          <div class="rd-dsr-fields"><div data-item-field></div><label>${__("Sales unit / বিক্রয় ইউনিট")}<select data-uom></select></label><label>${__("Quantity / পরিমাণ")}<input data-qty type="number" min="0.001" step="0.001" /></label><label>${__("Unit price / একক মূল্য")}<input data-rate type="number" readonly /></label><label>${__("Line total / মোট মূল্য")}<input data-line-total type="number" readonly /></label><label>${__("Stock type / স্টকের ধরন")}<select data-category><option value="Saleable">${__("Saleable / বিক্রয়যোগ্য")}</option><option value="Supplier Free">${__("Supplier free / সরবরাহকারীর ফ্রি")}</option></select></label><label>${__("Source receipt for free goods / ফ্রি পণ্যের উৎস রসিদ")}<input data-source placeholder="PR-00001" /></label></div>
+          <button class="btn btn-default" data-add-line>${__("Add delivery line / ডেলিভারি লাইন যোগ করুন")}</button><div class="rd-dsr-lines" data-lines><p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p></div>
         </section>
-        <section class="rd-dsr-section">
-          <h4>${__("2. Collection / ২. টাকা সংগ্রহ")}</h4>
-          <p class="text-muted">${__("Cash and cheque can confirm immediately. Bank and MFS remain pending until verified. / নগদ ও চেক সঙ্গে সঙ্গে নিশ্চিত হতে পারে। ব্যাংক ও MFS যাচাই না হওয়া পর্যন্ত অপেক্ষমাণ থাকবে।")}</p>
-          <div class="rd-dsr-fields">
-            <label>${__("Amount / পরিমাণ")}<input data-amount type="number" min="0.01" step="0.01" /></label>
-            <label>${__("Method / মাধ্যম")}<select data-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></label>
-            <div data-account-field></div>
-            <label>${__("Reference / রেফারেন্স")}<input data-reference placeholder="${__("Required for Bank/MFS")}" /></label>
-          </div>
-          <button class="btn btn-primary" data-submit-collection>${__("Submit collection / টাকা জমা দিন")}</button>
-        </section>
-        <p class="rd-dsr-message" data-message></p>
+        <section class="rd-dsr-section"><h4>${__("2. Collection / ২. টাকা সংগ্রহ")}</h4><p class="text-muted">${__("Cash and cheque can confirm immediately. Bank and MFS remain pending until verified. / নগদ ও চেক সঙ্গে সঙ্গে নিশ্চিত হতে পারে। ব্যাংক ও MFS যাচাই না হওয়া পর্যন্ত অপেক্ষমাণ থাকবে।")}</p><div class="rd-dsr-fields"><label>${__("Amount / পরিমাণ")}<input data-amount type="number" min="0.01" step="0.01" /></label><label>${__("Method / মাধ্যম")}<select data-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></label><div data-account-field></div><label>${__("Reference / রেফারেন্স")}<input data-reference placeholder="${__("Required for Bank/MFS")}" /></label></div></section>
+        <button class="btn btn-primary rd-dsr-save" data-save>${__("Save / সংরক্ষণ")}</button><p class="rd-dsr-message" data-message></p>
       </section>
-    </main>
-  `);
+    </main>`);
 
-  const body = $(page.body);
-  const outlets = body.find("[data-outlets]");
-  const panel = body.find("[data-panel]");
-  const state = body.find("[data-state]");
-  let assigned = [];
-  let selected = null;
-  let catalog = [];
-  let lines = [];
-  let deliveryKey = null;
-  let collectionKey = null;
+  const body = $(page.body), panel = body.find("[data-panel]"), state = body.find("[data-state]");
+  let assigned = [], selected = null, catalog = [], lines = [], deliveryKey = null, collectionKey = null;
+  let customerControl, itemControl;
   const routeControl = makeLinkControl(body.find("[data-route-field]")[0], "route", __("Route / রুট"), "Distribution Route", reloadRoute);
   const warehouseControl = makeLinkControl(body.find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse / ভ্যান গুদাম"), "Warehouse");
-  const accountControl = makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving account / গ্রহণের অ্যাকাউন্ট"), "Account");
-
+  const accountControl = makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving / DSR Custody Account"), "Account");
+  customerControl = makeLinkControl(body.find("[data-retailer-field]")[0], "customer", __("Search retailer / রিটেইলার খুঁজুন"), "Customer", () => selectRetailer(customerControl.get_value()), () => ({ filters: { name: ["in", assigned.map((row) => row.customer)] } }));
+  itemControl = makeLinkControl(body.find("[data-item-field]")[0], "item_code", __("Product / পণ্য"), "Item", renderUoms, () => ({ filters: { name: ["in", catalog.map((row) => row.item_code)] } }));
   loadContext();
-  body.find("[data-search]").on("input", function () { renderOutlets(this.value); });
-  body.find("[data-item]").on("change", renderUoms);
-  body.find("[data-uom]").on("change", updatePricePreview);
-  body.find("[data-qty]").on("input", updatePricePreview);
-  body.find("[data-add-line]").on("click", addLine);
-  body.find("[data-submit-delivery]").on("click", submitDelivery);
-  body.find("[data-submit-collection]").on("click", submitCollection);
+  body.find("[data-uom]").on("change", updatePricePreview); body.find("[data-qty]").on("input", updatePricePreview); body.find("[data-add-line]").on("click", addLine); body.find("[data-save]").on("click", saveAll);
 
-  function loadContext() {
-    frappe.call({ method: "reckon_distribution.field_sales.get_dsr_delivery_context" }).then((response) => {
-      const context = response.message || {};
-      if (context.default_route) routeControl.set_value(context.default_route);
-      if (context.default_warehouse) warehouseControl.set_value(context.default_warehouse);
-      loadOutlets(routeControl.get_value());
-    }).catch(() => loadOutlets());
-  }
-
-  function reloadRoute() {
-    selected = null;
-    panel.prop("hidden", true);
-    loadOutlets(routeControl.get_value());
-  }
-
-  function loadOutlets(route) {
-    frappe.call({ method: "reckon_distribution.field_sales.get_assigned_outlets", args: { route: route || "" } }).then((response) => {
-      assigned = response.message || [];
-      renderOutlets();
-      setState(__("Ready / প্রস্তুত"));
-    }).catch(() => {
-      setState(__("Offline: retry sync / অফলাইন: আবার চেষ্টা করুন"));
-      outlets.html(`<p class="text-muted">${__("No network. / নেটওয়ার্ক নেই।")}</p>`);
-    });
-  }
-
-  function renderOutlets(search = "") {
-    const query = search.trim().toLowerCase();
-    const rows = assigned.filter((row) => !query || row.customer.toLowerCase().includes(query));
-    outlets.html(rows.length ? rows.map((row) => `<button class="rd-dsr-outlet" data-outlet="${esc(row.customer)}"><strong>${esc(row.customer)}</strong><small>${esc(row.route || "")}</small></button>`).join("") : `<p class="text-muted">${__("No assigned retailers found. / কোনো নির্ধারিত রিটেইলার নেই।")}</p>`);
-    outlets.find("[data-outlet]").on("click", function () { selectRetailer($(this).data("outlet")); });
-  }
-
-  function selectRetailer(customer) {
-    selected = assigned.find((row) => row.customer === customer);
-    if (!selected) return;
-    panel.prop("hidden", false);
-    body.find("[data-customer]").text(customer);
-    lines = [];
-    deliveryKey = `delivery-${customer}-${Date.now()}`;
-    collectionKey = `collection-${customer}-${Date.now()}`;
-    renderLines();
-    frappe.call({ method: "reckon_distribution.field_sales.get_retailer_summary", args: { customer, route: selected.route } }).then((response) => {
-      const summary = response.message || {};
-      body.find("[data-due]").text(formatMoney(summary.net_due));
-      body.find("[data-overdue]").text(`${__("Overdue / মেয়াদোত্তীর্ণ")}: ${formatMoney(summary.overdue)}`);
-    });
-    frappe.call({ method: "reckon_distribution.field_sales.get_sales_catalog" }).then((response) => {
-      catalog = response.message || [];
-      renderCatalog();
-    });
-  }
-
-  function renderCatalog() {
-    const select = body.find("[data-item]");
-    select.html(catalog.map((item) => `<option value="${esc(item.item_code)}">${esc(item.item_name || item.item_code)}</option>`).join(""));
-    renderUoms();
-  }
-
-  function renderUoms() {
-    const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
-    const uoms = item ? [{ uom: item.stock_uom, conversion_factor: 1 }, ...(item.uoms || [])] : [];
-    body.find("[data-uom]").html(uoms.map((row) => `<option value="${esc(row.uom)}">${esc(row.uom)} ×${row.conversion_factor}</option>`).join(""));
-    updatePricePreview();
-  }
-
-  function addLine() {
-    const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
-    const qty = Number(body.find("[data-qty]").val());
-    if (!item || !qty || qty <= 0) return showMessage(__("Choose a product and quantity first. / আগে পণ্য ও পরিমাণ নির্বাচন করুন।"), true);
-    const uom = body.find("[data-uom]").val() || item.stock_uom;
-    lines.push({ item_code: item.item_code, uom, qty, rate: getRate(item, uom), rd_stock_category: body.find("[data-category]").val(), rd_supplier_free_source: body.find("[data-source]").val() });
-    body.find("[data-qty], [data-source]").val("");
-    renderLines();
-  }
-
-  function renderLines() {
-    const target = body.find("[data-lines]");
-    target.html(lines.length ? lines.map((line, index) => `<div class="rd-dsr-line"><span><strong>${esc(line.item_code)}</strong><small>${esc(line.uom)} × ${line.qty} @ ৳${Number(line.rate || 0).toFixed(2)} = ৳${(Number(line.qty) * Number(line.rate || 0)).toFixed(2)}</small></span><small>${esc(line.rd_stock_category)}</small><button class="btn btn-xs btn-default" data-remove-line="${index}">${__("Remove")}</button></div>`).join("") : `<p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p>`);
-    target.find("[data-remove-line]").on("click", function () { lines.splice(Number($(this).data("remove-line")), 1); renderLines(); });
-  }
-
-  function submitDelivery() {
-    if (!selected || !lines.length) return showMessage(__("Select a retailer and add delivery lines. / রিটেইলার নির্বাচন করে ডেলিভারি লাইন যোগ করুন।"), true);
-      const payload = { customer: selected.customer, route: routeControl.get_value() || selected.route, warehouse: warehouseControl.get_value(), price_list: catalog[0] && catalog[0].price_list, items: lines, idempotency_key: deliveryKey };
-    withGps((gps) => {
-      Object.assign(payload, gps);
-      frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((response) => {
-        showMessage(__("Delivery saved: {0} / ডেলিভারি সংরক্ষিত: {0}", [response.message]));
-        lines = [];
-        deliveryKey = `delivery-${selected.customer}-${Date.now()}`;
-        renderLines();
-      }).catch(() => showMessage(__("Delivery could not be saved. / ডেলিভারি সংরক্ষণ করা যায়নি।"), true));
-    });
-  }
-
-  function submitCollection() {
-    if (!selected) return showMessage(__("Select a retailer first. / আগে রিটেইলার নির্বাচন করুন।"), true);
-    const payload = { customer: selected.customer, route: selected.route, amount: Number(body.find("[data-amount]").val()), payment_method: body.find("[data-method]").val(), receiving_account: accountControl.get_value(), reference_no: body.find("[data-reference]").val(), idempotency_key: collectionKey };
-    withGps((gps) => {
-      Object.assign(payload, gps);
-      frappe.call({ method: "reckon_distribution.collection.record_collection", args: { payload: JSON.stringify(payload) } }).then((response) => {
-        showMessage(__("Collection saved: {0} / টাকা সংগ্রহ সংরক্ষিত: {0}", [response.message]));
-        collectionKey = `collection-${selected.customer}-${Date.now()}`;
-        body.find("[data-amount], [data-reference]").val("");
-      }).catch(() => showMessage(__("Collection could not be saved. / টাকা সংগ্রহ সংরক্ষণ করা যায়নি।"), true));
-    });
-  }
-
-  function withGps(done) {
-    if (!navigator.geolocation) return done({});
-    navigator.geolocation.getCurrentPosition((position) => done({ gps_latitude: position.coords.latitude, gps_longitude: position.coords.longitude, gps_accuracy: position.coords.accuracy }), () => done({}));
-  }
-
-  function showMessage(message, error = false) { body.find("[data-message]").text(message).toggleClass("text-danger", error); }
-  function setState(value) { state.text(value); }
-  function formatMoney(value) { return `৳${Number(value || 0).toFixed(2)}`; }
-  function esc(value) { return frappe.utils.escape_html(String(value || "")); }
-  function getRate(item, uom) {
-    const match = (item.prices || []).find((row) => row.uom === uom);
-    return Number((match && match.rate) || item.rate || 0);
-  }
-  function updatePricePreview() {
-    const item = catalog.find((row) => row.item_code === body.find("[data-item]").val());
-    const rate = item ? getRate(item, body.find("[data-uom]").val() || item.stock_uom) : 0;
-    const qty = Number(body.find("[data-qty]").val() || 0);
-    body.find("[data-rate]").val(rate.toFixed(2));
-    body.find("[data-line-total]").val((qty * rate).toFixed(2));
-  }
-  function makeLinkControl(parent, fieldname, label, options, onchange) {
-    const control = frappe.ui.form.make_control({
-      parent,
-      df: { fieldname, fieldtype: "Link", label, options, onchange },
-      render_input: true,
-    });
-    control.refresh();
-    return control;
-  }
+  function loadContext() { frappe.call({ method: "reckon_distribution.field_sales.get_dsr_delivery_context" }).then((response) => { const context = response.message || {}; if (context.default_route) routeControl.set_value(context.default_route); if (context.default_warehouse) warehouseControl.set_value(context.default_warehouse); if (context.default_account) accountControl.set_value(context.default_account); loadOutlets(routeControl.get_value()); }).catch(() => loadOutlets()); }
+  function reloadRoute() { selected = null; panel.prop("hidden", true); loadOutlets(routeControl.get_value()); }
+  function loadOutlets(route) { frappe.call({ method: "reckon_distribution.field_sales.get_assigned_outlets", args: { route: route || "" } }).then((response) => { assigned = response.message || []; customerControl.set_value(""); setState(__("Ready / প্রস্তুত")); }).catch(() => setState(__("Offline: retry sync / অফলাইন: আবার চেষ্টা করুন"))); }
+  function selectRetailer(customer) { selected = assigned.find((row) => row.customer === customer); if (!selected) return; panel.prop("hidden", false); body.find("[data-customer]").text(customer); lines = []; deliveryKey = `delivery-${customer}-${Date.now()}`; collectionKey = `collection-${customer}-${Date.now()}`; renderLines(); frappe.call({ method: "reckon_distribution.field_sales.get_retailer_summary", args: { customer, route: selected.route } }).then((response) => { const summary = response.message || {}; body.find("[data-due]").text(formatMoney(summary.net_due)); body.find("[data-overdue]").text(`${__("Overdue / মেয়াদোত্তীর্ণ")}: ${formatMoney(summary.overdue)}`); }); frappe.call({ method: "reckon_distribution.field_sales.get_sales_catalog" }).then((response) => { catalog = response.message || []; itemControl.set_value(""); renderUoms(); }); }
+  function renderUoms() { const item = catalog.find((row) => row.item_code === itemControl.get_value()); const uoms = item ? [{ uom: item.stock_uom, conversion_factor: 1 }, ...(item.uoms || [])] : []; body.find("[data-uom]").html(uoms.map((row) => `<option value="${esc(row.uom)}">${esc(row.uom)} ×${row.conversion_factor}</option>`).join("")); updatePricePreview(); }
+  function addLine() { const item = catalog.find((row) => row.item_code === itemControl.get_value()), qty = Number(body.find("[data-qty]").val()); if (!item || !qty || qty <= 0) return showMessage(__("Choose a product and quantity first. / আগে পণ্য ও পরিমাণ নির্বাচন করুন।"), true); const uom = body.find("[data-uom]").val() || item.stock_uom; lines.push({ item_code: item.item_code, uom, qty, rate: getRate(item, uom), rd_stock_category: body.find("[data-category]").val(), rd_supplier_free_source: body.find("[data-source]").val() }); body.find("[data-qty], [data-source]").val(""); renderLines(); }
+  function renderLines() { const target = body.find("[data-lines]"); target.html(lines.length ? lines.map((line, index) => `<div class="rd-dsr-line"><span><strong>${esc(line.item_code)}</strong><small>${esc(line.uom)} × ${line.qty} @ ৳${Number(line.rate || 0).toFixed(2)} = ৳${(Number(line.qty) * Number(line.rate || 0)).toFixed(2)}</small></span><small>${esc(line.rd_stock_category)}</small><button class="btn btn-xs btn-default" data-remove-line="${index}">${__("Remove")}</button></div>`).join("") : `<p class="text-muted">${__("No delivery lines yet. / এখনও কোনো ডেলিভারি লাইন নেই।")}</p>`); target.find("[data-remove-line]").on("click", function () { lines.splice(Number($(this).data("remove-line")), 1); renderLines(); }); }
+  function saveAll() { const amount = Number(body.find("[data-amount]").val() || 0); if (!lines.length && amount <= 0) return showMessage(__("Add a delivery line or enter a collection amount. / ডেলিভারি লাইন যোগ করুন অথবা টাকা সংগ্রহের পরিমাণ দিন।"), true); submitDelivery().then(() => amount > 0 ? submitCollection() : null).then(() => showMessage(__("Saved successfully. / সফলভাবে সংরক্ষিত হয়েছে।"))).catch((error) => showMessage(error, true)); }
+  function submitDelivery() { if (!lines.length) return Promise.resolve(); if (!selected) return Promise.reject(__("Select a retailer first. / আগে রিটেইলার নির্বাচন করুন।")); const payload = { customer: selected.customer, route: routeControl.get_value() || selected.route, warehouse: warehouseControl.get_value(), price_list: catalog[0] && catalog[0].price_list, items: lines, idempotency_key: deliveryKey }; return gpsPayload(payload).then((data) => frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(data) } })).then(() => { lines = []; deliveryKey = `delivery-${selected.customer}-${Date.now()}`; renderLines(); }); }
+  function submitCollection() { if (!selected) return Promise.reject(__("Select a retailer first. / আগে রিটেইলার নির্বাচন করুন।")); const amount = Number(body.find("[data-amount]").val() || 0), account = accountControl.get_value(); if (amount <= 0) return Promise.reject(__("Collection amount must be greater than zero. / সংগ্রহের পরিমাণ শূন্যের বেশি হতে হবে।")); if (!account) return Promise.reject(__("Receiving / DSR Custody Account is required. / গ্রহণের অ্যাকাউন্ট আবশ্যক।")); const payload = { customer: selected.customer, route: selected.route, amount, payment_method: body.find("[data-method]").val(), receiving_account: account, reference_no: body.find("[data-reference]").val(), idempotency_key: collectionKey }; return gpsPayload(payload).then((data) => frappe.call({ method: "reckon_distribution.collection.record_collection", args: { payload: JSON.stringify(data) } })).then(() => { collectionKey = `collection-${selected.customer}-${Date.now()}`; body.find("[data-amount], [data-reference]").val(""); }); }
+  function gpsPayload(payload) { return new Promise((resolve) => { if (!navigator.geolocation) return resolve(payload); navigator.geolocation.getCurrentPosition((position) => resolve(Object.assign(payload, { gps_latitude: position.coords.latitude, gps_longitude: position.coords.longitude, gps_accuracy: position.coords.accuracy })), () => resolve(payload)); }); }
+  function showMessage(message, error = false) { const text = typeof message === "string" ? message : (message && message.message) || __("Could not save."); frappe.msgprint({ title: error ? __("Validation") : __("Saved"), message: text, indicator: error ? "red" : "green" }); }
+  function setState(value) { state.text(value); } function formatMoney(value) { return `৳${Number(value || 0).toFixed(2)}`; } function esc(value) { return frappe.utils.escape_html(String(value || "")); }
+  function getRate(item, uom) { const match = (item.prices || []).find((row) => row.uom === uom); return Number((match && match.rate) || item.rate || 0); }
+  function updatePricePreview() { const item = catalog.find((row) => row.item_code === itemControl.get_value()), uom = body.find("[data-uom]").val(), rate = item ? getRate(item, uom || item.stock_uom) : 0, qty = Number(body.find("[data-qty]").val() || 0); body.find("[data-rate]").val(rate.toFixed(2)); body.find("[data-line-total]").val((qty * rate).toFixed(2)); }
+  function makeLinkControl(parent, fieldname, label, options, onchange, get_query) { const control = frappe.ui.form.make_control({ parent, df: { fieldname, fieldtype: "Link", label, options, onchange, get_query }, render_input: true }); control.refresh(); return control; }
 };

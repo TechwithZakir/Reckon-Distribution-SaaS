@@ -5,6 +5,7 @@
 .rd-dsr-hero h2 { margin: 0 0 8px; }
 .rd-dsr-hero p { margin: 0; color: var(--text-muted); }
 .rd-dsr-search { display: block; margin-bottom: 14px; }
+.rd-dsr-search .frappe-control { margin: 0; }
 .rd-dsr-search span, .rd-dsr-fields label { display: block; font-weight: 600; margin-bottom: 6px; }
 .rd-dsr-search input, .rd-dsr-fields input, .rd-dsr-fields select { width: 100%; min-height: 42px; }
 .rd-dsr-outlets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
@@ -25,5 +26,6 @@
 .rd-dsr-line small { color: var(--text-muted); margin-left: auto; }
 .rd-dsr-line span small { display: block; margin: 3px 0 0; }
 .rd-dsr-message { min-height: 24px; margin-top: 16px; }
+.rd-dsr-save { margin-top: 18px; min-width: 140px; }
 .rd-sync-state { color: var(--text-muted); white-space: nowrap; }
 @media (max-width: 767px) { .rd-dsr-hero, .rd-dsr-customer-head { display: block; } .rd-dsr-context { grid-template-columns: 1fr; } .rd-dsr-due { text-align: left; margin-top: 14px; } .rd-dsr-fields { grid-template-columns: 1fr; } .rd-dsr-line { align-items: flex-start; flex-wrap: wrap; } }

@@ -440,6 +440,7 @@ def ensure_distribution_permissions() -> None:
     ensure_tenant_user_permissions()
     ensure_distribution_page_roles()
     ensure_native_master_permissions()
+    ensure_distribution_transaction_permissions()
 
 
 def ensure_tenant_user_permissions() -> None:
@@ -581,6 +582,52 @@ def ensure_native_master_permissions() -> None:
                 # Keep Frappe's native permission resolver in sync. Some v16
                 # installations do not immediately include Custom DocPerm rows
                 # in the cached role permission map after migration.
+                if enabled and hasattr(permissions, "add_permission"):
+                    if not frappe.db.exists(
+                        "DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
+                    ):
+                        permissions.add_permission(doctype, role, 0)
+                    if hasattr(permissions, "update_permission_property"):
+                        permissions.update_permission_property(doctype, role, 0, right, 1)
+        frappe.clear_cache(doctype=doctype)
+
+
+def ensure_distribution_transaction_permissions() -> None:
+    """Give operational roles the transaction access used by custom pages."""
+    transaction_permissions = {
+        "Delivery Note": {"read", "write", "create", "submit", "print"},
+        "DSR Collection Receipt": {"read", "write", "create"},
+    }
+    operational_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Distribution User"}
+    for doctype, full_rights in transaction_permissions.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        permissions.setup_custom_perms(doctype)
+        for role in operational_roles:
+            existing = frappe.db.exists(
+                "Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
+            )
+            if existing:
+                perm = frappe.get_doc("Custom DocPerm", existing)
+            else:
+                perm = frappe.get_doc(
+                    {
+                        "doctype": "Custom DocPerm",
+                        "parent": doctype,
+                        "parenttype": "DocType",
+                        "parentfield": "permissions",
+                        "role": role,
+                        "permlevel": 0,
+                        "if_owner": 0,
+                    }
+                )
+                perm.insert(ignore_permissions=True)
+            # DSR users submit Delivery Notes from the delivery page, while
+            # delete/cancel rights remain absent from this permission row.
+            rights = full_rights
+            for right in full_rights:
+                enabled = right in rights
+                perm.db_set(right, 1 if enabled else 0)
                 if enabled and hasattr(permissions, "add_permission"):
                     if not frappe.db.exists(
                         "DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}

@@ -39,6 +39,22 @@ class TestFoundation(FrappeTestCase):
         self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.shortcuts))
         self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.links))
 
+    def test_distribution_sidebar_contains_dsr_challan(self):
+        sidebar_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "sidebar"
+            / "distribution"
+            / "distribution.json"
+        )
+        sidebar = json.loads(sidebar_path.read_text())
+        self.assertTrue(
+            any(
+                item.get("link_type") == "DocType" and item.get("link_to") == "DSR Challan"
+                for item in sidebar["items"]
+            )
+        )
+
     def test_distribution_roles_can_read_native_doctype_metadata(self):
         permission = frappe.db.exists(
             "Custom DocPerm",

@@ -1,0 +1,107 @@
+{
+  "app": "reckon_distribution",
+  "doctype": "Sidebar",
+  "header_icon": "package-check",
+  "items": [
+    {
+      "type": "Link",
+      "label": "Distribution",
+      "link_type": "Workspace",
+      "link_to": "Distribution Workspace",
+      "icon": "house",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "DSR Challan",
+      "link_type": "DocType",
+      "link_to": "DSR Challan",
+      "icon": "package-check",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "DSR Day Settlement",
+      "link_type": "Page",
+      "link_to": "dsr-day-settlement",
+      "icon": "calculator",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "Field Sales",
+      "link_type": "Page",
+      "link_to": "field-sales",
+      "icon": "map-pin",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "Distribution Master Setup",
+      "link_type": "Page",
+      "link_to": "distribution-master-setup",
+      "icon": "settings-2",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "Company Team & Access",
+      "link_type": "Page",
+      "link_to": "distribution-team-access",
+      "icon": "users",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "DSR Delivery & Collection",
+      "link_type": "Page",
+      "link_to": "dsr-delivery",
+      "icon": "truck",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    },
+    {
+      "type": "Link",
+      "label": "Item Units & Conversion",
+      "link_type": "Page",
+      "link_to": "distribution-item-uom-setup",
+      "icon": "ruler",
+      "hidden": 0,
+      "child": 0,
+      "indent": 0,
+      "collapsible": 1,
+      "show_arrow": 0
+    }
+  ],
+  "module": "Distribution",
+  "name": "Distribution",
+  "standard": 1,
+  "title": "Distribution"
+}

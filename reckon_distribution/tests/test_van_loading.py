@@ -144,6 +144,8 @@ class TestVanLoadingControls(FrappeTestCase):
             "reckon_distribution.van_loading._require_manager"
         ), patch("reckon_distribution.van_loading._validate_available_stock"), patch(
             "reckon_distribution.van_loading.frappe.db.get_value", return_value=None
+        ), patch(
+            "reckon_distribution.van_loading.now_datetime", return_value="2026-10-07 12:00:00"
         ), patch("reckon_distribution.van_loading.frappe.get_doc", return_value=stock_entry) as get_doc:
             result = approve_van_loading_challan(challan.name)
 

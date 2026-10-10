@@ -40,7 +40,9 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         self.master_names: list[tuple[str, str]] = []
         self.assignment_names: list[str] = []
         self.permission_names: list[str] = []
+        self.created_warehouse_types: list[str] = []
         self.user_names = [self.user_a, self.user_b, self.team_user]
+        self._ensure_warehouse_type("Transit")
         self._ensure_company(self.company_a, f"RDA{token[:3].upper()}")
         self._ensure_company(self.company_b, f"RDB{token[:3].upper()}")
         self._ensure_user(self.user_a, "Isolation A")
@@ -68,6 +70,8 @@ class TestMultiCompanyIsolation(FrappeTestCase):
             self._delete(doctype, name)
         for company in (self.company_a, self.company_b):
             self._delete("Company", company)
+        for warehouse_type in self.created_warehouse_types:
+            self._delete("Warehouse Type", warehouse_type)
         super().tearDown()
 
     def test_saas_onboarding_creates_one_company_permission(self):
@@ -304,6 +308,14 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                     "country": "Bangladesh",
                 }
             ).insert(ignore_permissions=True)
+
+    def _ensure_warehouse_type(self, name: str) -> None:
+        if frappe.db.exists("Warehouse Type", name):
+            return
+        frappe.get_doc({"doctype": "Warehouse Type", "name": name}).insert(
+            ignore_permissions=True
+        )
+        self.created_warehouse_types.append(name)
 
     def _ensure_user(self, email: str, full_name: str) -> None:
         if not frappe.db.exists("User", email):

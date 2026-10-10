@@ -125,15 +125,42 @@ def get_supplier_free_availability(warehouse: str, route: str | None = None) -> 
 
 @frappe.whitelist()
 def get_sales_catalog(price_list: str | None = None) -> list[dict]:
+    """Return the priced company sales catalog used for orders."""
     tenant = require_tenant()
     price_list = price_list or get_or_create_company_sales_price_list(tenant.company)
     validate_master_scope(tenant.company, "Price List", price_list)
-    item_codes = frappe.get_all(
-        "Distribution Master Scope",
-        filters={"company": tenant.company, "master_type": "Item", "active": 1},
-        pluck="master_name",
-        order_by="master_name asc",
-    )
+    return _build_sales_catalog(tenant.company, price_list, include_unpriced=False)
+
+
+@frappe.whitelist()
+def get_dsr_delivery_catalog(warehouse: str, price_list: str | None = None) -> list[dict]:
+    """Return saleable products physically available in a DSR van warehouse.
+
+    DSR delivery must start from actual van stock.  Pricing remains mandatory
+    when a delivery is submitted, but an unpriced stocked product must remain
+    visible so the user receives a clear pricing validation instead of an
+    empty Item link result.
+    """
+    tenant = require_tenant()
+    _assert_warehouse(tenant.company, warehouse)
+    price_list = price_list or get_or_create_company_sales_price_list(tenant.company)
+    validate_master_scope(tenant.company, "Price List", price_list)
+
+    from erpnext.stock.utils import get_stock_balance
+
+    catalog = _build_sales_catalog(tenant.company, price_list, include_unpriced=True)
+    available_catalog = []
+    for item in catalog:
+        available_qty = get_stock_balance(item["item_code"], warehouse, nowdate())
+        if available_qty > 0:
+            item["available_qty"] = available_qty
+            item["warehouse"] = warehouse
+            available_catalog.append(item)
+    return available_catalog
+
+
+def _build_sales_catalog(company: str, price_list: str, *, include_unpriced: bool) -> list[dict]:
+    item_codes = _company_item_codes(company)
     catalog = []
     for item_code in item_codes:
         item = frappe.get_doc("Item", item_code)
@@ -144,7 +171,7 @@ def get_sales_catalog(price_list: str | None = None) -> list[dict]:
         )
         price_by_uom = {row.uom or item.stock_uom: row.price_list_rate for row in prices}
         rate = price_by_uom.get(item.stock_uom) or next(iter(price_by_uom.values()), None)
-        if rate is None:
+        if rate is None and not include_unpriced:
             continue
         catalog.append(
             {
@@ -155,9 +182,25 @@ def get_sales_catalog(price_list: str | None = None) -> list[dict]:
                 "rate": rate,
                 "prices": [{"uom": uom, "rate": item_rate} for uom, item_rate in price_by_uom.items()],
                 "price_list": price_list,
+                "is_priced": rate is not None,
             }
         )
     return catalog
+
+
+def _company_item_codes(company: str) -> list[str]:
+    """Include company-owned Items as well as explicitly shared scoped Items."""
+    scoped_items = frappe.get_all(
+        "Distribution Master Scope",
+        filters={"company": company, "master_type": "Item", "active": 1},
+        pluck="master_name",
+    )
+    owned_items = frappe.get_all(
+        "Item",
+        filters={"rd_company": company, "disabled": 0},
+        pluck="name",
+    )
+    return sorted(set(scoped_items).union(owned_items))
 
 
 @frappe.whitelist()
@@ -261,6 +304,8 @@ def submit_distribution_delivery(payload: str | dict) -> str:
         )
         item_rows.append(item)
 
+    _validate_delivery_stock(data["warehouse"], item_rows)
+
     delivery = frappe.get_doc(
         {
             "doctype": "Delivery Note",
@@ -278,6 +323,26 @@ def submit_distribution_delivery(payload: str | dict) -> str:
     delivery.insert()
     delivery.submit()
     return delivery.name
+
+
+def _validate_delivery_stock(warehouse: str, item_rows: list[dict]) -> None:
+    """Fail before document submission when the selected van cannot fulfil it."""
+    from erpnext.stock.utils import get_stock_balance
+
+    requested_by_item = {}
+    for row in item_rows:
+        requested_by_item[row["item_code"]] = requested_by_item.get(row["item_code"], 0) + float(
+            row["stock_qty"]
+        )
+
+    for item_code, requested_qty in requested_by_item.items():
+        available_qty = get_stock_balance(item_code, warehouse, nowdate())
+        if requested_qty > float(available_qty) + 0.000001:
+            frappe.throw(
+                _("Only {0} of Item {1} is available in van warehouse {2}.").format(
+                    available_qty, item_code, warehouse
+                )
+            )
 
 
 def validate_sr_order(doc, method=None) -> None:

@@ -8,6 +8,7 @@ from frappe.tests.utils import FrappeTestCase
 from reckon_distribution.field_sales import (
     _order_item,
     get_assigned_outlets,
+    get_dsr_delivery_catalog,
     get_dsr_delivery_context,
     get_retailer_summary,
     save_sr_order,
@@ -58,6 +59,34 @@ class TestFieldSales(FrappeTestCase):
         self.assertEqual(row["conversion_factor"], 12)
         self.assertEqual(row["stock_qty"], 24)
         self.assertEqual(row["rate"], 250)
+
+    def test_dsr_catalog_keeps_unpriced_stock_visible(self):
+        tenant = frappe._dict({"company": "_Test Tenant Company A"})
+        item = frappe._dict({"item_name": "Test Item", "stock_uom": "Nos", "uoms": []})
+
+        def get_all(doctype, **kwargs):
+            if doctype == "Distribution Master Scope":
+                return ["_Test Item"]
+            if doctype == "Item":
+                return []
+            if doctype == "Item Price":
+                return []
+            self.fail(f"Unexpected get_all for {doctype}")
+
+        with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(
+            "reckon_distribution.field_sales._assert_warehouse"
+        ), patch(
+            "reckon_distribution.field_sales.get_or_create_company_sales_price_list", return_value="Retail"
+        ), patch("reckon_distribution.field_sales.validate_master_scope"), patch(
+            "reckon_distribution.field_sales.frappe.get_all", side_effect=get_all
+        ), patch("reckon_distribution.field_sales.frappe.get_doc", return_value=item), patch(
+            "erpnext.stock.utils.get_stock_balance", return_value=12
+        ):
+            catalog = get_dsr_delivery_catalog("_Test Van")
+
+        self.assertEqual(catalog[0]["item_code"], "_Test Item")
+        self.assertEqual(catalog[0]["available_qty"], 12)
+        self.assertFalse(catalog[0]["is_priced"])
 
     def test_order_rejects_client_free_quantity(self):
         payload = {

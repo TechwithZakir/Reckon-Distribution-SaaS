@@ -27,6 +27,9 @@ class DistributionRedirect(HTTPException):
 
 DISTRIBUTION_DESK_ROUTE = "desk/distribution"
 DISTRIBUTION_PAGE = "distribution"
+DISTRIBUTION_USER_ROLES = frozenset(
+    {role.name for role in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
+)
 ALLOWED_DISTRIBUTION_PAGES = {
     "distribution",
     "distribution-master-setup",
@@ -278,7 +281,10 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     roles = set(frappe.get_roles(user))
     if roles.intersection(DESK_BYPASS_ROLES):
         return False
-    return any(role.name in roles for role in OPERATIONAL_ROLES)
+    # Tenant User Assignment can be the only role information available on a
+    # user's first request. Treat those tenant-facing profiles as Distribution
+    # roles too; the internal role sync remains an additional safeguard.
+    return bool(roles.intersection(DISTRIBUTION_USER_ROLES))
 
 
 def _ensure_current_distribution_role() -> None:

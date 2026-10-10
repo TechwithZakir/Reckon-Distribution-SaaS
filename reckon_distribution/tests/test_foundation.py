@@ -262,6 +262,33 @@ class TestFoundation(FrappeTestCase):
         with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
             self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
 
+    def test_tenant_profile_home_page_is_distribution_workspace(self):
+        from reckon_distribution.desk_guard import get_user_home_page
+
+        for role in ("Company Admin", "Company Manager", "DSR", "SR"):
+            with self.subTest(role=role), patch("frappe.get_roles", return_value=[role]):
+                self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
+
+    def test_root_and_desk_requests_redirect_tenant_profiles_to_distribution(self):
+        from reckon_distribution.desk_guard import (
+            DistributionRedirect,
+            restrict_distribution_desk_request,
+        )
+
+        for path in ("/", "/desk/"):
+            with self.subTest(path=path), patch(
+                "reckon_distribution.desk_guard._ensure_current_distribution_role"
+            ), patch(
+                "reckon_distribution.desk_guard._ensure_current_user_metadata_access"
+            ), patch(
+                "reckon_distribution.desk_guard._is_distribution_only_user", return_value=True
+            ), patch(
+                "reckon_distribution.warehouse.ensure_current_user_company_permission"
+            ), patch("reckon_distribution.desk_guard._request_path", return_value=path):
+                with self.assertRaises(DistributionRedirect) as redirect:
+                    restrict_distribution_desk_request()
+                self.assertEqual(redirect.exception.location, "/desk/distribution")
+
     def test_system_manager_home_page_is_native(self):
         from reckon_distribution.desk_guard import get_user_home_page
 

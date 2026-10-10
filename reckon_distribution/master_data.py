@@ -36,6 +36,10 @@ SHARED_MASTER_TYPES = {
 
 COMPANY_OWNED_MASTER_TYPES = frozenset(SHARED_MASTER_TYPES)
 MASTER_COMPANY_FIELD = "rd_company"
+NATIVE_COMPANY_MASTER_FIELDS = {
+    "Warehouse": "company",
+    "Account": "company",
+}
 
 
 def get_company_owned_master_registry() -> dict[str, dict[str, str]]:
@@ -254,6 +258,15 @@ def validate_master_scope(
         frappe.throw(_("{0} {1} does not exist.").format(master_type, master_name))
     if master_type in COMPANY_OWNED_MASTER_TYPES and frappe.db.has_column(master_type, MASTER_COMPANY_FIELD):
         linked_company = frappe.db.get_value(master_type, master_name, MASTER_COMPANY_FIELD)
+        if linked_company == tenant.company:
+            return
+        frappe.throw(
+            _("{0} {1} belongs to Company {2}, not {3}.").format(
+                master_type, master_name, linked_company or _("another Company"), tenant.company
+            )
+        )
+    if company_field := NATIVE_COMPANY_MASTER_FIELDS.get(master_type):
+        linked_company = frappe.db.get_value(master_type, master_name, company_field)
         if linked_company == tenant.company:
             return
         frappe.throw(

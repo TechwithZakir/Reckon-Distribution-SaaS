@@ -164,6 +164,26 @@ class TestDistributionMasterData(FrappeTestCase):
         )
         settings.validate()
 
+    def test_native_company_masters_do_not_require_distribution_scope_rows(self):
+        with patch(
+            "reckon_distribution.master_data.require_tenant",
+            return_value=frappe._dict(company=self.company_a),
+        ), patch("reckon_distribution.master_data.frappe.db.exists", return_value=True), patch(
+            "reckon_distribution.master_data.frappe.db.get_value", return_value=self.company_a
+        ):
+            validate_master_scope(self.company_a, "Warehouse", "Stores - TCA", user=self.user_a)
+            validate_master_scope(self.company_a, "Account", "Cash - TCA", user=self.user_a)
+
+    def test_native_company_master_cannot_cross_company_boundaries(self):
+        with patch(
+            "reckon_distribution.master_data.require_tenant",
+            return_value=frappe._dict(company=self.company_a),
+        ), patch("reckon_distribution.master_data.frappe.db.exists", return_value=True), patch(
+            "reckon_distribution.master_data.frappe.db.get_value", return_value=self.company_b
+        ):
+            with self.assertRaises(frappe.ValidationError):
+                validate_master_scope(self.company_a, "Warehouse", "Stores - TCB", user=self.user_a)
+
     def test_route_is_immutable_and_company_scoped(self):
         route_a = self._route(self.route_a, self.company_a)
         self._route(self.route_b, self.company_b)

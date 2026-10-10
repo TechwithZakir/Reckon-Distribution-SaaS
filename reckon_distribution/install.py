@@ -1024,6 +1024,8 @@ def ensure_native_master_permissions() -> None:
         # The native Purchase Order, Receipt, Invoice, and Payment Entry forms
         # fetch the selected Company's defaults before rendering.
         "Company": {"read"},
+        # Native print preview resolves the selected Company letter head.
+        "Letter Head": {"read"},
         # ERPNext purchase controllers read maintain_same_rate from this
         # singleton during form boot.
         "Buying Settings": {"read"},

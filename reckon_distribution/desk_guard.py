@@ -94,6 +94,8 @@ ALLOWED_DESK_PREFIXES = (
 ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
     {
         "Company",
+        # Native document printing resolves the selected Company letter head.
+        "Letter Head",
         # Native purchase forms read this singleton while calculating item rates.
         "Buying Settings",
         "Customer",

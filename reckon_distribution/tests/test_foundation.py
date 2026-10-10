@@ -204,11 +204,31 @@ class TestFoundation(FrappeTestCase):
     def test_distribution_allows_native_print_page(self):
         from reckon_distribution.desk_guard import (
             ALLOWED_DESK_PREFIXES,
+            ALLOWED_DISTRIBUTION_DOCTYPES,
             ALLOWED_DISTRIBUTION_PAGES,
         )
 
         self.assertIn("print", ALLOWED_DISTRIBUTION_PAGES)
         self.assertIn("/app/print", ALLOWED_DESK_PREFIXES)
+        self.assertIn("Letter Head", ALLOWED_DISTRIBUTION_DOCTYPES)
+
+    def test_distribution_roles_can_read_letter_heads_for_printing(self):
+        permissions = {
+            row.role: row
+            for row in frappe.get_meta("Letter Head").permissions
+            if row.role
+            in {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+                "Reckon Distribution User",
+            }
+        }
+        for role_name in (
+            "Reckon Distribution Admin",
+            "Reckon Distribution Manager",
+            "Reckon Distribution User",
+        ):
+            self.assertTrue(permissions[role_name].read)
 
     def test_distribution_user_has_effective_doctype_metadata_permission(self):
         from reckon_distribution.install import ensure_standard_doc_type_read_permission

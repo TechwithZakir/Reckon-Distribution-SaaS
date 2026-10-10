@@ -96,6 +96,7 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Company",
         # Native document printing resolves the selected Company letter head.
         "Letter Head",
+        "Print Format",
         # Native purchase forms read this singleton while calculating item rates.
         "Buying Settings",
         "Customer",

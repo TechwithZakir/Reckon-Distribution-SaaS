@@ -1026,6 +1026,7 @@ def ensure_native_master_permissions() -> None:
         "Company": {"read"},
         # Native print preview resolves the selected Company letter head.
         "Letter Head": {"read"},
+        "Print Format": {"read"},
         # ERPNext purchase controllers read maintain_same_rate from this
         # singleton during form boot.
         "Buying Settings": {"read"},

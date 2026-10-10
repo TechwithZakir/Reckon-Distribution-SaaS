@@ -169,7 +169,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
 
   function submitDelivery() {
     if (!selected || !lines.length) return showMessage(__("Select a retailer and add delivery lines. / রিটেইলার নির্বাচন করে ডেলিভারি লাইন যোগ করুন।"), true);
-    const payload = { customer: selected.customer, route: routeControl.get_value() || selected.route, warehouse: warehouseControl.get_value(), items: lines, idempotency_key: deliveryKey };
+      const payload = { customer: selected.customer, route: routeControl.get_value() || selected.route, warehouse: warehouseControl.get_value(), price_list: catalog[0] && catalog[0].price_list, items: lines, idempotency_key: deliveryKey };
     withGps((gps) => {
       Object.assign(payload, gps);
       frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((response) => {

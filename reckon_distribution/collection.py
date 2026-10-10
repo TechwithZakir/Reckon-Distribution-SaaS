@@ -7,7 +7,6 @@ from frappe.utils import flt, nowdate
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
-    get_user_companies,
     require_tenant,
     user_can_bypass_tenant,
     validate_tenant_owned_doc,
@@ -35,12 +34,27 @@ def validate_collection_receipt(doc, method=None) -> None:
     route = get_tenant_doc("Distribution Route", doc.route)
     if route.company != doc.company or route.assigned_user != doc.dsr:
         frappe.throw(_("The DSR is not assigned to this Company route."))
-    if doc.dsr not in get_user_companies(doc.dsr) and not user_can_bypass_tenant():
+    if not _has_active_company_assignment(doc.dsr, doc.company) and not user_can_bypass_tenant():
         frappe.throw(_("The DSR is not assigned to this Company."))
 
     if doc.status not in {"Draft", "Pending Verification", "Confirmed", "Cancelled"}:
         frappe.throw(_("Unknown collection status."))
     _validate_idempotency(doc)
+
+
+def _has_active_company_assignment(user: str, company: str) -> bool:
+    """Accept the assignment row or its synchronized Company User Permission."""
+    if frappe.db.exists(
+        "Tenant User Assignment",
+        {"user": user, "company": company, "active": 1},
+    ):
+        return True
+    return bool(
+        frappe.db.exists(
+            "User Permission",
+            {"user": user, "allow": "Company", "for_value": company},
+        )
+    )
 
 
 @frappe.whitelist()

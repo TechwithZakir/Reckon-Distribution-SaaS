@@ -5,10 +5,18 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from reckon_distribution.collection import confirm_collection, validate_collection_receipt
+from reckon_distribution.collection import (
+    _has_active_company_assignment,
+    confirm_collection,
+    validate_collection_receipt,
+)
 
 
 class TestDSRCollectionReceipt(FrappeTestCase):
+    def test_dsr_company_check_accepts_company_permission(self):
+        with patch("reckon_distribution.collection.frappe.db.exists", side_effect=[False, True]):
+            self.assertTrue(_has_active_company_assignment("dsr@example.com", "_Test Tenant Company A"))
+
     def _receipt(self, method="Cash"):
         return frappe._dict(
             {
@@ -34,7 +42,7 @@ class TestDSRCollectionReceipt(FrappeTestCase):
             "reckon_distribution.collection.require_tenant"
         ), patch("reckon_distribution.collection.validate_master_scope"), patch(
             "reckon_distribution.collection.get_tenant_doc", return_value=route
-        ), patch("reckon_distribution.collection.get_user_companies", return_value=[receipt.company]), patch(
+        ), patch("reckon_distribution.collection.frappe.db.exists", return_value=True), patch(
             "reckon_distribution.collection._validate_idempotency"
         ):
             validate_collection_receipt(receipt)

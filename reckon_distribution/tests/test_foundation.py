@@ -292,8 +292,24 @@ class TestFoundation(FrappeTestCase):
     def test_system_manager_home_page_is_native(self):
         from reckon_distribution.desk_guard import get_user_home_page
 
-        with patch("frappe.get_roles", return_value=["System Manager", "Reckon Distribution User"]):
+        with patch("frappe.get_roles", return_value=["System Manager"]):
             self.assertIsNone(get_user_home_page("admin@example.com"))
+
+    def test_distribution_tenant_with_system_manager_enters_distribution_workspace(self):
+        from reckon_distribution.desk_guard import get_user_home_page
+
+        with patch(
+            "frappe.get_roles", return_value=["System Manager", "Reckon Distribution Admin"]
+        ):
+            self.assertEqual(get_user_home_page("admin@example.com"), "desk/distribution")
+
+    def test_assignment_profile_redirects_before_role_sync(self):
+        from reckon_distribution.desk_guard import get_user_home_page
+
+        with patch("frappe.get_roles", return_value=[]), patch(
+            "reckon_distribution.desk_guard.frappe.db.exists", return_value=True
+        ), patch("reckon_distribution.desk_guard.frappe.db.get_value", return_value="DSR"):
+            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
 
     def test_distribution_user_cannot_load_other_desk_page(self):
         from reckon_distribution.desk_guard import getpage

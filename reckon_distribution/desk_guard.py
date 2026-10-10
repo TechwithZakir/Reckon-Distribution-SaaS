@@ -60,7 +60,7 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "user-profile",
     "home",
 }
-DESK_BYPASS_ROLES = {"Administrator", "System Manager", "Reckon Vendor Superuser"}
+DESK_BYPASS_ROLES = {"Administrator", "Reckon Vendor Superuser"}
 ALLOWED_DESK_PREFIXES = (
     "/app/distribution",
     "/app/distribution-master-setup",
@@ -281,10 +281,26 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     roles = set(frappe.get_roles(user))
     if roles.intersection(DESK_BYPASS_ROLES):
         return False
-    # Tenant User Assignment can be the only role information available on a
-    # user's first request. Treat those tenant-facing profiles as Distribution
-    # roles too; the internal role sync remains an additional safeguard.
-    return bool(roles.intersection(DISTRIBUTION_USER_ROLES))
+    # A Distribution tenant admin may also have System Manager for operational
+    # setup. Their tenant role must take precedence for root and Desk routing.
+    if roles.intersection(DISTRIBUTION_USER_ROLES):
+        return True
+    if "System Manager" in roles:
+        return False
+
+    # Login can route a user before the Tenant User Assignment role sync has
+    # reached Frappe's cached User roles. Read the assignment directly so the
+    # first request still enters the Distribution workspace.
+    if not frappe.db.exists("DocType", "Tenant User Assignment"):
+        return False
+    profile = frappe.db.get_value(
+        "Tenant User Assignment",
+        {"user": user, "active": 1, "is_default": 1},
+        "role_profile",
+    ) or frappe.db.get_value(
+        "Tenant User Assignment", {"user": user, "active": 1}, "role_profile"
+    )
+    return profile in TENANT_ROLE_NAMES
 
 
 def _ensure_current_distribution_role() -> None:

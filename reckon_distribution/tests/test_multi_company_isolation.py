@@ -41,10 +41,8 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         self.master_names: list[tuple[str, str]] = []
         self.assignment_names: list[str] = []
         self.permission_names: list[str] = []
-        self.created_warehouse_types: list[str] = []
         self.created_reference_masters: list[tuple[str, str]] = []
         self.user_names = [self.user_a, self.user_b, self.team_user]
-        self._ensure_warehouse_type("Transit")
         self.item_group = self._ensure_reference_master(
             "Item Group", "All Item Groups", {"item_group_name": "All Item Groups", "is_group": 1}
         )
@@ -88,8 +86,6 @@ class TestMultiCompanyIsolation(FrappeTestCase):
             self._delete(doctype, name)
         for company in (self.company_a, self.company_b):
             self._delete("Company", company)
-        for warehouse_type in self.created_warehouse_types:
-            self._delete("Warehouse Type", warehouse_type)
         for doctype, name in self.created_reference_masters:
             self._delete(doctype, name)
         super().tearDown()
@@ -331,9 +327,7 @@ class TestMultiCompanyIsolation(FrappeTestCase):
             # That unrelated bootstrap assumes Warehouse Type: Transit exists
             # on the site, while this suite only needs company records for
             # isolation checks.
-            with patch(
-                "erpnext.setup.doctype.company.company.Company.create_default_warehouses"
-            ):
+            with patch("erpnext.setup.doctype.company.company.Company.on_update"):
                 frappe.get_doc(
                     {
                         "doctype": "Company",
@@ -343,14 +337,6 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                         "country": "Bangladesh",
                     }
                 ).insert(ignore_permissions=True)
-
-    def _ensure_warehouse_type(self, name: str) -> None:
-        if frappe.db.exists("Warehouse Type", name):
-            return
-        frappe.get_doc({"doctype": "Warehouse Type", "name": name}).insert(
-            ignore_permissions=True
-        )
-        self.created_warehouse_types.append(name)
 
     def _ensure_reference_master(
         self, doctype: str, preferred: str, values: dict, filters: dict | None = None

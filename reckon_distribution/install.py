@@ -14,6 +14,7 @@ from reckon_distribution.constants import (
 def after_install() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
+    ensure_company_sales_price_lists()
     ensure_distribution_permissions()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -28,6 +29,7 @@ def after_install() -> None:
 def after_migrate() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
+    ensure_company_sales_price_lists()
     ensure_distribution_permissions()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -37,6 +39,20 @@ def after_migrate() -> None:
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
+
+
+def ensure_company_sales_price_lists() -> None:
+    """Repair the selling Price List default for every configured tenant."""
+    if not all(
+        frappe.db.exists("DocType", doctype)
+        for doctype in ("Distribution Settings", "Price List")
+    ):
+        return
+
+    from reckon_distribution.master_data import get_or_create_company_sales_price_list
+
+    for company in frappe.get_all("Distribution Settings", pluck="company"):
+        get_or_create_company_sales_price_list(company)
 
 
 def ensure_master_quick_entry() -> None:

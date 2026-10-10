@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import frappe
 
+from reckon_distribution.master_data import get_or_create_company_sales_price_list
+
 
 def run_distribution_seed(company: str, seed_version: str) -> dict:
     """Seed additive distribution defaults for a tenant company.
@@ -36,6 +38,8 @@ def run_distribution_seed(company: str, seed_version: str) -> dict:
             }
         ).insert(ignore_permissions=True)
         created.append("Company UOM Profile")
+
+    get_or_create_company_sales_price_list(company)
 
     return {
         "company": company,

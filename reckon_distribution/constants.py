@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 DISTRIBUTION_WORKSPACE = "Distribution Workspace"
+DISTRIBUTION_SIDEBAR = "Distribution"
 
 
 @dataclass(frozen=True)

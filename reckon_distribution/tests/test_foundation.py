@@ -10,7 +10,12 @@ from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution import hooks
 from reckon_distribution.compat import FrappeVersion, _major
-from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, HRMS_APP_NAME, OPERATIONAL_ROLES
+from reckon_distribution.constants import (
+    DISTRIBUTION_SIDEBAR,
+    DISTRIBUTION_WORKSPACE,
+    HRMS_APP_NAME,
+    OPERATIONAL_ROLES,
+)
 
 
 class TestFoundation(FrappeTestCase):
@@ -114,7 +119,7 @@ class TestFoundation(FrappeTestCase):
     def test_distribution_workspace_sidebar_contains_dsr_challan(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
-        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_WORKSPACE)
+        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
         self.assertTrue(
             any(
                 item.link_type == "DocType" and item.link_to == "DSR Challan"

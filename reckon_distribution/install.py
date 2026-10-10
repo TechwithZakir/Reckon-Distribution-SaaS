@@ -3,7 +3,11 @@ from __future__ import annotations
 import frappe
 from frappe import _, permissions
 
-from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
+from reckon_distribution.constants import (
+    DISTRIBUTION_SIDEBAR,
+    DISTRIBUTION_WORKSPACE,
+    OPERATIONAL_ROLES,
+)
 
 
 def after_install() -> None:
@@ -849,9 +853,13 @@ def ensure_workspace_sidebar() -> None:
     if not frappe.db.exists("DocType", "Workspace Sidebar"):
         return
 
-    sidebar_name = DISTRIBUTION_WORKSPACE
+    sidebar_name = DISTRIBUTION_SIDEBAR
     if not frappe.db.exists("Workspace Sidebar", sidebar_name):
-        frappe.get_doc(_workspace_sidebar_doc()).insert(
+        # Older installs briefly used the workspace label as the sidebar name.
+        # Reuse that record if it exists; otherwise create the native sidebar name.
+        sidebar_name = frappe.db.exists("Workspace Sidebar", DISTRIBUTION_WORKSPACE) or sidebar_name
+    if not frappe.db.exists("Workspace Sidebar", sidebar_name):
+        frappe.get_doc(_workspace_sidebar_doc(sidebar_name)).insert(
             ignore_permissions=True, ignore_links=True
         )
         return
@@ -869,7 +877,7 @@ def ensure_workspace_sidebar() -> None:
     sidebar.save(ignore_permissions=True, ignore_links=True)
 
 
-def _workspace_sidebar_doc() -> dict:
+def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
     """Return the native left-rail definition used by the active Desk shell."""
     items = [
         {
@@ -931,7 +939,7 @@ def _workspace_sidebar_doc() -> dict:
     ]
     return {
         "doctype": "Workspace Sidebar",
-        "name": DISTRIBUTION_WORKSPACE,
+        "name": sidebar_name,
         "app": "reckon_distribution",
         "module": "Distribution",
         "title": "Distribution",

@@ -243,11 +243,16 @@ def _validate_challan_references(doc) -> None:
 
 
 def _has_active_company_assignment(user: str, company: str) -> bool:
-    """Use Tenant User Assignment as the authoritative DSR-company link."""
+    """Accept either materialized tenant assignment or Company User Permission."""
+    if frappe.db.exists(
+        "Tenant User Assignment",
+        {"user": user, "company": company, "active": 1},
+    ):
+        return True
     return bool(
         frappe.db.exists(
-            "Tenant User Assignment",
-            {"user": user, "company": company, "active": 1},
+            "User Permission",
+            {"user": user, "allow": "Company", "for_value": company},
         )
     )
 

@@ -25,6 +25,18 @@ class TestVanLoadingControls(FrappeTestCase):
             {"user": "dsr@example.com", "company": "_Test Tenant Company A", "active": 1},
         )
 
+    def test_dsr_company_check_accepts_materialized_company_permission(self):
+        with patch(
+            "reckon_distribution.van_loading.frappe.db.exists",
+            side_effect=[False, True],
+        ) as exists:
+            self.assertTrue(_has_active_company_assignment("dsr@example.com", "_Test Tenant Company A"))
+        self.assertEqual(exists.call_count, 2)
+        self.assertEqual(
+            exists.call_args_list[1].args,
+            ("User Permission", {"user": "dsr@example.com", "allow": "Company", "for_value": "_Test Tenant Company A"}),
+        )
+
     def _challan(self, status="Approved"):
         return frappe._dict(
             {

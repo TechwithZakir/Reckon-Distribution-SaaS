@@ -915,6 +915,15 @@ def _workspace_sidebar_doc() -> dict:
                 "show_arrow": 0,
             }
         )
+    # ERPNext standard DocTypes can be unavailable during app installation
+    # ordering. Do not make the whole install fail; after_migrate will append
+    # the links once the native modules are present.
+    items = [
+        item
+        for item in items
+        if item.get("link_type") != "DocType"
+        or frappe.db.exists("DocType", item.get("link_to"))
+    ]
     return {
         "doctype": "Workspace Sidebar",
         "name": DISTRIBUTION_WORKSPACE,

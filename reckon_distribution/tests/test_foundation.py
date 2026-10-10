@@ -51,6 +51,9 @@ class TestFoundation(FrappeTestCase):
         self.assertTrue(permissions["Reckon Distribution User"].read)
         self.assertTrue(permissions["Reckon Distribution User"].create)
         self.assertTrue(permissions["Reckon Distribution User"].submit)
+        self.assertTrue(permissions["Reckon Distribution Admin"].print)
+        self.assertTrue(permissions["Reckon Distribution Manager"].print)
+        self.assertTrue(permissions["Reckon Distribution User"].print)
 
     def test_distribution_workspace_contains_dsr_challan_shortcut(self):
         workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)

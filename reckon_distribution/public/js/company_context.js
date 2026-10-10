@@ -11,8 +11,24 @@
   const state = frappe.reckon_distribution;
   if (state.company_forms_registered) return;
   state.company_forms_registered = true;
+  const directRatePurchaseDoctypes = new Set([
+    "Purchase Order", "Purchase Receipt", "Purchase Invoice",
+  ]);
+
+  function useDirectPurchaseRates(frm) {
+    if (!directRatePurchaseDoctypes.has(frm.doctype) || frm.doc.docstatus !== 0) return;
+    ["buying_price_list", "price_list_currency", "plc_conversion_rate", "ignore_pricing_rule"]
+      .forEach(fieldname => {
+        if (frm.fields_dict[fieldname]) frm.set_df_property(fieldname, "hidden", 1);
+      });
+    frm.doc.buying_price_list = null;
+    frm.doc.price_list_currency = null;
+    frm.doc.plc_conversion_rate = 1;
+    frm.doc.ignore_pricing_rule = 1;
+  }
 
   async function applyCompany(frm) {
+    useDirectPurchaseRates(frm);
     if (frappe.session.user === "Administrator" ||
         ["System Manager", "Reckon Vendor Superuser"].some(role => frappe.user_roles.includes(role))) return;
     const fields = ["company", "rd_company"].filter(name => frm.fields_dict[name]);

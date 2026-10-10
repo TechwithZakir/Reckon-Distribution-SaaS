@@ -4,7 +4,6 @@
  "module":"Distribution",
  "autoname":"naming_series:",
  "naming_rule":"By script",
- "title_field":"name",
  "is_submittable":1,
  "field_order":["naming_series","company","posting_date","status","column_break_1","distributor_warehouse","van_warehouse","route","dsr","section_break_items","items","section_break_audit","stock_entry","acknowledgement","approved_by","approved_on","acknowledged_by","acknowledged_on","amended_from"],
  "fields":[

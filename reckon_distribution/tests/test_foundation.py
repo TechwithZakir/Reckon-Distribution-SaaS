@@ -31,6 +31,9 @@ class TestFoundation(FrappeTestCase):
         for role in OPERATIONAL_ROLES:
             self.assertIn(role.name, workspace_roles)
 
+    def test_van_loading_challan_has_distribution_label(self):
+        self.assertEqual(frappe.get_meta("Van Loading Challan").label, "DSR Challan")
+
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission
 

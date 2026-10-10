@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _, permissions
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
 
@@ -10,11 +11,11 @@ def after_install() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
     ensure_distribution_permissions()
-    ensure_challan_label()
     setup_workspace()
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
+    ensure_challan_label()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -23,11 +24,11 @@ def after_migrate() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
     ensure_distribution_permissions()
-    ensure_challan_label()
     setup_workspace()
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
+    ensure_challan_label()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -88,7 +89,15 @@ def _set_property(doctype: str, fieldname: str | None, property_name: str, value
 def ensure_challan_label() -> None:
     """Keep the stable internal DocType name while showing the business label."""
     if frappe.db.exists("DocType", "Van Loading Challan"):
-        _set_property("Van Loading Challan", None, "label", "DSR Challan", "Data")
+        make_property_setter(
+            "Van Loading Challan",
+            None,
+            "label",
+            "DSR Challan",
+            "Data",
+            for_doctype=True,
+            validate_fields_for_doctype=False,
+        )
         frappe.clear_cache(doctype="Van Loading Challan")
 
 

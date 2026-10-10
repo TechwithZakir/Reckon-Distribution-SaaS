@@ -1,6 +1,7 @@
 frappe.pages["distribution-item-uom-setup"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Item Units & Conversion"), single_column: true });
-  $(page.body).html(`<div class="rd-uom-setup"><h2>${__("Item units & conversion / পণ্যের ইউনিট ও রূপান্তর")}</h2><p class="text-muted">${__("Choose an item and define how many stock units are in each sales unit. UOM definitions are shared and read-only. / পণ্য নির্বাচন করে বিক্রয় ইউনিটে কত স্টক ইউনিট আছে তা দিন। UOM সংজ্ঞা সবার জন্য এক এবং শুধু পড়া যাবে।")}</p><label>${__("Product / পণ্য")}<select data-item><option value="">${__("Select product")}</option></select></label><div data-editor></div></div>`);
+  $(page.body).html(`<div class="rd-uom-setup rd-theme-page"><div class="rd-page-shell"><p class="rd-kicker">${__("Master data")}</p><h2>${__("Item units & conversion / পণ্যের ইউনিট ও রূপান্তর")}</h2><p class="text-muted">${__("Choose an item and define how many stock units are in each sales unit. UOM definitions are shared and read-only. / পণ্য নির্বাচন করে বিক্রয় ইউনিটে কত স্টক ইউনিট আছে তা দিন। UOM সংজ্ঞা সবার জন্য এক এবং শুধু পড়া যাবে।")}</p><label>${__("Product / পণ্য")}<select data-item><option value="">${__("Select product")}</option></select></label><div data-editor></div></div></div>`);
   const itemSelect = $(page.body).find("[data-item]");
   let state = {};
   load();

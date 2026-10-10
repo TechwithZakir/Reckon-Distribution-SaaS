@@ -1,4 +1,5 @@
 frappe.pages["distribution"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
   const page = frappe.ui.make_app_page({
     parent: wrapper,
     title: __("Distribution"),
@@ -10,7 +11,7 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
   });
 
   $(page.body).html(`
-    <div class="reckon-distribution-desk">
+    <div class="reckon-distribution-desk rd-theme-page">
       <section class="rd-desk-hero">
         <p class="rd-kicker">${__("Reckon Distribution")}</p>
         <h2>${__("Distribution Workspace")}</h2>

@@ -1,4 +1,5 @@
 frappe.pages["van-loading"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
   const page = frappe.ui.make_app_page({
     parent: wrapper,
     title: __("Van Loading / ভ্যান লোডিং"),
@@ -6,7 +7,7 @@ frappe.pages["van-loading"].on_page_load = function (wrapper) {
   });
 
   $(page.body).html(`
-    <div class="rd-van-loading">
+    <div class="rd-van-loading rd-theme-page">
       <section class="rd-van-loading__hero">
         <div><p class="rd-kicker">${__("Prepare and hand over stock / পণ্য প্রস্তুত ও হস্তান্তর")}</p><h2>${__("Van Loading / ভ্যান লোডিং")}</h2><p>${__("A manager prepares the van load; the DSR receives it. Stock posting happens automatically in the background.")}</p></div>
         <a class="btn btn-primary" href="/desk/van-loading-challan/new-van-loading-challan-1">${__("Create loading request")}</a>

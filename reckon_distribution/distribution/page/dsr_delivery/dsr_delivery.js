@@ -1,4 +1,6 @@
 frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
+  frappe.require("/assets/reckon_distribution/js/distribution_link_control.js");
   const page = frappe.ui.make_app_page({
     parent: wrapper,
     title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"),
@@ -6,7 +8,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   });
 
   $(page.body).html(`
-    <main class="rd-dsr-delivery">
+    <main class="rd-dsr-delivery rd-theme-page">
       <header class="rd-dsr-hero">
         <div>
           <p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p>
@@ -29,7 +31,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
           <h4>${__("1. Delivery / ১. ডেলিভারি")}</h4>
           <p class="text-muted">${__("Add only physically delivered stock. Supplier free goods need their submitted receipt source. / বাস্তবে দেওয়া পণ্যই যোগ করুন। সরবরাহকারীর ফ্রি পণ্যের জমা দেওয়া রসিদের উৎস দিন।")}</p>
           <div class="rd-dsr-fields">
-            <label>${__("Van warehouse / ভ্যান গুদাম")}<input data-warehouse required /></label>
+            <div data-warehouse-field></div>
             <label>${__("Product / পণ্য")}<select data-item></select></label>
             <label>${__("Sales unit / বিক্রয় ইউনিট")}<select data-uom></select></label>
             <label>${__("Quantity / পরিমাণ")}<input data-qty type="number" min="0.001" step="0.001" /></label>
@@ -46,7 +48,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
           <div class="rd-dsr-fields">
             <label>${__("Amount / পরিমাণ")}<input data-amount type="number" min="0.01" step="0.01" /></label>
             <label>${__("Method / মাধ্যম")}<select data-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></label>
-            <label>${__("Receiving account / গ্রহণের অ্যাকাউন্ট")}<input data-account required /></label>
+            <div data-account-field></div>
             <label>${__("Reference / রেফারেন্স")}<input data-reference placeholder="${__("Required for Bank/MFS")}" /></label>
           </div>
           <button class="btn btn-primary" data-submit-collection>${__("Submit collection / টাকা জমা দিন")}</button>
@@ -66,6 +68,8 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   let lines = [];
   let deliveryKey = null;
   let collectionKey = null;
+  const warehouseControl = window.reckonDistribution.makeLinkControl(body.find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse / ভ্যান গুদাম"), "Warehouse");
+  const accountControl = window.reckonDistribution.makeLinkControl(body.find("[data-account-field]")[0], "receiving_account", __("Receiving account / গ্রহণের অ্যাকাউন্ট"), "Account");
 
   loadOutlets();
   body.find("[data-search]").on("input", function () { renderOutlets(this.value); });
@@ -141,7 +145,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
 
   function submitDelivery() {
     if (!selected || !lines.length) return showMessage(__("Select a retailer and add delivery lines. / রিটেইলার নির্বাচন করে ডেলিভারি লাইন যোগ করুন।"), true);
-    const payload = { customer: selected.customer, route: selected.route, warehouse: body.find("[data-warehouse]").val(), items: lines, idempotency_key: deliveryKey };
+    const payload = { customer: selected.customer, route: selected.route, warehouse: warehouseControl.get_value(), items: lines, idempotency_key: deliveryKey };
     withGps((gps) => {
       Object.assign(payload, gps);
       frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((response) => {
@@ -155,7 +159,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
 
   function submitCollection() {
     if (!selected) return showMessage(__("Select a retailer first. / আগে রিটেইলার নির্বাচন করুন।"), true);
-    const payload = { customer: selected.customer, route: selected.route, amount: Number(body.find("[data-amount]").val()), payment_method: body.find("[data-method]").val(), receiving_account: body.find("[data-account]").val(), reference_no: body.find("[data-reference]").val(), idempotency_key: collectionKey };
+    const payload = { customer: selected.customer, route: selected.route, amount: Number(body.find("[data-amount]").val()), payment_method: body.find("[data-method]").val(), receiving_account: accountControl.get_value(), reference_no: body.find("[data-reference]").val(), idempotency_key: collectionKey };
     withGps((gps) => {
       Object.assign(payload, gps);
       frappe.call({ method: "reckon_distribution.collection.record_collection", args: { payload: JSON.stringify(payload) } }).then((response) => {

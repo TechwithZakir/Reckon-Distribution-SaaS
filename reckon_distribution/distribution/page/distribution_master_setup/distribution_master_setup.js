@@ -1,6 +1,7 @@
 frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Setup Guide"), single_column: true });
-  $(page.body).html(`<div class="rd-setup-guide"><section class="rd-master-hero"><div><p class="rd-kicker">${__("Start here / এখান থেকে শুরু করুন")}</p><h2>${__("Distribution Setup Guide")}</h2><p>${__("Complete these simple steps in order. / নিচের ধাপগুলো ক্রমানুসারে শেষ করুন।")}</p></div><a class="btn btn-default" href="/desk/distribution">${__("Back to workspace")}</a></section><section class="rd-company-picker"><label>${__("Your Company / আপনার কোম্পানি")}<select data-company><option value="">${__("Select Company")}</option></select></label><button class="btn btn-primary" data-refresh>${__("Refresh status")}</button></section><div data-steps><p class="text-muted">${__("Select a Company to begin. / শুরু করতে কোম্পানি নির্বাচন করুন।")}</p></div><section class="rd-inline-form" data-form hidden></section></div>`);
+  $(page.body).html(`<div class="rd-setup-guide rd-theme-page"><div class="rd-page-shell"><section class="rd-master-hero rd-page-header"><div><p class="rd-kicker">${__("Start here / এখান থেকে শুরু করুন")}</p><h2>${__("Distribution Setup Guide")}</h2><p>${__("Complete these simple steps in order. / নিচের ধাপগুলো ক্রমানুসারে শেষ করুন।")}</p></div><a class="btn btn-default" href="/desk/distribution">${__("Back to workspace")}</a></section><section class="rd-company-picker"><label>${__("Your Company / আপনার কোম্পানি")}<select data-company><option value="">${__("Select Company")}</option></select></label><button class="btn btn-primary" data-refresh>${__("Refresh status")}</button></section><div data-steps><p class="text-muted">${__("Select a Company to begin. / শুরু করতে কোম্পানি নির্বাচন করুন।")}</p></div></div><div class="rd-theme-modal" data-form hidden><div class="rd-theme-modal__dialog" role="dialog" aria-modal="true"><div class="rd-theme-modal__head"><h3 data-form-title></h3><button class="rd-theme-modal__close" type="button" data-close-form aria-label="${__("Close")}">×</button></div><div class="rd-theme-modal__body" data-form-body></div><div class="rd-theme-modal__foot" data-form-actions></div></div></div></div>`);
   const companySelect = $(page.body).find("[data-company]");
   let links = {};
   const requestedStep = new URLSearchParams(window.location.search).get("step");
@@ -85,7 +86,10 @@ frappe.pages["distribution-master-setup"].on_page_load = function (wrapper) {
     const form = forms[step];
     if (!form) return;
     const box = $(page.body).find("[data-form]");
-    box.prop("hidden", false).html(`<h3>${form[0]}</h3><p class="text-muted">${record ? __("Edit this Company record. / এই কোম্পানি রেকর্ড সম্পাদনা করুন।") : __("Use the linked choices so the server can validate this record. / লিঙ্ক করা অপশন ব্যবহার করুন।")}</p><div class="rd-inline-fields">${form[2]}</div><button class="btn btn-primary" data-save-form>${record ? __("Save changes") : __("Save / সংরক্ষণ")}</button><button class="btn btn-default" data-close-form>${__("Close")}</button>`);
+    box.prop("hidden", false);
+    box.find("[data-form-title]").text(form[0]);
+    box.find("[data-form-body]").html(`<p class="text-muted">${record ? __("Edit this Company record. / এই কোম্পানি রেকর্ড সম্পাদনা করুন।") : __("Use the linked choices so the server can validate this record. / লিঙ্ক করা অপশন ব্যবহার করুন।")}</p><div class="rd-inline-fields">${form[2]}</div>`);
+    box.find("[data-form-actions]").html(`<button class="btn btn-primary" data-save-form>${record ? __("Save changes") : __("Save / সংরক্ষণ")}</button><button class="btn btn-default" data-close-form>${__("Cancel")}</button>`);
     box.find("[data-close-form]").on("click", () => box.prop("hidden", true));
     box.find("[data-save-form]").on("click", () => {
       const payload = { company: companySelect.val() };

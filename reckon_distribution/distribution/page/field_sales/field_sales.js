@@ -1,4 +1,6 @@
 frappe.pages["field-sales"].on_page_load = function (wrapper) {
+  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
+  frappe.require("/assets/reckon_distribution/js/distribution_link_control.js");
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Field Sales"), single_column: true });
   let selected = null;
   let catalog = [];
@@ -6,16 +8,16 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   const queueKey = "reckon_distribution_sync_queue";
 
   $(page.body).html(`
-    <main class="rd-field-sales">
+    <main class="rd-field-sales rd-theme-page">
       <section class="rd-field-sales__top"><div><p class="rd-kicker">${__("আজকের রুট")}</p><h2>${__("Field Sales")}</h2></div><span class="rd-sync-state" data-sync-state>${__("Ready to sync")}</span></section>
       <label class="rd-search"><span>${__("Search retailer")}</span><input data-retailer-search placeholder="${__("Retailer name")}" /></label>
       <section class="rd-outlets" data-outlets><p class="text-muted">${__("Loading assigned outlets...")}</p></section>
       <section class="rd-retailer-panel" data-retailer-panel hidden>
         <div class="rd-balance-strip"><span>${__("Current due")}</span><strong data-net-due>৳0</strong></div>
         <div class="rd-field-actions"><button class="btn btn-primary" data-start-visit>${__("Start visit")}</button></div>
-        <section class="rd-order-composer"><h4>${__("Order draft")}</h4><div class="rd-order-row"><select data-item></select><select data-uom></select><input data-qty type="number" min="0.001" step="0.001" placeholder="${__("Qty")}" /><button class="btn btn-default" data-add-item>${__("Add")}</button></div><div data-order-items></div><button class="btn btn-primary" data-save-order>${__("Save order draft")}</button><div class="rd-delivery-row"><input data-warehouse placeholder="${__("Van warehouse")}" /><button class="btn btn-default" data-submit-delivery>${__("Save delivery")}</button></div></section>
+        <section class="rd-order-composer"><h4>${__("Order draft")}</h4><div class="rd-order-row"><select data-item></select><select data-uom></select><input data-qty type="number" min="0.001" step="0.001" placeholder="${__("Qty")}" /><button class="btn btn-default" data-add-item>${__("Add")}</button></div><div data-order-items></div><button class="btn btn-primary" data-save-order>${__("Save order draft")}</button><div class="rd-delivery-row"><div data-warehouse-field></div><button class="btn btn-default" data-submit-delivery>${__("Save delivery")}</button></div></section>
         <p class="text-muted" data-message>${__("Select an outlet to see its balance.")}</p>
-        <section class="rd-collection-card"><h4>${__("Receive payment")}</h4><div class="rd-collection-row"><input data-collection-amount type="number" min="0.01" step="0.01" placeholder="${__("Amount")}" /><select data-collection-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></div><div class="rd-collection-row"><input data-collection-account placeholder="${__("DSR custody account")}" /><input data-collection-reference placeholder="${__("Reference for bank/MFS")}" /></div><button class="btn btn-primary" data-receive-payment>${__("Receive payment")}</button></section>
+        <section class="rd-collection-card"><h4>${__("Receive payment")}</h4><div class="rd-collection-row"><input data-collection-amount type="number" min="0.01" step="0.01" placeholder="${__("Amount")}" /><select data-collection-method><option>Cash</option><option>Cheque</option><option>Bank</option><option>MFS</option></select></div><div class="rd-collection-row"><div data-account-field></div><input data-collection-reference placeholder="${__("Reference for bank/MFS")}" /></div><button class="btn btn-primary" data-receive-payment>${__("Receive payment")}</button></section>
       </section>
     </main>
   `);
@@ -23,6 +25,8 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   const outlets = $(page.body).find("[data-outlets]");
   const panel = $(page.body).find("[data-retailer-panel]");
   const state = $(page.body).find("[data-sync-state]");
+  const warehouseControl = window.reckonDistribution.makeLinkControl($(page.body).find("[data-warehouse-field]")[0], "warehouse", __("Van warehouse"), "Warehouse");
+  const accountControl = window.reckonDistribution.makeLinkControl($(page.body).find("[data-account-field]")[0], "receiving_account", __("DSR custody account"), "Account");
   let assigned = [];
 
   loadOutlets();
@@ -92,7 +96,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
 
   function submitDelivery() {
     if (!selected || !orderItems.length) return frappe.msgprint(__("Add at least one item."));
-    const warehouse = $(page.body).find("[data-warehouse]").val();
+    const warehouse = warehouseControl.get_value();
     if (!warehouse) return frappe.msgprint(__("Enter the van warehouse."));
     const payload = { customer: selected.customer, route: selected.route, warehouse, price_list: catalog[0] && catalog[0].price_list, idempotency_key: `delivery-${selected.customer}-${Date.now()}`, items: orderItems };
     frappe.call({ method: "reckon_distribution.field_sales.submit_distribution_delivery", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(__("Delivery submitted: {0}", [r.message])); orderItems = []; }).catch(() => queue(payload, "delivery"));
@@ -102,7 +106,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
     if (!selected) return;
     const amount = Number($(page.body).find("[data-collection-amount]").val());
     const payment_method = $(page.body).find("[data-collection-method]").val();
-    const receiving_account = $(page.body).find("[data-collection-account]").val();
+    const receiving_account = accountControl.get_value();
     if (!amount || amount <= 0 || !receiving_account) return frappe.msgprint(__("Enter amount and DSR custody account."));
     const payload = { customer: selected.customer, route: selected.route, amount, payment_method, receiving_account, reference_no: $(page.body).find("[data-collection-reference]").val(), idempotency_key: `collection-${selected.customer}-${Date.now()}` };
     frappe.call({ method: "reckon_distribution.collection.record_collection", args: { payload: JSON.stringify(payload) } }).then((r) => { setState(payment_method === "Cash" || payment_method === "Cheque" ? __("Payment confirmed: {0}", [r.message]) : __("Payment pending verification: {0}", [r.message])); }).catch(() => queue(payload, "collection"));

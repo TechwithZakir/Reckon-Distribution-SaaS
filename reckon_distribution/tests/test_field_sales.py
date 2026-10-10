@@ -21,13 +21,24 @@ class TestFieldSales(FrappeTestCase):
         routes = [frappe._dict({"name": "_Test Route A", "route_name": "Route A"})]
         with patch("reckon_distribution.field_sales.require_tenant", return_value=tenant), patch(
             "reckon_distribution.field_sales.frappe.session.user", "dsr@example.com"
-        ), patch("reckon_distribution.field_sales.frappe.get_all", side_effect=[routes, ["Van - TCA"]]), patch(
+        ), patch(
+            "reckon_distribution.field_sales.frappe.get_all",
+            side_effect=[routes, ["Van - TCA"], ["Cash - TCA"]],
+        ), patch(
             "reckon_distribution.field_sales.frappe.db.get_value", side_effect=[None, None]
-        ):
+        ), patch("reckon_distribution.field_sales.frappe.db.set_value") as set_value:
             result = get_dsr_delivery_context()
 
         self.assertEqual(result["default_route"], "_Test Route A")
         self.assertEqual(result["default_warehouse"], "Van - TCA")
+        self.assertEqual(result["default_account"], "Cash - TCA")
+        set_value.assert_called_once_with(
+            "Distribution Settings",
+            {"company": "_Test Tenant Company A"},
+            "default_cash_account",
+            "Cash - TCA",
+            update_modified=False,
+        )
 
     def test_retailer_summary_uses_erpnext_v16_balance_signature(self):
         tenant = frappe._dict({"company": "_Test Tenant Company A"})

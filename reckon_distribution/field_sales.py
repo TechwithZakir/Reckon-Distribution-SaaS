@@ -71,6 +71,27 @@ def get_dsr_delivery_context() -> dict:
     )
     if default_account and frappe.db.get_value("Account", default_account, "company") != tenant.company:
         default_account = None
+    if not default_account:
+        cash_accounts = frappe.get_all(
+            "Account",
+            {
+                "company": tenant.company,
+                "account_type": "Cash",
+                "is_group": 0,
+                "disabled": 0,
+            },
+            pluck="name",
+            order_by="account_name asc",
+        )
+        default_account = cash_accounts[0] if cash_accounts else None
+        if default_account:
+            frappe.db.set_value(
+                "Distribution Settings",
+                {"company": tenant.company},
+                "default_cash_account",
+                default_account,
+                update_modified=False,
+            )
     return {
         "company": tenant.company,
         "routes": routes,

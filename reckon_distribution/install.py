@@ -1185,6 +1185,9 @@ def ensure_distribution_report_roles() -> None:
     }
     reports = {
         "Stock Ledger": operational_roles,
+        "Stock Balance": operational_roles,
+        "Sales Register": management_roles,
+        "Purchase Register": management_roles,
         "Accounts Payable": management_roles,
     }
     for report_name, role_names in reports.items():
@@ -1405,6 +1408,9 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Supplier Payments", "Payment Entry", "DocType", "landmark", child=True),
         section("Reports", "chart-no-axes-combined"),
         link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
+        link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
+        link("Sales Register", "Sales Register", "Report", "receipt-text", child=True),
+        link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
         link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
         section("Setup & Access", "settings"),
         link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),

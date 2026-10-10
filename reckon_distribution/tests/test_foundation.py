@@ -135,6 +135,9 @@ class TestFoundation(FrappeTestCase):
                 "dsr-delivery",
                 "DSR Challan",
                 "Stock Ledger",
+                "Stock Balance",
+                "Sales Register",
+                "Purchase Register",
                 "Accounts Payable",
             }.issubset(links)
         )
@@ -231,7 +234,13 @@ class TestFoundation(FrappeTestCase):
         links = {item.link_to: item.link_type for item in sidebar.items}
         if frappe.db.exists("DocType", "DSR Challan"):
             self.assertEqual(links.get("DSR Challan"), "DocType")
-        for report_name in ("Stock Ledger", "Accounts Payable"):
+        for report_name in (
+            "Stock Ledger",
+            "Stock Balance",
+            "Sales Register",
+            "Purchase Register",
+            "Accounts Payable",
+        ):
             if frappe.db.exists("Report", report_name):
                 self.assertEqual(links.get(report_name), "Report")
         self.assertNotIn("distribution-reports", links)
@@ -273,6 +282,12 @@ class TestFoundation(FrappeTestCase):
         )
         self.assertIn("query-report", ALLOWED_DISTRIBUTION_PAGES)
         self.assertIn("Stock Ledger", DISTRIBUTION_QUERY_REPORTS)
+        self.assertIn("Stock Balance", DISTRIBUTION_QUERY_REPORTS)
+        self.assertTrue(
+            {"Sales Register", "Purchase Register"}.issubset(
+                DISTRIBUTION_MANAGEMENT_QUERY_REPORTS
+            )
+        )
         self.assertIn("Accounts Payable", DISTRIBUTION_MANAGEMENT_QUERY_REPORTS)
 
     def test_distribution_report_roles_match_operational_scope(self):
@@ -281,6 +296,19 @@ class TestFoundation(FrappeTestCase):
                 "Reckon Distribution Admin",
                 "Reckon Distribution Manager",
                 "Reckon Distribution User",
+            },
+            "Stock Balance": {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+                "Reckon Distribution User",
+            },
+            "Sales Register": {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+            },
+            "Purchase Register": {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
             },
             "Accounts Payable": {
                 "Reckon Distribution Admin",

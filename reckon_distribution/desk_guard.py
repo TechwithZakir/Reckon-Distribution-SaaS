@@ -14,7 +14,13 @@ DISTRIBUTION_USER_ROLES = frozenset(
     {role.name for role in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
 )
 DISTRIBUTION_QUERY_REPORTS = frozenset(
-    {"Stock Ledger", "Accounts Payable"}
+    {
+        "Stock Ledger",
+        "Stock Balance",
+        "Sales Register",
+        "Purchase Register",
+        "Accounts Payable",
+    }
 )
 DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
     {
@@ -25,7 +31,7 @@ DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
     }
 )
 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
-    {"Accounts Payable"}
+    {"Sales Register", "Purchase Register", "Accounts Payable"}
 )
 ALLOWED_DISTRIBUTION_PAGES = {
     "distribution",

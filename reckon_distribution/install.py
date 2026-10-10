@@ -865,23 +865,9 @@ def ensure_workspace_sidebar() -> None:
         return
 
     sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
-    sidebar.set(
-        "items",
-        [
-            row
-            for row in sidebar.items
-            if row.link_type != "DocType" or frappe.db.exists("DocType", row.link_to)
-        ],
-    )
-
-    for item in _workspace_sidebar_doc()["items"]:
-        existing = next((row for row in sidebar.items if row.link_to == item["link_to"]), None)
-        if existing:
-            existing.label = item.get("label")
-            existing.icon = item.get("icon")
-            existing.link_type = item.get("link_type")
-            continue
-        sidebar.append("items", item)
+    # The Distribution sidebar is application-owned. Rebuild the rows so a
+    # previous fixture cannot leave a Dynamic Link pointing at the wrong type.
+    sidebar.set("items", _workspace_sidebar_doc(sidebar_name)["items"])
     sidebar.save(ignore_permissions=True)
 
 

@@ -6,7 +6,7 @@
  "naming_rule":"By script",
  "title_field":"name",
  "is_submittable":1,
- "field_order":["naming_series","company","posting_date","status","column_break_1","distributor_warehouse","van_warehouse","route","dsr","section_break_items","items","section_break_audit","stock_entry","approved_by","approved_on","amended_from"],
+ "field_order":["naming_series","company","posting_date","status","column_break_1","distributor_warehouse","van_warehouse","route","dsr","section_break_items","items","section_break_audit","stock_entry","acknowledgement","approved_by","approved_on","acknowledged_by","acknowledged_on","amended_from"],
  "fields":[
   {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"VLC-.#####","default":"VLC-.#####","reqd":1},
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"in_list_view":1},

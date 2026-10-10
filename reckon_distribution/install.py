@@ -88,7 +88,6 @@ def _set_property(doctype: str, fieldname: str | None, property_name: str, value
 def ensure_challan_label() -> None:
     """Keep the stable internal DocType name while showing the business label."""
     if frappe.db.exists("DocType", "Van Loading Challan"):
-        frappe.db.set_value("DocType", "Van Loading Challan", "label", "DSR Challan", update_modified=False)
         _set_property("Van Loading Challan", None, "label", "DSR Challan", "Data")
         frappe.clear_cache(doctype="Van Loading Challan")
 

@@ -1,7 +1,6 @@
 {
  "doctype":"DocType",
  "name":"Van Loading Challan",
- "label":"DSR Challan",
  "module":"Distribution",
  "autoname":"naming_series:",
  "naming_rule":"By script",

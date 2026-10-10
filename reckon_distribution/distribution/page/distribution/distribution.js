@@ -21,7 +21,7 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
       </section>
       <section class="rd-desk-grid">
         <a class="rd-desk-card" href="/desk/van-loading-challan">
-          <h3>${__("DSR Challan Entry")}</h3>
+          <h3>${__("DSR Challan")}</h3>
           <p>${__("Prepare, submit, transfer, and cancel van stock through one native challan record.")}</p>
         </a>
         <a class="rd-desk-card" href="/desk/distribution-master-setup">

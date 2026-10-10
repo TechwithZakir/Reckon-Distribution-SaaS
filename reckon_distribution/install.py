@@ -10,6 +10,7 @@ def after_install() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
     ensure_distribution_permissions()
+    ensure_challan_label()
     setup_workspace()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
@@ -21,6 +22,7 @@ def after_migrate() -> None:
     setup_roles()
     ensure_company_owned_master_fields()
     ensure_distribution_permissions()
+    ensure_challan_label()
     setup_workspace()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
@@ -79,6 +81,13 @@ def _set_property(doctype: str, fieldname: str | None, property_name: str, value
     setter = frappe.get_doc("Property Setter", name) if name else frappe.get_doc(values)
     setter.update(values)
     setter.save(ignore_permissions=True) if setter.name else setter.insert(ignore_permissions=True)
+
+
+def ensure_challan_label() -> None:
+    """Keep the stable internal DocType name while showing the business label."""
+    if frappe.db.exists("DocType", "Van Loading Challan"):
+        _set_property("Van Loading Challan", None, "label", "DSR Challan", "Data")
+        frappe.clear_cache(doctype="Van Loading Challan")
 
 
 def ensure_purchase_receipt_fields() -> None:
@@ -698,7 +707,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"color": "Blue", "label": "Distribution Warehouses", "link_to": "Warehouse", "type": "DocType"},
             {"color": "Purple", "label": "Team & Access", "link_to": "distribution-team-access", "type": "Page"},
             {"color": "Green", "label": "Field Sales", "link_to": "field-sales", "type": "Page"},
-            {"color": "Orange", "label": "DSR Challan Entry", "link_to": "Van Loading Challan", "type": "DocType"},
+            {"color": "Orange", "label": "DSR Challan", "link_to": "Van Loading Challan", "type": "DocType"},
             {"color": "Green", "label": "Deliver & Collect", "link_to": "dsr-delivery", "type": "Page"},
             {"color": "Red", "label": "Day Settlement", "link_to": "dsr-day-settlement", "type": "Page"},
         ],

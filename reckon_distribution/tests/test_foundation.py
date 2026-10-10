@@ -31,8 +31,8 @@ class TestFoundation(FrappeTestCase):
         for role in OPERATIONAL_ROLES:
             self.assertIn(role.name, workspace_roles)
 
-    def test_van_loading_challan_has_distribution_label(self):
-        self.assertEqual(frappe.get_meta("Van Loading Challan").label, "DSR Challan")
+    def test_dsr_challan_is_the_native_doctype(self):
+        self.assertEqual(frappe.get_meta("DSR Challan").name, "DSR Challan")
 
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission
@@ -163,7 +163,7 @@ class TestFoundation(FrappeTestCase):
             "return_inspection",
             "sr_order",
             "van_loading_acknowledgement",
-            "van_loading_challan",
+            "dsr_challan",
         }
         for directory in user_forms:
             metadata = json.loads(

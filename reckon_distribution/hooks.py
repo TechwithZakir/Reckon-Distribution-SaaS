@@ -111,7 +111,7 @@ website_route_rules = [
 permission_query_conditions = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Purchase Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
-    "Van Loading Challan": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "DSR Challan": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Stock Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -138,7 +138,7 @@ permission_query_conditions = {
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Purchase Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
-    "Van Loading Challan": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "DSR Challan": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Stock Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
@@ -198,13 +198,5 @@ fixtures = [
     {
         "dt": "Workspace",
         "filters": [["name", "=", "Distribution Workspace"]],
-    },
-    {
-        "dt": "Property Setter",
-        "filters": [
-            ["doc_type", "=", "Van Loading Challan"],
-            ["doctype_or_field", "=", "DocType"],
-            ["property", "=", "label"],
-        ],
     },
 ]

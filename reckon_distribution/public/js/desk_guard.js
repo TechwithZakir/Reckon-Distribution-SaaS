@@ -13,7 +13,7 @@
     "item-price",
     "price-list",
     "purchase-receipt",
-    "van-loading-challan",
+    "dsr-challan",
     "dsr-collection-receipt",
     "sr-order",
     "outlet-visit",

@@ -1,6 +1,6 @@
 {
  "doctype":"DocType",
- "name":"Van Loading Challan Item",
+ "name":"DSR Challan Item",
  "module":"Distribution",
  "istable":1,
  "editable_grid":1,

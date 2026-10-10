@@ -10,7 +10,7 @@
  "fields":[
   {"fieldname":"naming_series","fieldtype":"Select","label":"Series","options":"VLA-.#####","default":"VLA-.#####","reqd":1},
   {"fieldname":"company","fieldtype":"Link","label":"Company","options":"Company","reqd":1,"read_only":1,"in_list_view":1},
-  {"fieldname":"challan","fieldtype":"Link","label":"Van Loading Challan","options":"Van Loading Challan","reqd":1,"in_list_view":1},
+  {"fieldname":"challan","fieldtype":"Link","label":"DSR Challan","options":"DSR Challan","reqd":1,"in_list_view":1},
   {"fieldname":"column_break_1","fieldtype":"Column Break"},
   {"fieldname":"dsr","fieldtype":"Link","label":"DSR","options":"User","reqd":1,"read_only":1,"in_list_view":1},
   {"fieldname":"acknowledged_on","fieldtype":"Datetime","label":"Acknowledged On","default":"Now","reqd":1},

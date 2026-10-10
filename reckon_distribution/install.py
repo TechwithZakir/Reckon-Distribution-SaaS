@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import frappe
 from frappe import _, permissions
-from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
 
@@ -15,7 +14,6 @@ def after_install() -> None:
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
-    ensure_challan_label()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -28,7 +26,6 @@ def after_migrate() -> None:
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
     reload_distribution_layout_doctypes()
-    ensure_challan_label()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
 
@@ -86,28 +83,18 @@ def _set_property(doctype: str, fieldname: str | None, property_name: str, value
     setter.save(ignore_permissions=True) if setter.name else setter.insert(ignore_permissions=True)
 
 
-def ensure_challan_label() -> None:
-    """Keep the stable internal DocType name while showing the business label."""
-    if frappe.db.exists("DocType", "Van Loading Challan"):
-        make_property_setter(
-            "Van Loading Challan",
-            None,
-            "label",
-            "DSR Challan",
-            "Data",
-            for_doctype=True,
-            validate_fields_for_doctype=False,
-        )
-        frappe.clear_cache(doctype="Van Loading Challan")
-
-
 def remove_legacy_challan_pages() -> None:
     """Remove page launchers so the native challan DocType is the only entry point."""
     removed = False
-    for page_name in ("van-loading", "dsr-challan"):
+    for page_name in ("van-loading",):
         if frappe.db.exists("Page", page_name):
             frappe.delete_doc("Page", page_name, force=True, ignore_permissions=True)
             removed = True
+    for setter_name in frappe.get_all(
+        "Property Setter", filters={"doc_type": "Van Loading Challan"}, pluck="name"
+    ):
+        frappe.delete_doc("Property Setter", setter_name, force=True, ignore_permissions=True)
+        removed = True
     if removed:
         frappe.clear_cache()
 
@@ -166,9 +153,9 @@ def ensure_purchase_receipt_fields() -> None:
         {
             "dt": "Stock Entry",
             "fieldname": "rd_van_loading_challan",
-            "label": "Van Loading Challan",
+            "label": "DSR Challan",
             "fieldtype": "Link",
-            "options": "Van Loading Challan",
+            "options": "DSR Challan",
             "read_only": 1,
             "insert_after": "stock_entry_type",
         },
@@ -383,7 +370,7 @@ def ensure_dense_layout_fields() -> None:
             {"fieldname": "rd_layout_section_gps", "fieldtype": "Section Break", "label": "Location", "insert_after": "idempotency_key"},
             {"fieldname": "rd_layout_section_items", "fieldtype": "Section Break", "label": "Order items", "insert_after": "gps_captured_on"},
         ],
-        "Van Loading Challan": [
+        "DSR Challan": [
             {"fieldname": "rd_layout_column_1", "fieldtype": "Column Break", "insert_after": "posting_date"},
             {"fieldname": "rd_layout_column_2", "fieldtype": "Column Break", "insert_after": "van_warehouse"},
             {"fieldname": "rd_layout_section_items", "fieldtype": "Section Break", "label": "Loading items", "insert_after": "dsr"},
@@ -729,7 +716,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"color": "Blue", "label": "Distribution Warehouses", "link_to": "Warehouse", "type": "DocType"},
             {"color": "Purple", "label": "Team & Access", "link_to": "distribution-team-access", "type": "Page"},
             {"color": "Green", "label": "Field Sales", "link_to": "field-sales", "type": "Page"},
-            {"color": "Orange", "label": "DSR Challan", "link_to": "Van Loading Challan", "type": "DocType"},
+            {"color": "Orange", "label": "DSR Challan", "link_to": "DSR Challan", "type": "DocType"},
             {"color": "Green", "label": "Deliver & Collect", "link_to": "dsr-delivery", "type": "Page"},
             {"color": "Red", "label": "Day Settlement", "link_to": "dsr-day-settlement", "type": "Page"},
         ],

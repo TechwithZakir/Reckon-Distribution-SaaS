@@ -24,9 +24,9 @@ def validate_van_loading_challan(doc, method=None) -> None:
     validate_tenant_owned_doc(doc)
     _validate_challan_references(doc)
     if doc.status not in CHALLAN_ACTIVE_STATUSES | {"Rejected", "Cancelled"}:
-        frappe.throw(_("Unknown Van Loading Challan status: {0}").format(doc.status))
+        frappe.throw(_("Unknown DSR Challan status: {0}").format(doc.status))
     if doc.status in {"Approved", "Acknowledged", "Cancelled"} and doc.is_new():
-        frappe.throw(_("A new Van Loading Challan must start as Draft."))
+        frappe.throw(_("A new DSR Challan must start as Draft."))
 
     for row in doc.get("items") or []:
         if flt(row.qty) <= 0:
@@ -42,9 +42,9 @@ def validate_van_loading_challan(doc, method=None) -> None:
 
 def validate_van_loading_acknowledgement(doc, method=None) -> None:
     validate_tenant_owned_doc(doc)
-    challan = get_tenant_doc("Van Loading Challan", doc.challan)
+    challan = get_tenant_doc("DSR Challan", doc.challan)
     if challan.status not in {"Approved", "Acknowledged"}:
-        frappe.throw(_("Only an approved Van Loading Challan can be acknowledged."))
+        frappe.throw(_("Only an approved DSR Challan can be acknowledged."))
     if doc.dsr != challan.dsr:
         frappe.throw(_("Acknowledgement DSR must match the assigned DSR."))
     if not user_can_bypass_tenant() and frappe.session.user != doc.dsr:
@@ -73,7 +73,7 @@ def validate_van_loading_acknowledgement(doc, method=None) -> None:
 
 
 def on_van_loading_acknowledgement_submit(doc, method=None) -> None:
-    challan = get_tenant_doc("Van Loading Challan", doc.challan)
+    challan = get_tenant_doc("DSR Challan", doc.challan)
     if challan.status == "Acknowledged":
         return
     challan.db_set("acknowledgement", doc.name)
@@ -87,7 +87,7 @@ def on_van_loading_acknowledgement_submit(doc, method=None) -> None:
 
 @frappe.whitelist()
 def request_van_loading_approval(challan: str) -> str:
-    doc = get_tenant_doc("Van Loading Challan", challan)
+    doc = get_tenant_doc("DSR Challan", challan)
     _require_manager()
     if doc.status == "Pending Approval":
         return doc.name
@@ -100,7 +100,7 @@ def request_van_loading_approval(challan: str) -> str:
 
 @frappe.whitelist()
 def approve_van_loading_challan(challan: str) -> str:
-    doc = get_tenant_doc("Van Loading Challan", challan)
+    doc = get_tenant_doc("DSR Challan", challan)
     _require_manager()
     if doc.stock_entry and doc.status in {"Approved", "Acknowledged"}:
         return doc.stock_entry
@@ -206,7 +206,7 @@ def cancel_van_loading_stock_entry(doc) -> None:
 
 @frappe.whitelist()
 def acknowledge_van_loading(challan: str, items: str) -> str:
-    doc = get_tenant_doc("Van Loading Challan", challan)
+    doc = get_tenant_doc("DSR Challan", challan)
     if not user_can_bypass_tenant() and frappe.session.user != doc.dsr:
         frappe.throw(_("Only the assigned DSR can acknowledge this loading."))
     rows = frappe.parse_json(items) if isinstance(items, str) else items
@@ -226,7 +226,7 @@ def acknowledge_van_loading(challan: str, items: str) -> str:
 
 @frappe.whitelist()
 def cancel_van_loading_challan(challan: str) -> str:
-    doc = get_tenant_doc("Van Loading Challan", challan)
+    doc = get_tenant_doc("DSR Challan", challan)
     _require_manager()
     if doc.status == "Cancelled":
         return doc.name
@@ -243,7 +243,7 @@ def cancel_van_loading_challan(challan: str) -> str:
 
 @frappe.whitelist()
 def amend_van_loading_challan(challan: str) -> str:
-    original = get_tenant_doc("Van Loading Challan", challan)
+    original = get_tenant_doc("DSR Challan", challan)
     _require_manager()
     if original.status != "Cancelled":
         frappe.throw(_("Only a Cancelled challan can be amended."))
@@ -330,10 +330,10 @@ def _validate_available_stock(doc) -> None:
 def _validate_status_transition(doc) -> None:
     if doc.is_new():
         if doc.status not in {"Draft", "Pending Approval"}:
-            frappe.throw(_("A new Van Loading Challan must start as Draft."))
+            frappe.throw(_("A new DSR Challan must start as Draft."))
         return
 
-    previous = frappe.db.get_value("Van Loading Challan", doc.name, "status")
+    previous = frappe.db.get_value("DSR Challan", doc.name, "status")
     allowed = {
         "Draft": {"Draft", "Pending Approval"},
         "Submitted": {"Submitted", "Cancelled"},
@@ -345,7 +345,7 @@ def _validate_status_transition(doc) -> None:
     }
     if previous and doc.status not in allowed.get(previous, {previous}):
         frappe.throw(
-            _("Van Loading Challan cannot move from {0} to {1} directly.").format(
+            _("DSR Challan cannot move from {0} to {1} directly.").format(
                 previous, doc.status
             )
         )
@@ -364,13 +364,13 @@ def validate_van_loading_stock_entry(doc, method=None) -> None:
     if not challan_name:
         return
 
-    challan = get_tenant_doc("Van Loading Challan", challan_name)
+    challan = get_tenant_doc("DSR Challan", challan_name)
     if challan.status not in {"Submitted", "Approved", "Acknowledged"}:
-        frappe.throw(_("Linked Van Loading Challan must be approved before Stock Entry creation."))
+        frappe.throw(_("Linked DSR Challan must be approved before Stock Entry creation."))
     if challan.company != doc.company:
-        frappe.throw(_("Stock Entry Company must match the Van Loading Challan Company."))
+        frappe.throw(_("Stock Entry Company must match the DSR Challan Company."))
     if challan.stock_entry and challan.stock_entry != doc.name:
-        frappe.throw(_("The Van Loading Challan already has a different Stock Entry."))
+        frappe.throw(_("The DSR Challan already has a different Stock Entry."))
 
     for row in doc.get("items") or []:
         if row.s_warehouse != challan.distributor_warehouse:

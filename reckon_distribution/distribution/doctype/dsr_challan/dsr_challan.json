@@ -1,6 +1,6 @@
 {
  "doctype":"DocType",
- "name":"Van Loading Challan",
+ "name":"DSR Challan",
  "module":"Distribution",
  "autoname":"naming_series:",
  "naming_rule":"By script",
@@ -17,7 +17,7 @@
   {"fieldname":"route","fieldtype":"Link","label":"Route","options":"Distribution Route","reqd":1,"in_list_view":1},
   {"fieldname":"dsr","fieldtype":"Link","label":"DSR","options":"User","reqd":1,"in_list_view":1},
   {"fieldname":"section_break_items","fieldtype":"Section Break","label":"Loading Items"},
-  {"fieldname":"items","fieldtype":"Table","label":"Loading Items","options":"Van Loading Challan Item","reqd":1},
+  {"fieldname":"items","fieldtype":"Table","label":"Loading Items","options":"DSR Challan Item","reqd":1},
   {"fieldname":"section_break_audit","fieldtype":"Section Break","label":"Approval and custody"},
   {"fieldname":"stock_entry","fieldtype":"Link","label":"Stock Transfer","options":"Stock Entry","read_only":1,"in_list_view":1},
   {"fieldname":"acknowledgement","fieldtype":"Link","label":"Acknowledgement","options":"Van Loading Acknowledgement","read_only":1,"hidden":1},
@@ -25,7 +25,7 @@
   {"fieldname":"approved_on","fieldtype":"Datetime","label":"Approved On","read_only":1},
   {"fieldname":"acknowledged_by","fieldtype":"Link","label":"Acknowledged By","options":"User","read_only":1,"hidden":1},
   {"fieldname":"acknowledged_on","fieldtype":"Datetime","label":"Acknowledged On","read_only":1,"hidden":1},
-  {"fieldname":"amended_from","fieldtype":"Link","label":"Amended From","options":"Van Loading Challan","read_only":1}
+  {"fieldname":"amended_from","fieldtype":"Link","label":"Amended From","options":"DSR Challan","read_only":1}
  ],
  "permissions":[
   {"role":"Reckon Distribution Admin","read":1,"write":1,"create":1,"delete":1,"submit":1,"cancel":1,"amend":1},

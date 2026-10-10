@@ -9,7 +9,7 @@ from reckon_distribution.van_loading import (
 )
 
 
-class VanLoadingChallan(Document):
+class DSRChallan(Document):
     def validate(self) -> None:
         validate_van_loading_challan(self)
 

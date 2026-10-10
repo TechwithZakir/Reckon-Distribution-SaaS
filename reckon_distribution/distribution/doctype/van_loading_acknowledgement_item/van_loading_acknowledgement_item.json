@@ -6,7 +6,7 @@
  "editable_grid":1,
  "field_order":["challan_item","item_code","loaded_qty","accepted_qty","rejected_qty","rejection_reason"],
  "fields":[
-  {"fieldname":"challan_item","fieldtype":"Link","label":"Challan Item","options":"Van Loading Challan Item","reqd":1},
+  {"fieldname":"challan_item","fieldtype":"Link","label":"Challan Item","options":"DSR Challan Item","reqd":1},
   {"fieldname":"item_code","fieldtype":"Link","label":"Item","options":"Item","reqd":1,"read_only":1,"in_list_view":1},
   {"fieldname":"loaded_qty","fieldtype":"Float","label":"Loaded Quantity","reqd":1,"read_only":1,"in_list_view":1},
   {"fieldname":"accepted_qty","fieldtype":"Float","label":"Accepted Quantity","reqd":1,"in_list_view":1},

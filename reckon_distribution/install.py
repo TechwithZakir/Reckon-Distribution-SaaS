@@ -3,7 +3,7 @@ from __future__ import annotations
 import frappe
 from frappe import _, permissions
 
-from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES, TENANT_ROLE_NAMES
+from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
 
 
 def after_install() -> None:

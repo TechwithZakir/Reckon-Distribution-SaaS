@@ -6,13 +6,13 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.van_loading import (
+    _has_active_company_assignment,
     acknowledge_van_loading,
     amend_van_loading_challan,
     approve_van_loading_challan,
     cancel_van_loading_challan,
     validate_van_loading_acknowledgement,
     validate_van_loading_stock_entry,
-    _has_active_company_assignment,
 )
 
 

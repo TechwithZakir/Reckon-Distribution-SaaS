@@ -94,6 +94,8 @@ class TestDistributionDelivery(FrappeTestCase):
         with patch("reckon_distribution.delivery.get_tenant_doc", return_value=inspection), patch(
             "reckon_distribution.delivery._is_manager", return_value=True
         ), patch("reckon_distribution.delivery.nowdate", return_value="2026-10-07"), patch(
+            "reckon_distribution.delivery.now_datetime", return_value="2026-10-07 12:00:00"
+        ), patch(
             "reckon_distribution.delivery.frappe.get_doc", return_value=stock_entry
         ) as get_doc:
             result = approve_return_inspection(inspection.name)

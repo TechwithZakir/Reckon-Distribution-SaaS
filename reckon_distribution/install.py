@@ -851,7 +851,9 @@ def ensure_workspace_sidebar() -> None:
 
     sidebar_name = DISTRIBUTION_WORKSPACE
     if not frappe.db.exists("Workspace Sidebar", sidebar_name):
-        frappe.get_doc(_workspace_sidebar_doc()).insert(ignore_permissions=True)
+        frappe.get_doc(_workspace_sidebar_doc()).insert(
+            ignore_permissions=True, ignore_links=True
+        )
         return
 
     sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
@@ -861,7 +863,7 @@ def ensure_workspace_sidebar() -> None:
         if item["link_to"] in existing_links:
             continue
         sidebar.append("items", item)
-    sidebar.save(ignore_permissions=True)
+    sidebar.save(ignore_permissions=True, ignore_links=True)
 
 
 def _workspace_sidebar_doc() -> dict:

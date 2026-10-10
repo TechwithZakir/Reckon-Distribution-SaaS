@@ -1,6 +1,6 @@
 (() => {
   const doctypes = [
-    "Tenant Security Test Record", "Purchase Receipt", "Delivery Note", "Stock Entry",
+    "Tenant Security Test Record", "Purchase Receipt", "Purchase Order", "Purchase Invoice", "Payment Entry", "Delivery Note", "Stock Entry",
     "DSR Challan", "Van Loading Acknowledgement", "DSR Collection Receipt",
     "DSR Due Assignment", "Retailer Route Assignment", "Outlet Visit", "SR Order",
     "Return Inspection", "DSR Day Settlement", "Distribution Settings", "Company UOM Profile",

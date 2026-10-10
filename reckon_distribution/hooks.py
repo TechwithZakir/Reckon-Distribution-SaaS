@@ -36,6 +36,7 @@ doc_events = {
     "Purchase Receipt": {
         "validate": "reckon_distribution.purchase_receipt.validate_purchase_receipt",
         "before_submit": "reckon_distribution.purchase_receipt.validate_purchase_receipt",
+        "on_submit": "reckon_distribution.purchase_receipt.create_purchase_invoice_from_receipt",
     },
     "Van Loading Acknowledgement": {
         "validate": "reckon_distribution.van_loading.validate_van_loading_acknowledgement",
@@ -43,6 +44,12 @@ doc_events = {
     },
     "Stock Entry": {
         "validate": "reckon_distribution.van_loading.validate_van_loading_stock_entry",
+    },
+    "Purchase Invoice": {
+        "validate": "reckon_distribution.purchase_invoice.validate_purchase_invoice",
+    },
+    "Payment Entry": {
+        "validate": "reckon_distribution.purchase_invoice.validate_supplier_payment_entry",
     },
     "DSR Collection Receipt": {
         "validate": "reckon_distribution.collection.validate_collection_receipt",
@@ -111,6 +118,9 @@ website_route_rules = [
 permission_query_conditions = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Purchase Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Purchase Order": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Purchase Invoice": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Payment Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Challan": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Stock Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -138,6 +148,9 @@ permission_query_conditions = {
 has_permission = {
     "Tenant Security Test Record": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Purchase Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Purchase Order": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Purchase Invoice": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Payment Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Challan": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Stock Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",

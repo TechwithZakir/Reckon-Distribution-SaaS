@@ -12,6 +12,91 @@ from reckon_distribution.tenant_security import (
 )
 
 
+def create_purchase_invoice_from_receipt(doc, method=None):
+    """Create the configured native Purchase Invoice exactly once after receipt submit."""
+    if doc.docstatus != 1:
+        return
+
+    settings = frappe.db.get_value(
+        "Distribution Settings",
+        {"company": doc.company},
+        ["supplier_invoice_policy", "auto_invoice_requires_supplier_bill"],
+        as_dict=True,
+    ) or frappe._dict()
+    policy = settings.get("supplier_invoice_policy") or "Auto-create Draft"
+    if policy == "Manual":
+        doc.db_set("rd_invoice_status", "Manual", update_modified=False)
+        return
+
+    existing = doc.get("rd_purchase_invoice") or frappe.db.get_value(
+        "Purchase Invoice",
+        {"rd_source_purchase_receipt": doc.name, "docstatus": ["!=", 2]},
+        "name",
+    )
+    if existing:
+        doc.db_set("rd_purchase_invoice", existing, update_modified=False)
+        doc.db_set(
+            "rd_invoice_status",
+            frappe.db.get_value("Purchase Invoice", existing, "status") or "Draft",
+            update_modified=False,
+        )
+        return existing
+
+    invoice = _map_purchase_invoice(doc)
+    if not invoice.items:
+        doc.db_set("rd_invoice_status", "Not Required", update_modified=False)
+        return
+
+    if policy == "Auto-submit":
+        requires_bill = int(settings.get("auto_invoice_requires_supplier_bill") or 0)
+        if requires_bill and (not doc.get("bill_no") or not doc.get("bill_date")):
+            frappe.throw(
+                _("Supplier bill number and bill date are required for Auto-submit invoice policy.")
+            )
+        if not frappe.has_permission("Purchase Invoice", ptype="submit"):
+            frappe.throw(_("You do not have permission to auto-submit Purchase Invoices."))
+
+    invoice.insert(ignore_permissions=True)
+    if policy == "Auto-submit":
+        invoice.submit()
+
+    doc.db_set("rd_purchase_invoice", invoice.name, update_modified=False)
+    doc.db_set(
+        "rd_invoice_status",
+        "Submitted" if invoice.docstatus == 1 else "Draft",
+        update_modified=False,
+    )
+    doc.db_set("rd_invoice_created_on", frappe.utils.now_datetime(), update_modified=False)
+    return invoice.name
+
+
+def _map_purchase_invoice(receipt):
+    """Use ERPNext's mapper, then remove supplier-free quantities before insert."""
+    from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice
+
+    invoice = make_purchase_invoice(receipt.name)
+    invoice.update_stock = 0
+    invoice.rd_source_purchase_receipt = receipt.name
+
+    source_rows = {row.name: row for row in receipt.get("items") or [] if row.name}
+    billable_items = []
+    for item in invoice.get("items") or []:
+        source = source_rows.get(item.get("purchase_receipt_item"))
+        if source:
+            paid_qty = flt(source.get("rd_paid_qty"))
+            free_qty = flt(source.get("rd_free_qty"))
+            if paid_qty or free_qty:
+                item.qty = paid_qty
+                item.stock_qty = paid_qty * (flt(item.conversion_factor) or 1)
+        if flt(item.qty) <= 0:
+            continue
+        billable_items.append(item)
+    invoice.set("items", billable_items)
+    invoice.run_method("set_missing_values")
+    invoice.calculate_taxes_and_totals()
+    return invoice
+
+
 def validate_purchase_receipt(doc, method=None) -> None:
     """Validate supplier-provided paid/free quantities before ERPNext posts stock."""
     if not doc.company:

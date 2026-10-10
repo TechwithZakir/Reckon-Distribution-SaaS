@@ -2,7 +2,8 @@
 
 ## Status
 
-Prepared for review. This document defines the proposed behavior; implementation must not begin until the open decisions are confirmed.
+Approved implementation baseline. The workflow uses ERPNext native Purchase Receipt,
+Purchase Invoice, Payment Entry, Supplier Ledger, and Accounts Payable behavior.
 
 ## Objective
 
@@ -247,10 +248,10 @@ The recommended defaults are:
 - Dues: native ERPNext outstanding/ledger values, not a custom balance field.
 - Cancellation: no silent cascade across submitted stock and accounting documents.
 
-Please confirm these defaults and answer the following before implementation:
+These defaults are now implemented:
 
-1. Should a Purchase Receipt create a Draft invoice when the supplier bill number is not yet available, or should it remain completely uninvoiced?
-2. Should free goods be excluded from the supplier invoice, or can a supplier invoice include a zero-priced free-goods line?
-3. Which roles may submit Purchase Receipts: Company Admin only, warehouse users, or a separate receiving role?
-4. Should supplier advances be allowed without a Purchase Order?
-5. Should Auto-submit ever be enabled for a Company, or should finance always submit the generated Draft manually?
+1. Purchase Receipt submission creates one linked Draft Purchase Invoice by default; Manual policy disables generation.
+2. Supplier-free quantities are received into stock but excluded from the supplier invoice.
+3. Distribution Admin/Manager and Company Admin/Manager receive procurement permissions; DSR/SR do not receive Purchase Invoice or Payment Entry permissions.
+4. Supplier advances without a Purchase Order are allowed by default through native Payment Entry.
+5. Auto-submit is disabled by default and requires supplier bill number/date when enabled.

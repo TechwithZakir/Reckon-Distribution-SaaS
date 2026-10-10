@@ -80,6 +80,9 @@ def save_company_settings(payload: str | dict) -> str:
     values = {
         "company": tenant.company,
         "supplier_goods_policy": "Supplier Provided Goods Only",
+        "supplier_invoice_policy": "Auto-create Draft",
+        "auto_invoice_requires_supplier_bill": 1,
+        "allow_supplier_advance_without_purchase_order": 1,
         "default_warehouse": data.get("default_warehouse"),
         "default_price_list": data.get("default_price_list"),
         "default_receivable_account": data.get("default_receivable_account"),

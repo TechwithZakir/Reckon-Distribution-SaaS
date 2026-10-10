@@ -19,6 +19,9 @@ def run_distribution_seed(company: str, seed_version: str) -> dict:
                 "doctype": "Distribution Settings",
                 "company": company,
                 "supplier_goods_policy": "Supplier Provided Goods Only",
+                "supplier_invoice_policy": "Auto-create Draft",
+                "auto_invoice_requires_supplier_bill": 1,
+                "allow_supplier_advance_without_purchase_order": 1,
                 "allow_batch_expiry": 1,
             }
         ).insert(ignore_permissions=True)

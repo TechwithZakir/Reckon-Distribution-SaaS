@@ -76,6 +76,41 @@ class TestFoundation(FrappeTestCase):
             )
         )
 
+    def test_distribution_sidebar_contains_procurement_documents(self):
+        sidebar_path = (
+            Path(__file__).parents[1]
+            / "distribution"
+            / "sidebar"
+            / "distribution"
+            / "distribution.json"
+        )
+        sidebar = json.loads(sidebar_path.read_text())
+        links = {item.get("link_to") for item in sidebar["items"]}
+        self.assertTrue(
+            {
+                "Purchase Order",
+                "Purchase Receipt",
+                "Purchase Invoice",
+                "Payment Entry",
+            }.issubset(links)
+        )
+
+    def test_procurement_permissions_are_limited_to_management_roles(self):
+        for doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"):
+            self.assertTrue(frappe.db.exists("DocType", doctype), doctype)
+            permissions = {
+                row.role: row
+                for row in frappe.get_meta(doctype).permissions
+                if row.role in {
+                    "Reckon Distribution Admin",
+                    "Reckon Distribution Manager",
+                    "Reckon Distribution User",
+                }
+            }
+            self.assertTrue(permissions["Reckon Distribution Admin"].create, doctype)
+            self.assertTrue(permissions["Reckon Distribution Manager"].create, doctype)
+            self.assertFalse(permissions["Reckon Distribution User"].create, doctype)
+
     def test_distribution_workspace_sidebar_contains_dsr_challan(self):
         if not frappe.db.exists("DocType", "Workspace Sidebar"):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")

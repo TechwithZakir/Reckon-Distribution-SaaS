@@ -13,6 +13,7 @@ def after_install() -> None:
     setup_workspace()
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
+    ensure_procurement_setting_defaults()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
@@ -25,6 +26,7 @@ def after_migrate() -> None:
     setup_workspace()
     remove_legacy_challan_pages()
     ensure_purchase_receipt_fields()
+    ensure_procurement_setting_defaults()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
     ensure_master_quick_entry()
@@ -106,6 +108,40 @@ def ensure_purchase_receipt_fields() -> None:
             "fieldname": "rd_promotion_source",
             "label": "Supplier Promotion Source",
             "fieldtype": "Data",
+            "insert_after": "supplier",
+        },
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_purchase_invoice",
+            "label": "Generated Purchase Invoice",
+            "fieldtype": "Link",
+            "options": "Purchase Invoice",
+            "read_only": 1,
+            "insert_after": "supplier",
+        },
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_invoice_status",
+            "label": "Supplier Invoice Status",
+            "fieldtype": "Data",
+            "read_only": 1,
+            "insert_after": "rd_purchase_invoice",
+        },
+        {
+            "dt": "Purchase Receipt",
+            "fieldname": "rd_invoice_created_on",
+            "label": "Invoice Created On",
+            "fieldtype": "Datetime",
+            "read_only": 1,
+            "insert_after": "rd_invoice_status",
+        },
+        {
+            "dt": "Purchase Invoice",
+            "fieldname": "rd_source_purchase_receipt",
+            "label": "Source Purchase Receipt",
+            "fieldtype": "Link",
+            "options": "Purchase Receipt",
+            "read_only": 1,
             "insert_after": "supplier",
         },
         {
@@ -223,6 +259,24 @@ def ensure_purchase_receipt_fields() -> None:
         if frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
             continue
         frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
+
+
+def ensure_procurement_setting_defaults() -> None:
+    """Backfill new procurement policy defaults on existing tenant settings."""
+    if not frappe.db.exists("DocType", "Distribution Settings"):
+        return
+    for name in frappe.get_all("Distribution Settings", pluck="name"):
+        values = {}
+        if frappe.db.get_value("Distribution Settings", name, "supplier_invoice_policy") is None:
+            values["supplier_invoice_policy"] = "Auto-create Draft"
+        if frappe.db.get_value("Distribution Settings", name, "auto_invoice_requires_supplier_bill") is None:
+            values["auto_invoice_requires_supplier_bill"] = 1
+        if frappe.db.get_value(
+            "Distribution Settings", name, "allow_supplier_advance_without_purchase_order"
+        ) is None:
+            values["allow_supplier_advance_without_purchase_order"] = 1
+        if values:
+            frappe.db.set_value("Distribution Settings", name, values, update_modified=False)
 
 
 def ensure_company_owned_master_fields() -> None:
@@ -576,6 +630,10 @@ def ensure_native_master_permissions() -> None:
         "Warehouse": {"read", "write", "create", "delete", "report", "export", "print"},
         "Payment Terms Template": {"read"},
         "Account": {"read"},
+        "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
+        "Purchase Receipt": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
+        "Purchase Invoice": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
+        "Payment Entry": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
     }
     full_access_roles = {
         "Reckon Distribution Admin",
@@ -586,6 +644,13 @@ def ensure_native_master_permissions() -> None:
         "Master Data Manager",
     }
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
+    procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
+    procurement_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Company Admin",
+        "Company Manager",
+    }
     permission_roles = {
         role for role in full_access_roles | read_only_roles if frappe.db.exists("Role", role)
     }
@@ -620,7 +685,10 @@ def ensure_native_master_permissions() -> None:
                     }
                 )
                 perm.insert(ignore_permissions=True)
-            rights = full_rights if role in full_access_roles else {"read"}
+            if doctype in procurement_doctypes and role not in procurement_roles:
+                rights = set()
+            else:
+                rights = full_rights if role in full_access_roles else {"read"}
             for right in full_rights:
                 enabled = right in rights
                 perm.db_set(right, 1 if enabled else 0)
@@ -788,20 +856,11 @@ def ensure_workspace_sidebar() -> None:
 
     sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
-    if not any(item.link_to == "DSR Challan" for item in sidebar.items):
-        sidebar.append(
-            "items",
-            {
-                "label": "DSR Challan",
-                "link_to": "DSR Challan",
-                "link_type": "DocType",
-                "type": "Link",
-                "indent": 0,
-                "child": 0,
-                "collapsible": 1,
-                "show_arrow": 0,
-            },
-        )
+    existing_links = {item.link_to for item in sidebar.items}
+    for item in _workspace_sidebar_doc()["items"]:
+        if item["link_to"] in existing_links:
+            continue
+        sidebar.append("items", item)
     sidebar.save(ignore_permissions=True)
 
 
@@ -832,6 +891,10 @@ def _workspace_sidebar_doc() -> dict:
         },
     ]
     for label, page, icon in (
+        ("Purchase Orders", "Purchase Order", "clipboard-list"),
+        ("Purchase Receipts", "Purchase Receipt", "package-plus"),
+        ("Purchase Invoices", "Purchase Invoice", "file-text"),
+        ("Supplier Advances & Payments", "Payment Entry", "wallet-cards"),
         ("DSR Day Settlement", "dsr-day-settlement", "calculator"),
         ("Field Sales", "field-sales", "map-pin"),
         ("Distribution Master Setup", "distribution-master-setup", "settings-2"),

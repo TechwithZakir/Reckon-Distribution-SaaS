@@ -12,6 +12,8 @@ class DistributionSettings(Document):
         validate_tenant_owned_doc(self)
         if self.supplier_goods_policy != "Supplier Provided Goods Only":
             self.supplier_goods_policy = "Supplier Provided Goods Only"
+        if self.supplier_invoice_policy not in {"Manual", "Auto-create Draft", "Auto-submit"}:
+            self.supplier_invoice_policy = "Auto-create Draft"
 
         if not user_can_bypass_tenant():
             for fieldname, master_type in (

@@ -199,4 +199,12 @@ fixtures = [
         "dt": "Workspace",
         "filters": [["name", "=", "Distribution Workspace"]],
     },
+    {
+        "dt": "Property Setter",
+        "filters": [
+            ["doc_type", "=", "Van Loading Challan"],
+            ["doctype_or_field", "=", "DocType"],
+            ["property", "=", "label"],
+        ],
+    },
 ]

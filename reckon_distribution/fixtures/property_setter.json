@@ -1,0 +1,11 @@
+[
+  {
+    "doctype": "Property Setter",
+    "doc_type": "Van Loading Challan",
+    "doctype_or_field": "DocType",
+    "property": "label",
+    "property_type": "Data",
+    "value": "DSR Challan",
+    "is_system_generated": 1
+  }
+]

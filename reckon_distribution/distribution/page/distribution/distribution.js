@@ -45,20 +45,10 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
           <div class="rd-dashboard-lists" data-lists></div>
         </div>
       </section>
-
-      <section class="rd-dashboard-section">
-        <div class="rd-section-heading">
-          <div><h3>${__("Reports")}</h3><p>${__("Stock movement, balances, and management reporting.")}</p></div>
-        </div>
-        <div class="rd-dashboard-report-link">
-          <button class="btn btn-default" data-reports>${__("Open Distribution Reports")}</button>
-        </div>
-      </section>
     </main>
   `);
 
   $(page.body).find("[data-refresh]").on("click", () => loadDashboard());
-  $(page.body).find("[data-reports]").on("click", () => frappe.set_route("distribution-reports"));
   loadDashboard();
 
   function loadDashboard() {
@@ -100,7 +90,7 @@ frappe.pages["distribution"].on_page_load = function (wrapper) {
       { label: __("DSR Challan"), detail: __("Load stock to a DSR van"), route: ["List", "DSR Challan"] },
       { label: __("Field Sales"), detail: __("Visits, order drafts, and route work"), route: ["field-sales"] },
       { label: __("Deliver & Collect"), detail: __("Submit delivery and collection"), route: ["dsr-delivery"] },
-      { label: __("Stock Ledger"), detail: __("Review warehouse movement"), route: ["List", "Stock Ledger Entry"] },
+      { label: __("Stock Ledger"), detail: __("Review warehouse movement"), route: ["query-report", "Stock Ledger"] },
     ];
     if (management) {
       actions.splice(3, 0, { label: __("Purchase Received"), detail: __("Receive supplier goods"), route: ["List", "Purchase Receipt"] });

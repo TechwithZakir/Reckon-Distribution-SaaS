@@ -186,7 +186,7 @@ The invoice must not be auto-submitted when any of the following is unresolved:
 - Supplier advance entry should provide an optional Purchase Order reference and show the unallocated amount after save.
 - Dues pages should link to native invoices, payments, advances, returns, and credit notes rather than showing an independently calculated balance.
 - All validation errors should use native Frappe messages and preserve the server traceback in logs only.
-- `Distribution Reports` is the navigation surface for manager procurement reports. It links to native Purchase Register and Accounts Payable reporting; it does not create a separate supplier due ledger.
+- The Reports menu links managers to native Accounts Payable reporting; it does not create a separate supplier due ledger.
 
 ## Functional Test Matrix
 

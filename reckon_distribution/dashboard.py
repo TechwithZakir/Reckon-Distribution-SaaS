@@ -14,10 +14,6 @@ MANAGEMENT_ROLES = {
 }
 
 
-def _report_is_available(name: str) -> bool:
-    return bool(frappe.db.exists("Report", name))
-
-
 def _is_management_user() -> bool:
     return user_can_bypass_tenant() or bool(MANAGEMENT_ROLES.intersection(frappe.get_roles()))
 
@@ -176,47 +172,3 @@ def _recent_activity(company: str, start: str, end: str) -> list[dict]:
             }
         )
     return sorted(activity, key=lambda row: row["modified"], reverse=True)[:10]
-
-
-@frappe.whitelist()
-def get_distribution_report_catalog() -> list[dict]:
-    """Expose only the reports intended for the Distribution shell."""
-    require_tenant()
-    reports = [
-        {
-            "label": _("Stock Ledger"),
-            "description": _("Movement history by item and warehouse."),
-            "route": "stock-ledger-entry",
-            "route_type": "list",
-        },
-        {
-            "label": _("Stock Balance"),
-            "description": _("Current quantity by warehouse and item."),
-            "route": "Stock Balance",
-            "route_type": "report",
-        },
-    ]
-    if _is_management_user():
-        reports.extend(
-            [
-                {
-                    "label": _("Sales Register"),
-                    "description": _("Submitted customer invoices and values."),
-                    "route": "Sales Register",
-                    "route_type": "report",
-                },
-                {
-                    "label": _("Purchase Register"),
-                    "description": _("Supplier invoices and received value."),
-                    "route": "Purchase Register",
-                    "route_type": "report",
-                },
-                {
-                    "label": _("Accounts Payable"),
-                    "description": _("Supplier dues from submitted invoices."),
-                    "route": "Accounts Payable",
-                    "route_type": "report",
-                },
-            ]
-        )
-    return [report for report in reports if report["route_type"] == "list" or _report_is_available(report["route"])]

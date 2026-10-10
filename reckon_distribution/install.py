@@ -18,6 +18,7 @@ def after_install() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     remove_legacy_challan_pages()
+    remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
     ensure_simplified_procurement_layout()
@@ -33,6 +34,7 @@ def after_migrate() -> None:
     ensure_distribution_permissions()
     setup_workspace()
     remove_legacy_challan_pages()
+    remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
     ensure_simplified_procurement_layout()
@@ -131,6 +133,18 @@ def remove_legacy_challan_pages() -> None:
         frappe.delete_doc("Property Setter", setter_name, force=True, ignore_permissions=True)
         removed = True
     if removed:
+        frappe.clear_cache()
+
+
+def remove_distribution_reports_page() -> None:
+    """Retire the custom report launcher in favor of native report links."""
+    page_name = "distribution-reports"
+    if not frappe.db.exists("Page", page_name):
+        return
+
+    page = frappe.db.get_value("Page", page_name, ["module", "standard"], as_dict=True)
+    if page and page.module == "Distribution":
+        frappe.delete_doc("Page", page_name, force=True, ignore_permissions=True)
         frappe.clear_cache()
 
 
@@ -943,6 +957,7 @@ def ensure_distribution_permissions() -> None:
     ensure_tenant_user_permissions()
     ensure_distribution_page_roles()
     ensure_native_master_permissions()
+    ensure_distribution_report_roles()
     ensure_distribution_transaction_permissions()
 
 
@@ -1002,7 +1017,6 @@ def ensure_distribution_page_roles() -> None:
         "field-sales",
         "dsr-delivery",
         "dsr-day-settlement",
-        "distribution-reports",
     }
     roles = [role.name for role in OPERATIONAL_ROLES]
     for page_name in page_names:
@@ -1148,6 +1162,42 @@ def ensure_native_master_permissions() -> None:
                     if hasattr(permissions, "update_permission_property"):
                         permissions.update_permission_property(doctype, role, 0, right, 1)
         frappe.clear_cache(doctype=doctype)
+
+
+def ensure_distribution_report_roles() -> None:
+    """Give only the intended Distribution roles access to native reports."""
+    operational_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Reckon Distribution User",
+        "Reckon Master Data Manager",
+        "Company Admin",
+        "Company Manager",
+        "DSR",
+        "SR",
+        "Master Data Manager",
+    }
+    management_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Company Admin",
+        "Company Manager",
+    }
+    reports = {
+        "Stock Ledger": operational_roles,
+        "Accounts Payable": management_roles,
+    }
+    for report_name, role_names in reports.items():
+        if not frappe.db.exists("Report", report_name):
+            continue
+        report = frappe.get_doc("Report", report_name)
+        assigned = {row.role for row in report.roles}
+        for role in sorted(role_names):
+            if role in assigned or not frappe.db.exists("Role", role):
+                continue
+            report.append("roles", {"role": role})
+        report.save(ignore_permissions=True)
+        frappe.clear_cache(doctype="Report")
 
 
 def ensure_standard_doc_type_read_permission(role: str) -> None:
@@ -1354,8 +1404,8 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text", child=True),
         link("Supplier Payments", "Payment Entry", "DocType", "landmark", child=True),
         section("Reports", "chart-no-axes-combined"),
-        link("Distribution Reports", "distribution-reports", "Page", "chart-column", child=True),
-        link("Stock Ledger", "Stock Ledger Entry", "DocType", "book-open", child=True),
+        link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
+        link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
         section("Setup & Access", "settings"),
         link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),
         link("Company Team & Access", "distribution-team-access", "Page", "users", child=True),

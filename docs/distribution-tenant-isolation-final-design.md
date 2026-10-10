@@ -222,10 +222,10 @@ Distribution Home without cluttering the left navigation.
 
 Stock movement is represented by ERPNext `Stock Ledger Entry`; no custom stock
 ledger is maintained. Distribution users may read, print, export, and report on
-only entries in their resolved Company. The `Distribution Reports` page exposes
-the permitted native stock reports. Managers and administrators additionally
-receive procurement and supplier-payable reporting; field roles remain limited
-to the reports required to run routes and reconcile stock.
+only entries in their resolved Company. The Reports menu exposes native Stock
+Ledger directly to operational roles. Managers and administrators additionally
+receive Accounts Payable; field roles remain limited to reports required to run
+routes and reconcile stock.
 
 The Distribution Home dashboard gets its Company only from the authenticated
 tenant context. It displays server-calculated KPI totals and recent records for

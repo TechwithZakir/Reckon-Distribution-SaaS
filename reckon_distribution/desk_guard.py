@@ -14,7 +14,7 @@ DISTRIBUTION_USER_ROLES = frozenset(
     {role.name for role in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
 )
 DISTRIBUTION_QUERY_REPORTS = frozenset(
-    {"Stock Balance", "Sales Register", "Purchase Register", "Accounts Payable"}
+    {"Stock Ledger", "Accounts Payable"}
 )
 DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
     {
@@ -25,7 +25,7 @@ DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
     }
 )
 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
-    {"Sales Register", "Purchase Register", "Accounts Payable"}
+    {"Accounts Payable"}
 )
 ALLOWED_DISTRIBUTION_PAGES = {
     "distribution",
@@ -54,8 +54,6 @@ ALLOWED_DISTRIBUTION_PAGES = {
     "delivery-note",
     "return-inspection",
     "dsr-day-settlement",
-    "distribution-reports",
-    "stock-ledger-entry",
     "query-report",
     "user-profile",
     "home",
@@ -87,8 +85,6 @@ ALLOWED_DESK_PREFIXES = (
     "/app/delivery-note",
     "/app/return-inspection",
     "/app/dsr-day-settlement",
-    "/app/distribution-reports",
-    "/app/stock-ledger-entry",
     "/app/query-report",
     "/app/user-profile",
     "/app/home",

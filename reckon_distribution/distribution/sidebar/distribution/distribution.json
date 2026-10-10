@@ -15,8 +15,8 @@
     {"type": "Link", "label": "Purchase Invoices", "link_type": "DocType", "link_to": "Purchase Invoice", "icon": "file-text", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Link", "label": "Supplier Payments", "link_type": "DocType", "link_to": "Payment Entry", "icon": "landmark", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Section Break", "label": "Reports", "icon": "chart-no-axes-combined", "hidden": 0, "child": 0, "indent": 0, "collapsible": 1, "keep_closed": 0, "show_arrow": 0},
-    {"type": "Link", "label": "Distribution Reports", "link_type": "Page", "link_to": "distribution-reports", "icon": "chart-column", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
-    {"type": "Link", "label": "Stock Ledger", "link_type": "DocType", "link_to": "Stock Ledger Entry", "icon": "book-open", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
+    {"type": "Link", "label": "Stock Ledger", "link_type": "Report", "link_to": "Stock Ledger", "icon": "book-open", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
+    {"type": "Link", "label": "Accounts Payable", "link_type": "Report", "link_to": "Accounts Payable", "icon": "landmark", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Section Break", "label": "Setup & Access", "icon": "settings", "hidden": 0, "child": 0, "indent": 0, "collapsible": 1, "keep_closed": 0, "show_arrow": 0},
     {"type": "Link", "label": "Distribution Master Setup", "link_type": "Page", "link_to": "distribution-master-setup", "icon": "settings-2", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Link", "label": "Company Team & Access", "link_type": "Page", "link_to": "distribution-team-access", "icon": "users", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0}

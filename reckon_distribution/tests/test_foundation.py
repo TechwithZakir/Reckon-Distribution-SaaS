@@ -134,8 +134,8 @@ class TestFoundation(FrappeTestCase):
                 "field-sales",
                 "dsr-delivery",
                 "DSR Challan",
-                "Stock Ledger Entry",
-                "distribution-reports",
+                "Stock Ledger",
+                "Accounts Payable",
             }.issubset(links)
         )
         self.assertTrue(
@@ -147,6 +147,7 @@ class TestFoundation(FrappeTestCase):
         self.assertNotIn("DSR Collection Receipt", links)
         self.assertNotIn("Stock Entry", links)
         self.assertNotIn("Warehouse", links)
+        self.assertNotIn("distribution-reports", links)
 
     def test_procurement_permissions_are_limited_to_management_roles(self):
         for doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"):
@@ -228,10 +229,12 @@ class TestFoundation(FrappeTestCase):
             self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
         sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_SIDEBAR)
         links = {item.link_to: item.link_type for item in sidebar.items}
-        for doctype in ("DSR Challan", "Stock Ledger Entry"):
-            if frappe.db.exists("DocType", doctype):
-                self.assertEqual(links.get(doctype), "DocType")
-        self.assertEqual(links.get("distribution-reports"), "Page")
+        if frappe.db.exists("DocType", "DSR Challan"):
+            self.assertEqual(links.get("DSR Challan"), "DocType")
+        for report_name in ("Stock Ledger", "Accounts Payable"):
+            if frappe.db.exists("Report", report_name):
+                self.assertEqual(links.get(report_name), "Report")
+        self.assertNotIn("distribution-reports", links)
 
     def test_distribution_roles_can_read_stock_ledger_entries(self):
         if not frappe.db.exists("DocType", "Stock Ledger Entry"):
@@ -269,8 +272,26 @@ class TestFoundation(FrappeTestCase):
             {"Letter Head", "Print Format"}.issubset(ALLOWED_DISTRIBUTION_DOCTYPES)
         )
         self.assertIn("query-report", ALLOWED_DISTRIBUTION_PAGES)
-        self.assertIn("Stock Balance", DISTRIBUTION_QUERY_REPORTS)
+        self.assertIn("Stock Ledger", DISTRIBUTION_QUERY_REPORTS)
         self.assertIn("Accounts Payable", DISTRIBUTION_MANAGEMENT_QUERY_REPORTS)
+
+    def test_distribution_report_roles_match_operational_scope(self):
+        expected_roles = {
+            "Stock Ledger": {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+                "Reckon Distribution User",
+            },
+            "Accounts Payable": {
+                "Reckon Distribution Admin",
+                "Reckon Distribution Manager",
+            },
+        }
+        for report_name, roles in expected_roles.items():
+            if not frappe.db.exists("Report", report_name):
+                self.skipTest(f"{report_name} is unavailable in this ERPNext version")
+            assigned_roles = {row.role for row in frappe.get_doc("Report", report_name).roles}
+            self.assertTrue(roles.issubset(assigned_roles), report_name)
 
     def test_distribution_roles_can_read_native_form_dependencies(self):
         role_names = {

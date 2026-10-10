@@ -173,10 +173,6 @@
   min-height: 72px;
 }
 
-.rd-dashboard-report-link {
-  padding-bottom: 24px;
-}
-
 @media (max-width: 760px) {
   .reckon-distribution-desk { padding: 16px; }
   .rd-dashboard-heading { align-items: stretch; flex-direction: column; }

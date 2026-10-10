@@ -34,6 +34,11 @@ class TestFoundation(FrappeTestCase):
     def test_dsr_challan_is_the_native_doctype(self):
         self.assertEqual(frappe.get_meta("DSR Challan").name, "DSR Challan")
 
+    def test_dsr_challan_item_controller_loads(self):
+        self.assertEqual(
+            frappe.get_controller("DSR Challan Item").__name__, "DSRChallanItem"
+        )
+
     def test_dsr_challan_is_permitted_for_distribution_roles(self):
         permissions = {
             row.role: row

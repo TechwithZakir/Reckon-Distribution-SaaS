@@ -1,5 +1,5 @@
 from frappe.model.document import Document
 
 
-class VanLoadingChallanItem(Document):
+class DSRChallanItem(Document):
     pass

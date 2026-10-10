@@ -770,18 +770,15 @@ def setup_workspace() -> None:
 
 
 def ensure_workspace_sidebar() -> None:
-    """Update the legacy sidebar only when an older site still has one.
-
-    Frappe v16 imports module-owned ``Sidebar`` records and removes orphaned
-    ``Workspace Sidebar`` records during migration. Creating or saving a legacy
-    row here makes migration fail after Frappe has already removed it.
-    """
+    """Keep the Distribution workspace's visible v16 navigation available."""
     if not frappe.db.exists("DocType", "Workspace Sidebar"):
         return
 
     sidebar_name = DISTRIBUTION_WORKSPACE
     if not frappe.db.exists("Workspace Sidebar", sidebar_name):
+        frappe.get_doc(_workspace_sidebar_doc()).insert(ignore_permissions=True)
         return
+
     sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
     if not any(item.link_to == "DSR Challan" for item in sidebar.items):
@@ -799,6 +796,65 @@ def ensure_workspace_sidebar() -> None:
             },
         )
     sidebar.save(ignore_permissions=True)
+
+
+def _workspace_sidebar_doc() -> dict:
+    """Return the native left-rail definition used by the active Desk shell."""
+    items = [
+        {
+            "label": "Distribution",
+            "link_to": DISTRIBUTION_WORKSPACE,
+            "link_type": "Workspace",
+            "type": "Link",
+            "icon": "house",
+            "child": 0,
+            "indent": 0,
+            "collapsible": 1,
+            "show_arrow": 0,
+        },
+        {
+            "label": "DSR Challan",
+            "link_to": "DSR Challan",
+            "link_type": "DocType",
+            "type": "Link",
+            "icon": "package-check",
+            "child": 0,
+            "indent": 0,
+            "collapsible": 1,
+            "show_arrow": 0,
+        },
+    ]
+    for label, page, icon in (
+        ("DSR Day Settlement", "dsr-day-settlement", "calculator"),
+        ("Field Sales", "field-sales", "map-pin"),
+        ("Distribution Master Setup", "distribution-master-setup", "settings-2"),
+        ("Company Team & Access", "distribution-team-access", "users"),
+        ("DSR Delivery & Collection", "dsr-delivery", "truck"),
+        ("Item Units & Conversion", "distribution-item-uom-setup", "ruler"),
+    ):
+        items.append(
+            {
+                "label": label,
+                "link_to": page,
+                "link_type": "Page",
+                "type": "Link",
+                "icon": icon,
+                "child": 0,
+                "indent": 0,
+                "collapsible": 1,
+                "show_arrow": 0,
+            }
+        )
+    return {
+        "doctype": "Workspace Sidebar",
+        "name": DISTRIBUTION_WORKSPACE,
+        "app": "reckon_distribution",
+        "module": "Distribution",
+        "title": "Distribution",
+        "header_icon": "package-check",
+        "standard": 1,
+        "items": items,
+    }
 
 
 def _workspace_doc(update: bool = False) -> dict:

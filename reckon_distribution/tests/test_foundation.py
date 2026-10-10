@@ -67,6 +67,17 @@ class TestFoundation(FrappeTestCase):
             )
         )
 
+    def test_distribution_workspace_sidebar_contains_dsr_challan(self):
+        if not frappe.db.exists("DocType", "Workspace Sidebar"):
+            self.skipTest("Workspace Sidebar is unavailable in this Frappe version")
+        sidebar = frappe.get_doc("Workspace Sidebar", DISTRIBUTION_WORKSPACE)
+        self.assertTrue(
+            any(
+                item.link_type == "DocType" and item.link_to == "DSR Challan"
+                for item in sidebar.items
+            )
+        )
+
     def test_distribution_roles_can_read_native_doctype_metadata(self):
         permission = frappe.db.exists(
             "DocPerm",

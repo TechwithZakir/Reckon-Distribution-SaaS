@@ -858,7 +858,6 @@ def ensure_workspace_sidebar() -> None:
 
     sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
-    existing_links = {item.link_to for item in sidebar.items}
     for item in _workspace_sidebar_doc()["items"]:
         existing = next((row for row in sidebar.items if row.link_to == item["link_to"]), None)
         if existing:

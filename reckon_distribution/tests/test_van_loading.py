@@ -12,10 +12,19 @@ from reckon_distribution.van_loading import (
     cancel_van_loading_challan,
     validate_van_loading_acknowledgement,
     validate_van_loading_stock_entry,
+    _has_active_company_assignment,
 )
 
 
 class TestVanLoadingControls(FrappeTestCase):
+    def test_dsr_company_check_uses_active_tenant_assignment(self):
+        with patch("reckon_distribution.van_loading.frappe.db.exists", return_value=True) as exists:
+            self.assertTrue(_has_active_company_assignment("dsr@example.com", "_Test Tenant Company A"))
+        exists.assert_called_once_with(
+            "Tenant User Assignment",
+            {"user": "dsr@example.com", "company": "_Test Tenant Company A", "active": 1},
+        )
+
     def _challan(self, status="Approved"):
         return frappe._dict(
             {

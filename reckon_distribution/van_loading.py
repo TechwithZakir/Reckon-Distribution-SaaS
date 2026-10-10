@@ -7,7 +7,6 @@ from frappe.utils import flt, now_datetime, nowdate
 from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     get_tenant_doc,
-    get_user_companies,
     require_tenant,
     user_can_bypass_tenant,
     validate_tenant_owned_doc,
@@ -239,8 +238,18 @@ def _validate_challan_references(doc) -> None:
         frappe.throw(_("Route does not belong to the challan Company."))
     if route.assigned_user != doc.dsr:
         frappe.throw(_("The DSR is not assigned to this route."))
-    if doc.dsr not in get_user_companies(doc.dsr) and not user_can_bypass_tenant():
+    if not _has_active_company_assignment(doc.dsr, doc.company) and not user_can_bypass_tenant():
         frappe.throw(_("The DSR is not assigned to this Company."))
+
+
+def _has_active_company_assignment(user: str, company: str) -> bool:
+    """Use Tenant User Assignment as the authoritative DSR-company link."""
+    return bool(
+        frappe.db.exists(
+            "Tenant User Assignment",
+            {"user": user, "company": company, "active": 1},
+        )
+    )
 
 
 def _validate_available_stock(doc) -> None:

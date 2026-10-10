@@ -6,6 +6,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from reckon_distribution.van_loading import (
+    _apply_challan_pricing,
     _has_active_company_assignment,
     acknowledge_van_loading,
     amend_van_loading_challan,
@@ -18,6 +19,34 @@ from reckon_distribution.van_loading import (
 
 
 class TestVanLoadingControls(FrappeTestCase):
+    def test_challan_pricing_calculates_saleable_bill_and_excludes_free_goods(self):
+        challan = frappe._dict(
+            {
+                "company": "_Test Tenant Company A",
+                "items": [
+                    frappe._dict({"qty": 10, "uom": "Nos", "stock_category": "Saleable"}),
+                    frappe._dict({"qty": 5, "uom": "Nos", "stock_category": "Supplier Free"}),
+                ],
+            }
+        )
+        with patch(
+            "reckon_distribution.van_loading._get_challan_price_list",
+            return_value="_Test Sales Price List",
+        ), patch(
+            "reckon_distribution.van_loading._get_challan_unit_price",
+            return_value=12.5,
+        ) as get_price:
+            challan.items[0].item_code = "_Test Item"
+            _apply_challan_pricing(challan)
+
+        self.assertEqual(challan.price_list, "_Test Sales Price List")
+        self.assertEqual(challan.items[0].unit_price, 12.5)
+        self.assertEqual(challan.items[0].total_price, 125)
+        self.assertEqual(challan.items[1].unit_price, 0)
+        self.assertEqual(challan.items[1].total_price, 0)
+        self.assertEqual(challan.total_bill_amount, 125)
+        get_price.assert_called_once()
+
     def test_dsr_company_check_uses_active_tenant_assignment(self):
         with patch("reckon_distribution.van_loading.frappe.db.exists", return_value=True) as exists:
             self.assertTrue(_has_active_company_assignment("dsr@example.com", "_Test Tenant Company A"))

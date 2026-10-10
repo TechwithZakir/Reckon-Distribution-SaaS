@@ -39,4 +39,58 @@
     onload: applyCompany,
     refresh: applyCompany,
   }));
+
+  function updateChallanTotals(frm) {
+    let total = 0;
+    (frm.doc.items || []).forEach(row => {
+      row.total_price = row.stock_category === "Supplier Free"
+        ? 0
+        : flt(row.qty) * flt(row.unit_price);
+      total += flt(row.total_price);
+    });
+    frm.doc.total_bill_amount = total;
+    frm.refresh_field("items");
+    frm.refresh_field("total_bill_amount");
+  }
+
+  frappe.ui.form.on("DSR Challan", {
+    refresh: updateChallanTotals,
+    validate: updateChallanTotals,
+  });
+  frappe.ui.form.on("DSR Challan Item", {
+    qty: updateChallanTotals,
+    unit_price: updateChallanTotals,
+    stock_category: updateChallanTotals,
+    item_code(frm, cdt, cdn) {
+      loadChallanPrice(frm, cdt, cdn);
+    },
+    uom(frm, cdt, cdn) {
+      loadChallanPrice(frm, cdt, cdn);
+    },
+  });
+
+  function loadChallanPrice(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    if (!row || !row.item_code || !frm.doc.company) return;
+    if (row.stock_category === "Supplier Free") {
+      frappe.model.set_value(cdt, cdn, "unit_price", 0);
+      updateChallanTotals(frm);
+      return;
+    }
+    frappe.call({
+      method: "reckon_distribution.van_loading.get_challan_item_price",
+      args: {
+        item_code: row.item_code,
+        uom: row.uom,
+        company: frm.doc.company,
+      },
+    }).then(result => {
+      const message = result.message || {};
+      if (message.price_list && frm.doc.price_list !== message.price_list) {
+        frm.set_value("price_list", message.price_list);
+      }
+      frappe.model.set_value(cdt, cdn, "unit_price", message.unit_price || 0);
+      updateChallanTotals(frm);
+    });
+  }
 })();

@@ -28,6 +28,7 @@ def validate_van_loading_challan(doc, method=None) -> None:
     if doc.status in {"Approved", "Acknowledged", "Cancelled"} and doc.is_new():
         frappe.throw(_("A new DSR Challan must start as Draft."))
 
+    _apply_challan_pricing(doc)
     for row in doc.get("items") or []:
         if flt(row.qty) <= 0:
             frappe.throw(_("Row {0}: loading quantity must be greater than zero.").format(row.idx))
@@ -38,6 +39,81 @@ def validate_van_loading_challan(doc, method=None) -> None:
             _validate_batch(row.item_code, row.batch_no)
 
     _validate_status_transition(doc)
+
+
+@frappe.whitelist()
+def get_challan_item_price(item_code: str, uom: str | None = None, company: str | None = None) -> dict:
+    """Return the Company selling price used by a DSR Challan row."""
+    tenant = require_tenant(company=company)
+    validate_master_scope(tenant.company, "Item", item_code)
+    price_list = _get_challan_price_list(tenant.company)
+    if not price_list:
+        return {"price_list": None, "unit_price": 0}
+    return {
+        "price_list": price_list,
+        "unit_price": _get_challan_unit_price(tenant.company, item_code, uom, price_list),
+    }
+
+
+def _apply_challan_pricing(doc) -> None:
+    price_list = _get_challan_price_list(doc.company)
+    doc.price_list = price_list
+    bill_total = 0
+    for row in doc.get("items") or []:
+        if row.stock_category == "Supplier Free":
+            unit_price = 0
+        else:
+            if not price_list:
+                frappe.throw(
+                    _("A selling Price List is required before loading billable stock.")
+                )
+            unit_price = _get_challan_unit_price(doc.company, row.item_code, row.uom, price_list)
+        row.unit_price = unit_price
+        row.total_price = flt(row.qty) * flt(unit_price)
+        bill_total += flt(row.total_price)
+    doc.total_bill_amount = bill_total
+
+
+def _get_challan_price_list(company: str) -> str | None:
+    price_list = frappe.db.get_value(
+        "Distribution Settings", {"company": company}, "default_price_list"
+    )
+    if price_list:
+        validate_master_scope(company, "Price List", price_list)
+        return price_list
+    price_list = frappe.db.get_value(
+        "Distribution Master Scope",
+        {"company": company, "master_type": "Price List", "active": 1},
+        "master_name",
+    )
+    if price_list:
+        validate_master_scope(company, "Price List", price_list)
+    return price_list
+
+
+def _get_challan_unit_price(
+    company: str, item_code: str, uom: str | None, price_list: str
+) -> float:
+    filters = {"item_code": item_code, "price_list": price_list, "selling": 1}
+    if frappe.db.has_column("Item Price", "rd_company"):
+        filters["rd_company"] = company
+    prices = frappe.get_all(
+        "Item Price",
+        filters=filters,
+        fields=["name", "uom", "price_list_rate"],
+        order_by="uom asc",
+    )
+    exact = next((row for row in prices if row.uom == uom), None)
+    fallback = next((row for row in prices if not row.uom), None)
+    price = exact or fallback
+    if not price:
+        frappe.throw(
+            _("No selling price is configured for Item {0} in Price List {1}.").format(
+                item_code, price_list
+            )
+        )
+    validate_master_scope(company, "Item Price", price.name)
+    return flt(price.price_list_rate)
 
 
 def validate_van_loading_acknowledgement(doc, method=None) -> None:

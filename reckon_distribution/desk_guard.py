@@ -7,7 +7,7 @@ import frappe
 from frappe import _, permissions
 from werkzeug.exceptions import HTTPException
 
-from reckon_distribution.constants import OPERATIONAL_ROLES
+from reckon_distribution.constants import OPERATIONAL_ROLES, TENANT_ROLE_NAMES
 
 
 class DistributionRedirect(HTTPException):
@@ -302,7 +302,7 @@ def _ensure_current_user_metadata_access() -> None:
         return
 
     roles = set(frappe.get_roles(user))
-    distribution_roles = {role.name for role in OPERATIONAL_ROLES}
+    distribution_roles = {role.name for role in OPERATIONAL_ROLES} | TENANT_ROLE_NAMES
     applicable_roles = roles.intersection(distribution_roles)
     if not applicable_roles:
         return

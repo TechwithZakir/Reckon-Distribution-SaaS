@@ -3,7 +3,7 @@ from __future__ import annotations
 import frappe
 from frappe import _, permissions
 
-from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES
+from reckon_distribution.constants import DISTRIBUTION_WORKSPACE, OPERATIONAL_ROLES, TENANT_ROLE_NAMES
 
 
 def after_install() -> None:
@@ -570,13 +570,23 @@ def ensure_native_master_permissions() -> None:
         "Payment Terms Template": {"read"},
         "Account": {"read"},
     }
-    full_access_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Master Data Manager"}
-    read_only_roles = {"Reckon Distribution User"}
+    full_access_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Reckon Master Data Manager",
+        "Company Admin",
+        "Company Manager",
+        "Master Data Manager",
+    }
+    read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
+    permission_roles = {
+        role for role in full_access_roles | read_only_roles if frappe.db.exists("Role", role)
+    }
     for doctype, full_rights in master_permissions.items():
         if not frappe.db.exists("DocType", doctype):
             continue
         permissions.setup_custom_perms(doctype)
-        for role in full_access_roles | read_only_roles:
+        for role in permission_roles:
             existing = frappe.db.exists(
                 "Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
             )
@@ -633,7 +643,16 @@ def ensure_distribution_transaction_permissions() -> None:
         "report",
         "share",
     }
-    operational_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Distribution User"}
+    operational_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Reckon Distribution User",
+        "Company Admin",
+        "Company Manager",
+        "DSR",
+        "SR",
+    }
+    operational_roles = {role for role in operational_roles if frappe.db.exists("Role", role)}
     for doctype, full_rights in transaction_permissions.items():
         if not frappe.db.exists("DocType", doctype):
             continue

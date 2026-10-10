@@ -19,6 +19,11 @@ OPERATIONAL_ROLES = (
     AppRole("Reckon Master Data Manager", "Scoped master-data maintenance"),
 )
 
+# Tenant-facing role profile names used by the SaaS/team-access flows. Some
+# existing sites retain these names as actual Frappe Roles, while newer users
+# receive the internal Reckon Distribution roles above.
+TENANT_ROLE_NAMES = frozenset({"Company Admin", "Company Manager", "DSR", "SR", "Master Data Manager"})
+
 HRMS_APP_NAME = "hrms"
 
 TENANT_BYPASS_ROLES = frozenset({"Administrator", "System Manager", "Reckon Vendor Superuser"})

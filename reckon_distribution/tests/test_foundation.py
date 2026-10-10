@@ -34,6 +34,18 @@ class TestFoundation(FrappeTestCase):
     def test_dsr_challan_is_the_native_doctype(self):
         self.assertEqual(frappe.get_meta("DSR Challan").name, "DSR Challan")
 
+    def test_dsr_challan_is_permitted_for_distribution_roles(self):
+        permissions = {
+            row.role: row
+            for row in frappe.get_meta("DSR Challan").permissions
+            if row.role in {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Distribution User"}
+        }
+        self.assertTrue(permissions["Reckon Distribution Admin"].read)
+        self.assertTrue(permissions["Reckon Distribution Manager"].read)
+        self.assertTrue(permissions["Reckon Distribution User"].read)
+        self.assertTrue(permissions["Reckon Distribution User"].create)
+        self.assertTrue(permissions["Reckon Distribution User"].submit)
+
     def test_distribution_workspace_contains_dsr_challan_shortcut(self):
         workspace = frappe.get_doc("Workspace", DISTRIBUTION_WORKSPACE)
         self.assertTrue(any(item.link_to == "DSR Challan" for item in workspace.shortcuts))

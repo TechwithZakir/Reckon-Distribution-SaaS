@@ -43,15 +43,18 @@ def validate_van_loading_challan(doc, method=None) -> None:
 
 @frappe.whitelist()
 def get_challan_item_price(item_code: str, uom: str | None = None, company: str | None = None) -> dict:
-    """Return the Company selling price used by a DSR Challan row."""
+    """Return the Company item setup UOM and selling price for a DSR Challan row."""
     tenant = require_tenant(company=company)
     validate_master_scope(tenant.company, "Item", item_code)
+    item_uom = frappe.db.get_value("Item", item_code, "stock_uom")
+    selected_uom = uom or item_uom
     price_list = _get_challan_price_list(tenant.company)
-    if not price_list:
-        return {"price_list": None, "unit_price": 0}
     return {
         "price_list": price_list,
-        "unit_price": _get_challan_unit_price(tenant.company, item_code, uom, price_list),
+        "uom": selected_uom,
+        "unit_price": _get_challan_unit_price(
+            tenant.company, item_code, selected_uom, price_list
+        ),
     }
 
 
@@ -62,12 +65,14 @@ def _apply_challan_pricing(doc) -> None:
     for row in doc.get("items") or []:
         if row.stock_category == "Supplier Free":
             unit_price = 0
+        elif flt(row.get("unit_price")) > 0:
+            # Unit Price remains editable for exceptional agreed rates. The
+            # configured Item Price is still used whenever the field is blank.
+            unit_price = flt(row.unit_price)
         else:
-            if not price_list:
-                frappe.throw(
-                    _("A selling Price List is required before loading billable stock.")
-                )
             unit_price = _get_challan_unit_price(doc.company, row.item_code, row.uom, price_list)
+        if unit_price < 0:
+            frappe.throw(_("Row {0}: Unit Price cannot be negative.").format(row.idx))
         row.unit_price = unit_price
         row.total_price = flt(row.qty) * flt(unit_price)
         bill_total += flt(row.total_price)
@@ -92,26 +97,24 @@ def _get_challan_price_list(company: str) -> str | None:
 
 
 def _get_challan_unit_price(
-    company: str, item_code: str, uom: str | None, price_list: str
+    company: str, item_code: str, uom: str | None, price_list: str | None
 ) -> float:
-    filters = {"item_code": item_code, "price_list": price_list, "selling": 1}
+    filters = {"item_code": item_code, "selling": 1}
+    if price_list:
+        filters["price_list"] = price_list
     if frappe.db.has_column("Item Price", "rd_company"):
         filters["rd_company"] = company
     prices = frappe.get_all(
         "Item Price",
         filters=filters,
         fields=["name", "uom", "price_list_rate"],
-        order_by="uom asc",
+        order_by="modified desc",
     )
     exact = next((row for row in prices if row.uom == uom), None)
     fallback = next((row for row in prices if not row.uom), None)
-    price = exact or fallback
+    price = exact or fallback or (prices[0] if prices else None)
     if not price:
-        frappe.throw(
-            _("No selling price is configured for Item {0} in Price List {1}.").format(
-                item_code, price_list
-            )
-        )
+        return 0
     validate_master_scope(company, "Item Price", price.name)
     return flt(price.price_list_rate)
 

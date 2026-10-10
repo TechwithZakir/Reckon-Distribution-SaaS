@@ -89,6 +89,9 @@
       if (message.price_list && frm.doc.price_list !== message.price_list) {
         frm.set_value("price_list", message.price_list);
       }
+      if (!row.uom && message.uom) {
+        frappe.model.set_value(cdt, cdn, "uom", message.uom);
+      }
       frappe.model.set_value(cdt, cdn, "unit_price", message.unit_price || 0);
       updateChallanTotals(frm);
     });

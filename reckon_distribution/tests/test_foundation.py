@@ -95,6 +95,15 @@ class TestFoundation(FrappeTestCase):
         self.assertTrue(permission)
         self.assertTrue(frappe.db.get_value("DocPerm", permission, "read"))
 
+    def test_distribution_allows_native_print_page(self):
+        from reckon_distribution.desk_guard import (
+            ALLOWED_DESK_PREFIXES,
+            ALLOWED_DISTRIBUTION_PAGES,
+        )
+
+        self.assertIn("print", ALLOWED_DISTRIBUTION_PAGES)
+        self.assertIn("/app/print", ALLOWED_DESK_PREFIXES)
+
     def test_distribution_user_has_effective_doctype_metadata_permission(self):
         from reckon_distribution.install import ensure_standard_doc_type_read_permission
 

@@ -47,6 +47,36 @@ class TestVanLoadingControls(FrappeTestCase):
         self.assertEqual(challan.total_bill_amount, 125)
         get_price.assert_called_once()
 
+    def test_challan_pricing_keeps_a_manual_unit_price(self):
+        challan = frappe._dict(
+            {
+                "company": "_Test Tenant Company A",
+                "items": [
+                    frappe._dict(
+                        {
+                            "item_code": "_Test Item",
+                            "qty": 2,
+                            "uom": "Nos",
+                            "unit_price": 9,
+                            "stock_category": "Saleable",
+                        }
+                    )
+                ],
+            }
+        )
+        with patch(
+            "reckon_distribution.van_loading._get_challan_price_list",
+            return_value=None,
+        ), patch(
+            "reckon_distribution.van_loading._get_challan_unit_price",
+            return_value=0,
+        ) as get_price:
+            _apply_challan_pricing(challan)
+
+        self.assertEqual(challan.items[0].unit_price, 9)
+        self.assertEqual(challan.items[0].total_price, 18)
+        get_price.assert_not_called()
+
     def test_dsr_company_check_uses_active_tenant_assignment(self):
         with patch("reckon_distribution.van_loading.frappe.db.exists", return_value=True) as exists:
             self.assertTrue(_has_active_company_assignment("dsr@example.com", "_Test Tenant Company A"))

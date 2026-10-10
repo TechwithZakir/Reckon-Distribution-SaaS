@@ -69,11 +69,22 @@ class TestFoundation(FrappeTestCase):
 
     def test_distribution_roles_can_read_native_doctype_metadata(self):
         permission = frappe.db.exists(
-            "Custom DocPerm",
+            "DocPerm",
             {"parent": "DocType", "role": "Reckon Distribution User", "permlevel": 0},
         )
         self.assertTrue(permission)
-        self.assertTrue(frappe.db.get_value("Custom DocPerm", permission, "read"))
+        self.assertTrue(frappe.db.get_value("DocPerm", permission, "read"))
+
+    def test_distribution_user_has_effective_doctype_metadata_permission(self):
+        from reckon_distribution.install import ensure_standard_doc_type_read_permission
+
+        ensure_standard_doc_type_read_permission("Reckon Distribution User")
+        with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
+            self.assertTrue(
+                frappe.has_permission(
+                    "DocType", ptype="read", user="field@example.com"
+                )
+            )
 
     def test_app_permission_allows_only_distribution_roles(self):
         from reckon_distribution.api import check_app_permission

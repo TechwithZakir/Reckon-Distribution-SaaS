@@ -4,7 +4,7 @@ import json
 from urllib.parse import unquote
 
 import frappe
-from frappe import _, permissions
+from frappe import _
 from werkzeug.exceptions import HTTPException
 
 from reckon_distribution.constants import OPERATIONAL_ROLES, TENANT_ROLE_NAMES
@@ -307,36 +307,13 @@ def _ensure_current_user_metadata_access() -> None:
     if not applicable_roles:
         return
 
-    changed = False
-    permissions.setup_custom_perms("DocType")
+    from reckon_distribution.install import ensure_standard_doc_type_read_permission
+
     for role in applicable_roles:
-        name = frappe.db.exists(
-            "Custom DocPerm",
-            {"parent": "DocType", "role": role, "permlevel": 0, "if_owner": 0},
-        )
-        if name:
-            if not frappe.db.get_value("Custom DocPerm", name, "read"):
-                frappe.db.set_value("Custom DocPerm", name, "read", 1, update_modified=False)
-                changed = True
-            continue
+        ensure_standard_doc_type_read_permission(role)
 
-        frappe.get_doc(
-            {
-                "doctype": "Custom DocPerm",
-                "parent": "DocType",
-                "parenttype": "DocType",
-                "parentfield": "permissions",
-                "role": role,
-                "permlevel": 0,
-                "if_owner": 0,
-                "read": 1,
-            }
-        ).insert(ignore_permissions=True)
-        changed = True
-
-    if changed:
-        frappe.clear_cache(doctype="DocType")
-        frappe.clear_cache(user=user)
+    frappe.clear_cache(doctype="DocType")
+    frappe.clear_cache(user=user)
 
 
 def _request_path() -> str:

@@ -585,6 +585,14 @@ def ensure_native_master_permissions() -> None:
     for doctype, full_rights in master_permissions.items():
         if not frappe.db.exists("DocType", doctype):
             continue
+        if doctype == "DocType":
+            # Frappe deliberately excludes DocType from Meta.set_custom_permissions,
+            # so Custom DocPerm rows are ignored for this metadata doctype. Seed the
+            # real standard permission row instead.
+            for role in permission_roles:
+                ensure_standard_doc_type_read_permission(role)
+            frappe.clear_cache(doctype=doctype)
+            continue
         permissions.setup_custom_perms(doctype)
         for role in permission_roles:
             existing = frappe.db.exists(
@@ -620,6 +628,41 @@ def ensure_native_master_permissions() -> None:
                     if hasattr(permissions, "update_permission_property"):
                         permissions.update_permission_property(doctype, role, 0, right, 1)
         frappe.clear_cache(doctype=doctype)
+
+
+def ensure_standard_doc_type_read_permission(role: str) -> None:
+    """Grant metadata read access using DocPerm, not Custom DocPerm.
+
+    ``DocType`` is one of the few doctypes for which Frappe ignores custom
+    permission rows. Native Desk list/form boot therefore requires a standard
+    ``tabDocPerm`` row for each Distribution role.
+    """
+    existing = frappe.db.exists(
+        "DocPerm", {"parent": "DocType", "role": role, "permlevel": 0, "if_owner": 0}
+    )
+    if existing:
+        if not frappe.db.get_value("DocPerm", existing, "read"):
+            frappe.db.set_value("DocPerm", existing, "read", 1, update_modified=False)
+        return
+
+    idx = frappe.db.sql(
+        """
+        select coalesce(max(idx), 0) + 1
+        from `tabDocPerm`
+        where parent = 'DocType' and parentfield = 'permissions' and parenttype = 'DocType'
+        """
+    )[0][0]
+    now = frappe.utils.now()
+    frappe.db.sql(
+        """
+        insert into `tabDocPerm`
+            (name, creation, modified, modified_by, owner, docstatus, idx,
+             parent, parentfield, parenttype, role, permlevel, if_owner, `read`)
+        values (%s, %s, %s, %s, %s, 0, %s,
+                'DocType', 'permissions', 'DocType', %s, 0, 0, 1)
+        """,
+        (frappe.generate_hash(length=10), now, now, frappe.session.user, frappe.session.user, idx, role),
+    )
 
 
 def ensure_distribution_transaction_permissions() -> None:

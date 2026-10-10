@@ -5,25 +5,8 @@ from urllib.parse import unquote
 
 import frappe
 from frappe import _
-from werkzeug.exceptions import HTTPException
 
 from reckon_distribution.constants import OPERATIONAL_ROLES, TENANT_ROLE_NAMES
-
-
-class DistributionRedirect(HTTPException):
-    """Version-independent HTTP redirect for Frappe's before-request hook."""
-
-    code = 302
-    description = "Redirecting to the Distribution workspace."
-
-    def __init__(self, location: str):
-        super().__init__()
-        self.location = location
-
-    def get_headers(self, environ=None):
-        headers = super().get_headers(environ)
-        headers.append(("Location", self.location))
-        return headers
 
 DISTRIBUTION_DESK_ROUTE = "desk/distribution"
 DISTRIBUTION_PAGE = "distribution"
@@ -201,7 +184,7 @@ def restrict_distribution_desk_request() -> None:
         _guard_distribution_api_request(path)
         return
 
-    if not path or path in {"/", "/app", "/desk"}:
+    if not path or path.rstrip("/") in {"", "/app", "/desk"}:
         _redirect_to_distribution()
 
     if path.startswith("/app/"):
@@ -397,4 +380,20 @@ def _request_path() -> str:
 
 
 def _redirect_to_distribution() -> None:
-    raise DistributionRedirect(f"/{DISTRIBUTION_DESK_ROUTE}")
+    """Schedule a redirect after Frappe has built the website/Desk response.
+
+    Frappe executes ``before_request`` before its web response handler is
+    active. Raising a redirect there is therefore rendered as a 500. An
+    after-request hook can safely replace the completed response with a 302.
+    """
+    frappe.flags.distribution_redirect = f"/{DISTRIBUTION_DESK_ROUTE}"
+
+
+def redirect_distribution_desk_response(response, request) -> None:
+    """Turn a scheduled tenant-entry redirect into a normal HTTP response."""
+    location = getattr(frappe.flags, "distribution_redirect", None)
+    if not location or response is None:
+        return
+    response.status_code = 302
+    response.headers["Location"] = location
+    response.set_data(b"")

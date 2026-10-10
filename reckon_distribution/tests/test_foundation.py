@@ -270,8 +270,10 @@ class TestFoundation(FrappeTestCase):
                 self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
 
     def test_root_and_desk_requests_redirect_tenant_profiles_to_distribution(self):
+        from werkzeug.wrappers import Response
+
         from reckon_distribution.desk_guard import (
-            DistributionRedirect,
+            redirect_distribution_desk_response,
             restrict_distribution_desk_request,
         )
 
@@ -285,9 +287,15 @@ class TestFoundation(FrappeTestCase):
             ), patch(
                 "reckon_distribution.warehouse.ensure_current_user_company_permission"
             ), patch("reckon_distribution.desk_guard._request_path", return_value=path):
-                with self.assertRaises(DistributionRedirect) as redirect:
-                    restrict_distribution_desk_request()
-                self.assertEqual(redirect.exception.location, "/desk/distribution")
+                frappe.flags.pop("distribution_redirect", None)
+                restrict_distribution_desk_request()
+                self.assertEqual(frappe.flags.distribution_redirect, "/desk/distribution")
+                response = Response("desk")
+                redirect_distribution_desk_response(response, frappe._dict(path=path))
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.headers["Location"], "/desk/distribution")
+                self.assertEqual(response.get_data(), b"")
+                frappe.flags.pop("distribution_redirect", None)
 
     def test_system_manager_home_page_is_native(self):
         from reckon_distribution.desk_guard import get_user_home_page

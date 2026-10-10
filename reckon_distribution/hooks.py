@@ -108,6 +108,7 @@ doc_events = {
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"
 before_request = ["reckon_distribution.desk_guard.restrict_distribution_desk_request"]
+after_request = ["reckon_distribution.desk_guard.redirect_distribution_desk_response"]
 reckon_saas_modules = [
     "reckon_distribution.saas_module.get_module_definition",
 ]

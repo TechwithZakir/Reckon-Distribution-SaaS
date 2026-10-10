@@ -78,7 +78,7 @@ def sync_tenant_user_permission(doc, method=None) -> None:
     sync_user_company_permission(doc.get("user"))
 
 
-def sync_user_company_permission(user: str | None) -> None:
+def sync_user_company_permission(user: str | None, expected_company: str | None = None) -> None:
     """Idempotently synchronize all active assignments for one user."""
     if not user:
         return
@@ -88,18 +88,34 @@ def sync_user_company_permission(user: str | None) -> None:
         fields=["company"],
     )
     companies = {row.company for row in active if row.company}
+    if expected_company and companies != {expected_company}:
+        frappe.throw(
+            _("The team member must have one active assignment to the selected Company."),
+            frappe.PermissionError,
+        )
     if len(companies) > 1:
         frappe.throw(
             _("User {0} cannot have access to multiple Companies.").format(user),
             frappe.PermissionError,
         )
 
-    for permission in frappe.get_all(
-        "User Permission", filters={"user": user, "allow": "Company"}, pluck="name"
-    ):
-        frappe.delete_doc("User Permission", permission, ignore_permissions=True, force=True)
+    existing = frappe.get_all(
+        "User Permission", filters={"user": user, "allow": "Company"},
+        fields=["name", "for_value", "apply_to_all_doctypes", "is_default", "hide_descendants"],
+    )
+    company = next(iter(companies), None)
+    keep = next((row for row in existing if row.for_value == company), None)
+    for permission in existing:
+        if not keep or permission.name != keep.name:
+            frappe.delete_doc("User Permission", permission.name, ignore_permissions=True, force=True)
 
-    if companies:
+    if keep:
+        if not (keep.apply_to_all_doctypes and keep.is_default and keep.hide_descendants):
+            permission = frappe.get_doc("User Permission", keep.name)
+            permission.update({"apply_to_all_doctypes": 1, "is_default": 1, "hide_descendants": 1})
+            permission.save(ignore_permissions=True)
+
+    if companies and not keep:
         frappe.get_doc(
             {
                 "doctype": "User Permission",
@@ -108,8 +124,22 @@ def sync_user_company_permission(user: str | None) -> None:
                 "for_value": next(iter(companies)),
                 "apply_to_all_doctypes": 1,
                 "is_default": 1,
+                "hide_descendants": 1,
             }
         ).insert(ignore_permissions=True)
+
+    actual = frappe.get_all(
+        "User Permission", filters={"user": user, "allow": "Company"},
+        fields=["for_value", "apply_to_all_doctypes", "is_default", "hide_descendants"],
+    )
+    valid = not actual if not company else (
+        len(actual) == 1 and actual[0].for_value == company
+        and actual[0].apply_to_all_doctypes and actual[0].is_default
+        and actual[0].hide_descendants
+    )
+    if not valid:
+        frappe.throw(_("Company permission could not be verified. Team access was not saved."))
+    frappe.clear_cache(user=user)
 
 
 def ensure_current_user_company_permission(user: str | None = None) -> None:
@@ -138,13 +168,14 @@ def ensure_current_user_company_permission(user: str | None = None) -> None:
     permissions = frappe.get_all(
         "User Permission",
         filters={"user": user, "allow": "Company"},
-        fields=["for_value", "apply_to_all_doctypes", "is_default"],
+        fields=["for_value", "apply_to_all_doctypes", "is_default", "hide_descendants"],
     )
     if (
         len(permissions) == 1
         and permissions[0].for_value == company
         and permissions[0].apply_to_all_doctypes
         and permissions[0].is_default
+        and permissions[0].hide_descendants
     ):
         return
     sync_user_company_permission(user)

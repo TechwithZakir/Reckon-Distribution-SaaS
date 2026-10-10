@@ -167,6 +167,17 @@ override_whitelisted_methods = {
     "erpnext.stock.doctype.warehouse.warehouse.get_children": "reckon_distribution.warehouse.get_children",
 }
 
+# Load this controller only on the Distribution-owned forms listed above.
+doctype_js = {
+    doctype: "public/js/company_context.js"
+    for doctype in permission_query_conditions
+    if doctype != "Company"
+}
+for _doctype in doctype_js:
+    doc_events.setdefault(_doctype, {})["before_validate"] = (
+        "reckon_distribution.company_context.bind_form_company"
+    )
+
 fixtures = [
     {
         "dt": "Role",

@@ -86,9 +86,12 @@ def has_shared_master_permission(
         return False
     tenant = require_tenant(user=user)
     if doc.is_new() and permission_type in {"create", "write"}:
-        return True
+        return doc.get(MASTER_COMPANY_FIELD) in (None, "", tenant.company)
     if master_type in COMPANY_OWNED_MASTER_TYPES:
-        return doc.get(MASTER_COMPANY_FIELD) == tenant.company
+        return (
+            frappe.db.get_value(doc.doctype, doc.name, MASTER_COMPANY_FIELD) == tenant.company
+            and doc.get(MASTER_COMPANY_FIELD) == tenant.company
+        )
     if not frappe.db.exists(
         "Distribution Master Scope",
         {"company": tenant.company, "master_type": master_type, "master_name": doc.name, "active": 1},
@@ -183,6 +186,10 @@ def validate_shared_master_change(doc, method=None) -> None:
         return
     if doc.doctype in COMPANY_OWNED_MASTER_TYPES:
         tenant = require_tenant()
+        if not doc.is_new():
+            stored_company = frappe.db.get_value(doc.doctype, doc.name, MASTER_COMPANY_FIELD)
+            if stored_company != tenant.company:
+                frappe.throw(_("This master is not owned by your Company."), frappe.PermissionError)
         if not doc.get(MASTER_COMPANY_FIELD):
             doc.set(MASTER_COMPANY_FIELD, tenant.company)
         elif doc.get(MASTER_COMPANY_FIELD) != tenant.company:
@@ -213,7 +220,7 @@ def validate_master_reference(doc) -> None:
         and frappe.db.has_column(doc.master_type, MASTER_COMPANY_FIELD)
     ):
         linked_company = frappe.db.get_value(doc.master_type, doc.master_name, MASTER_COMPANY_FIELD)
-        if linked_company and linked_company != doc.company:
+        if linked_company != doc.company:
             frappe.throw(
                 _("{0} {1} belongs to Company {2}, not {3}.").format(
                     doc.master_type, doc.master_name, linked_company, doc.company
@@ -277,6 +284,8 @@ def search_company_master(
     user: str | None = None,
     fields: Iterable[str] | None = None,
 ) -> list[dict]:
+    if user and user != frappe.session.user and not user_can_bypass_tenant():
+        frappe.throw(_("You cannot search masters as another user."), frappe.PermissionError)
     tenant = require_tenant(user=user)
     if master_type not in SUPPORTED_MASTER_TYPES:
         frappe.throw(_("Unsupported distribution master type: {0}").format(master_type))

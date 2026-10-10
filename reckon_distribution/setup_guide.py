@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import cstr, nowdate
 
+from reckon_distribution.master_data import validate_master_scope
 from reckon_distribution.tenant_security import (
     get_user_companies,
     require_tenant,
@@ -253,8 +254,7 @@ def _assert_exclusive_master(company: str, master_type: str, master_name: str) -
 
 
 def _assert_company_master(company: str, master_type: str, master_name: str) -> None:
-    if not frappe.db.exists("Distribution Master Scope", {"company": company, "master_type": master_type, "master_name": master_name, "active": 1}):
-        frappe.throw(_("This {0} is not enabled for the selected Company.").format(master_type), frappe.PermissionError)
+    validate_master_scope(company, master_type, master_name)
     _assert_exclusive_master(company, master_type, master_name)
 
 

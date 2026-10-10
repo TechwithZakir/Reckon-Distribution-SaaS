@@ -5,7 +5,14 @@ frappe.pages["distribution-team-access"].on_page_load = function (wrapper) {
   const company = $(page.body).find("[data-company]");
   $(page.body).find("[data-add]").on("click", addMember);
   company.on("change", loadTeam);
-  frappe.call({ method: "reckon_distribution.setup_guide.get_setup_companies" }).then((r) => { (r.message || []).forEach((row) => company.append(`<option value="${frappe.utils.escape_html(row.name)}">${frappe.utils.escape_html(row.name)}</option>`)); if ((r.message || []).length === 1) { company.val(r.message[0].name); loadTeam(); } });
+  frappe.call({ method: "reckon_distribution.team_access.get_team_companies" }).then((r) => {
+    const context = r.message || {};
+    const companies = context.companies || [];
+    company.empty().append($('<option>').val('').text(__("Select Company")));
+    companies.forEach((row) => company.append($('<option>').val(row.name).text(row.name)));
+    company.prop("disabled", Boolean(context.locked));
+    if (companies.length === 1) { company.val(companies[0].name); loadTeam(); }
+  });
 
   function loadTeam() {
     if (!company.val() || company.val() === "Select Company") return;

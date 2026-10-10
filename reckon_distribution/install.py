@@ -598,6 +598,20 @@ def ensure_distribution_transaction_permissions() -> None:
         "Delivery Note": {"read", "write", "create", "submit", "print"},
         "DSR Collection Receipt": {"read", "write", "create"},
     }
+    permission_flags = {
+        "read",
+        "write",
+        "create",
+        "delete",
+        "submit",
+        "cancel",
+        "amend",
+        "print",
+        "email",
+        "export",
+        "report",
+        "share",
+    }
     operational_roles = {"Reckon Distribution Admin", "Reckon Distribution Manager", "Reckon Distribution User"}
     for doctype, full_rights in transaction_permissions.items():
         if not frappe.db.exists("DocType", doctype):
@@ -625,7 +639,7 @@ def ensure_distribution_transaction_permissions() -> None:
             # DSR users submit Delivery Notes from the delivery page, while
             # delete/cancel rights remain absent from this permission row.
             rights = full_rights
-            for right in full_rights:
+            for right in permission_flags:
                 enabled = right in rights
                 perm.db_set(right, 1 if enabled else 0)
                 if enabled and hasattr(permissions, "add_permission"):

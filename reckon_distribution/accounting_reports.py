@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, flt, getdate, nowdate
+from frappe.utils import flt, getdate, nowdate
 
 from reckon_distribution.tenant_security import require_tenant
 
@@ -24,13 +23,6 @@ def report_context(filters: dict | None) -> tuple[dict, str, object, object, str
 
 def summary(label: str, value: float, currency: str, indicator: str = "Blue") -> dict:
     return {"label": label, "value": flt(value), "indicator": indicator, "datatype": "Currency", "currency": currency}
-
-
-def _dates(from_date, to_date) -> Iterable:
-    current = from_date
-    while current <= to_date:
-        yield current
-        current = add_days(current, 1)
 
 
 def _cash_accounts(company: str, account: str | None = None) -> list[str]:
@@ -437,3 +429,26 @@ def profit_and_loss(filters: dict | None = None):
         summary(_("Total Expense"), expense_total, currency, "Orange"),
         summary(_("Net Profit") if net_profit >= 0 else _("Net Loss"), abs(net_profit), currency, "Green" if net_profit >= 0 else "Red"),
     ]
+
+
+def receivable_payable_aging(filters: dict | None, account_type: str):
+    """Run ERPNext's allocation-aware ageing report inside the current tenant."""
+    from erpnext.accounts.report.accounts_receivable.accounts_receivable import (
+        ReceivablePayableReport,
+    )
+
+    values = frappe._dict(filters or {})
+    values.company = require_tenant().company
+    values.report_date = values.get("report_date") or nowdate()
+    values.ageing_based_on = values.get("ageing_based_on") or "Due Date"
+    values.range = values.get("range") or "30, 60, 90, 120"
+    naming_by = ["Selling Settings", "cust_master_name"]
+    if account_type == "Payable":
+        naming_by = ["Buying Settings", "supp_master_name"]
+        if values.get("supplier"):
+            values.party = [values.supplier]
+    elif values.get("customer"):
+        values.party = [values.customer]
+    return ReceivablePayableReport(values).run(
+        {"account_type": account_type, "naming_by": naming_by}
+    )

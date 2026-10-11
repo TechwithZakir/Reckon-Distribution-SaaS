@@ -16,6 +16,7 @@ def after_install() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
+    remove_distribution_accounts_payable_access()
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -35,6 +36,7 @@ def after_migrate() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
+    remove_distribution_accounts_payable_access()
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -71,6 +73,25 @@ def remove_legacy_daily_balance_report() -> None:
     report = frappe.get_doc("Report", report_name)
     if report.module == "Distribution" and report.is_standard == "Yes":
         frappe.delete_doc("Report", report_name, ignore_permissions=True, force=True)
+
+
+def remove_distribution_accounts_payable_access() -> None:
+    """Withdraw the native Accounts Payable report from Distribution users."""
+    report_name = "Accounts Payable"
+    if not frappe.db.exists("Report", report_name):
+        return
+    report = frappe.get_doc("Report", report_name)
+    distribution_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Company Admin",
+        "Company Manager",
+    }
+    original_count = len(report.roles)
+    report.set("roles", [row for row in report.roles if row.role not in distribution_roles])
+    if len(report.roles) != original_count:
+        report.save(ignore_permissions=True)
+        frappe.clear_cache(doctype="Report")
 
 
 def ensure_office_expense_defaults() -> None:
@@ -1160,6 +1181,7 @@ def ensure_native_master_permissions() -> None:
         "Cost Center": {"read"},
         "Report": {"read"},
         "Stock Ledger Entry": {"read", "report", "export", "print"},
+        "Payment Ledger Entry": {"read", "report", "export", "print"},
         # Financial reports execute against GL Entry but never expose its desk
         # list outside the tenant-bound Script Reports below.
         "GL Entry": {"read", "report", "export", "print"},
@@ -1179,7 +1201,7 @@ def ensure_native_master_permissions() -> None:
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
     procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
     operational_report_doctypes = {"Stock Ledger Entry"}
-    accounting_report_doctypes = {"GL Entry"}
+    accounting_report_doctypes = {"GL Entry", "Payment Ledger Entry"}
     procurement_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",
@@ -1272,11 +1294,12 @@ def ensure_distribution_report_roles() -> None:
         "Stock Balance": operational_roles,
         "Sales Register": management_roles,
         "Purchase Register": management_roles,
-        "Accounts Payable": management_roles,
         "Accounting Ledger": management_roles,
         "Day Book": management_roles,
         "Cash Book": management_roles,
         "Supplier Ledger": management_roles,
+        "Supplier Aging Report": management_roles,
+        "Customer Aging Report": management_roles,
         "DSR Wise Ledger": management_roles,
         "Ledger Summary": management_roles,
         "Profit & Loss": management_roles,
@@ -1504,7 +1527,6 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
         link("Sales Register", "Sales Register", "Report", "receipt-text", child=True),
         link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
-        link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
         link(
             "Accounting Ledger",
             "Accounting Ledger",
@@ -1515,6 +1537,8 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Day Book", "Day Book", "Report", "book-open-check", child=True),
         link("Cash Book", "Cash Book", "Report", "wallet-cards", child=True),
         link("Supplier Ledger", "Supplier Ledger", "Report", "contact-round", child=True),
+        link("Supplier Aging Report", "Supplier Aging Report", "Report", "clock-3", child=True),
+        link("Customer Aging Report", "Customer Aging Report", "Report", "clock-3", child=True),
         link("DSR Wise Ledger", "DSR Wise Ledger", "Report", "users-round", child=True),
         link("Ledger Summary", "Ledger Summary", "Report", "list-tree", child=True),
         link("Profit & Loss", "Profit & Loss", "Report", "chart-no-axes-combined", child=True),

@@ -327,15 +327,24 @@ def submit_distribution_delivery(payload: str | dict) -> str:
 
     _validate_delivery_stock(data["warehouse"], item_rows)
 
+    delivery_date = data.get("delivery_date") or nowdate()
+    daily_challan = data.get("challan") or _find_daily_challan(
+        tenant.company,
+        data.get("route"),
+        frappe.session.user,
+        data["warehouse"],
+        delivery_date,
+    )
     delivery = frappe.get_doc(
         {
             "doctype": "Delivery Note",
             "company": tenant.company,
             "customer": data["customer"],
-            "posting_date": data.get("delivery_date") or nowdate(),
+            "posting_date": delivery_date,
             "set_warehouse": data["warehouse"],
             "rd_route": data.get("route"),
             "rd_dsr": frappe.session.user,
+            "rd_dsr_challan": daily_challan,
             "rd_outlet_visit": data.get("outlet_visit"),
             "rd_idempotency_key": key,
             "items": item_rows,
@@ -344,6 +353,33 @@ def submit_distribution_delivery(payload: str | dict) -> str:
     delivery.insert()
     delivery.submit()
     return delivery.name
+
+
+def _find_daily_challan(
+    company: str, route: str | None, dsr: str, warehouse: str, delivery_date: str
+) -> str | None:
+    """Attach a delivery to its one matching submitted Daily Challan when present."""
+    if not route:
+        return None
+    matches = frappe.get_all(
+        "DSR Challan",
+        filters={
+            "company": company,
+            "route": route,
+            "dsr": dsr,
+            "van_warehouse": warehouse,
+            "posting_date": delivery_date,
+            "docstatus": 1,
+            "status": ["in", ["Submitted", "Approved", "Acknowledged"]],
+        },
+        pluck="name",
+        limit_page_length=2,
+    )
+    if len(matches) > 1:
+        frappe.throw(
+            _("More than one submitted Daily Challan matches this route and van. Select the correct challan before delivery.")
+        )
+    return matches[0] if matches else None
 
 
 def _validate_delivery_stock(warehouse: str, item_rows: list[dict]) -> None:

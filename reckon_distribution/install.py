@@ -21,6 +21,7 @@ def after_install() -> None:
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
+    remove_legacy_dsr_day_settlement_page()
     remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
@@ -42,6 +43,7 @@ def after_migrate() -> None:
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
+    remove_legacy_dsr_day_settlement_page()
     remove_distribution_reports_page()
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
@@ -232,6 +234,18 @@ def remove_legacy_challan_pages() -> None:
         frappe.clear_cache()
 
 
+def remove_legacy_dsr_day_settlement_page() -> None:
+    """Use the native DSR Day Settlement list and form instead of a page wrapper."""
+    page_name = "dsr-day-settlement"
+    if not frappe.db.exists("Page", page_name):
+        return
+
+    page = frappe.db.get_value("Page", page_name, ["module", "standard"], as_dict=True)
+    if page and page.module == "Distribution":
+        frappe.delete_doc("Page", page_name, force=True, ignore_permissions=True)
+        frappe.clear_cache()
+
+
 def remove_distribution_reports_page() -> None:
     """Retire the custom report launcher in favor of native report links."""
     page_name = "distribution-reports"
@@ -376,11 +390,20 @@ def ensure_purchase_receipt_fields() -> None:
         },
         {
             "dt": "Delivery Note",
+            "fieldname": "rd_dsr_challan",
+            "label": "Daily Challan",
+            "fieldtype": "Link",
+            "options": "DSR Challan",
+            "read_only": 1,
+            "insert_after": "rd_dsr",
+        },
+        {
+            "dt": "Delivery Note",
             "fieldname": "rd_outlet_visit",
             "label": "Outlet Visit",
             "fieldtype": "Link",
             "options": "Outlet Visit",
-            "insert_after": "rd_dsr",
+            "insert_after": "rd_dsr_challan",
         },
         {
             "dt": "Delivery Note",
@@ -914,6 +937,7 @@ def reload_distribution_layout_doctypes() -> None:
     ):
         frappe.reload_doc("distribution", "doctype", "dsr_challan_item")
     if frappe.db.exists("DocType", "DSR Day Settlement"):
+        frappe.reload_doc("distribution", "doctype", "dsr_day_settlement_item")
         frappe.reload_doc("distribution", "doctype", "dsr_day_settlement")
 
 
@@ -1123,7 +1147,6 @@ def ensure_distribution_page_roles() -> None:
         "distribution-team-access",
         "field-sales",
         "dsr-delivery",
-        "dsr-day-settlement",
     }
     roles = [role.name for role in OPERATIONAL_ROLES]
     for page_name in page_names:
@@ -1530,7 +1553,7 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Field Sales", "field-sales", "Page", "map-pin", child=True),
         link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck", child=True),
         link("DSR Challan", "DSR Challan", "DocType", "package-check", child=True),
-        link("DSR Day Settlement", "dsr-day-settlement", "Page", "calculator", child=True),
+        link("DSR Day Settlement", "DSR Day Settlement", "DocType", "calculator", child=True),
         section("Purchase", "package-plus"),
         link("Purchase Orders", "Purchase Order", "DocType", "clipboard-list", child=True),
         link("Purchase Received", "Purchase Receipt", "DocType", "package-check", child=True),
@@ -1604,7 +1627,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"color": "Green", "label": "Field Sales", "link_to": "field-sales", "type": "Page"},
             {"color": "Orange", "label": "DSR Challan", "link_to": "DSR Challan", "type": "DocType"},
             {"color": "Green", "label": "Deliver & Collect", "link_to": "dsr-delivery", "type": "Page"},
-            {"color": "Red", "label": "Day Settlement", "link_to": "dsr-day-settlement", "type": "Page"},
+            {"color": "Red", "label": "Day Settlement", "link_to": "DSR Day Settlement", "type": "DocType"},
         ],
         "links": [
             {

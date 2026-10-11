@@ -634,10 +634,11 @@ class TestFoundation(FrappeTestCase):
         )
         metadata = json.loads(path.read_text())
         order = metadata["field_order"]
+        self.assertLess(order.index("challan"), order.index("settlement_date"))
         self.assertLess(order.index("settlement_date"), order.index("column_break_1"))
         self.assertLess(order.index("status"), order.index("section_break_cash"))
-        self.assertLess(order.index("approved_expenses"), order.index("column_break_2"))
-        self.assertLess(order.index("counted_cash"), order.index("section_break_variance"))
+        self.assertLess(order.index("confirmed_cash_collections"), order.index("column_break_2"))
+        self.assertLess(order.index("cash_handover"), order.index("section_break_variance"))
         self.assertLess(order.index("cash_variance"), order.index("column_break_3"))
 
     def test_distribution_module_uses_app_workspace_route(self):

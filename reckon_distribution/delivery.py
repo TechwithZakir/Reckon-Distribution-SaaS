@@ -20,6 +20,8 @@ def validate_delivery_note(doc, method=None) -> None:
     if not doc.get("rd_route") or not doc.get("rd_dsr"):
         frappe.throw(_("Route and DSR are required for distribution delivery."))
     _validate_assignment(doc.company, doc.customer, doc.rd_route, doc.rd_dsr)
+    if doc.get("rd_dsr_challan"):
+        _validate_delivery_challan(doc)
     for row in doc.get("items") or []:
         validate_master_scope(doc.company, "Item", row.item_code)
         if row.get("rd_stock_category") not in {"Saleable", "Supplier Free"}:
@@ -127,3 +129,16 @@ def _validate_free_source(company: str, row) -> None:
     source_row = next((item for item in receipt.get("items") or [] if item.item_code == row.item_code), None)
     if not source_row or flt(source_row.get("rd_free_qty")) <= 0:
         frappe.throw(_("Item {0} is not backed by supplier-provided free goods on the source receipt.").format(row.item_code))
+
+
+def _validate_delivery_challan(doc) -> None:
+    challan = get_tenant_doc("DSR Challan", doc.rd_dsr_challan)
+    if challan.docstatus != 1 or challan.status not in {"Submitted", "Approved", "Acknowledged"}:
+        frappe.throw(_("Delivery requires a submitted Daily Challan."))
+    if (
+        challan.company != doc.company
+        or challan.route != doc.rd_route
+        or challan.dsr != doc.rd_dsr
+        or challan.van_warehouse != doc.set_warehouse
+    ):
+        frappe.throw(_("Delivery route, DSR, and van warehouse must match its Daily Challan."))

@@ -71,7 +71,10 @@
   }
 
   frappe.ui.form.on("DSR Challan", {
-    refresh: updateChallanTotals,
+    refresh(frm) {
+      updateChallanTotals(frm);
+      addSettlementAction(frm);
+    },
     validate: updateChallanTotals,
   });
   frappe.ui.form.on("DSR Challan Item", {
@@ -111,6 +114,20 @@
       }
       frappe.model.set_value(cdt, cdn, "unit_price", message.unit_price || 0);
       updateChallanTotals(frm);
+    });
+  }
+
+  function addSettlementAction(frm) {
+    if (frm.is_new() || frm.doc.docstatus !== 1 || frm.doc.status === "Cancelled") return;
+    frm.add_custom_button(__(frm.doc.day_settlement ? "Open Day Settlement" : "Create Day Settlement"), () => {
+      frappe.call({
+        method: "reckon_distribution.settlement.create_day_settlement",
+        args: { challan: frm.doc.name },
+        freeze: true,
+        freeze_message: __("Preparing settlement"),
+      }).then((response) => {
+        frappe.set_route("Form", "DSR Day Settlement", response.message);
+      });
     });
   }
 })();

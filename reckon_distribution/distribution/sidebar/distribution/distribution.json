@@ -8,7 +8,7 @@
     {"type": "Link", "label": "Field Sales", "link_type": "Page", "link_to": "field-sales", "icon": "map-pin", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Link", "label": "DSR Delivery & Collection", "link_type": "Page", "link_to": "dsr-delivery", "icon": "truck", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Link", "label": "DSR Challan", "link_type": "DocType", "link_to": "DSR Challan", "icon": "package-check", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
-    {"type": "Link", "label": "DSR Day Settlement", "link_type": "Page", "link_to": "dsr-day-settlement", "icon": "calculator", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
+    {"type": "Link", "label": "DSR Day Settlement", "link_type": "DocType", "link_to": "DSR Day Settlement", "icon": "calculator", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Section Break", "label": "Purchase", "icon": "package-plus", "hidden": 0, "child": 0, "indent": 0, "collapsible": 1, "keep_closed": 0, "show_arrow": 0},
     {"type": "Link", "label": "Purchase Orders", "link_type": "DocType", "link_to": "Purchase Order", "icon": "clipboard-list", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},
     {"type": "Link", "label": "Purchase Received", "link_type": "DocType", "link_to": "Purchase Receipt", "icon": "package-check", "hidden": 0, "child": 1, "indent": 0, "collapsible": 1, "show_arrow": 0},

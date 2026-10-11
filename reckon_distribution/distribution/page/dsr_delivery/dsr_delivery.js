@@ -1,8 +1,7 @@
 frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
-  frappe.require("/assets/reckon_distribution/css/distribution_pages.css");
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"), single_column: true });
   $(page.body).html(`
-    <main class="rd-dsr-delivery rd-theme-page">
+    <main class="rd-dsr-delivery">
       <header class="rd-dsr-hero"><div><p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p><h2>${__("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ")}</h2><p>${__("Complete delivery and collection independently for each assigned retailer. / নির্ধারিত প্রতিটি রিটেইলারের ডেলিভারি ও টাকা আলাদাভাবে সম্পন্ন করুন।")}</p></div><div class="rd-page-list-actions"><button class="btn btn-default btn-sm" data-open-deliveries>${__("Deliveries")}</button><button class="btn btn-default btn-sm" data-open-collections>${__("Collections")}</button><span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span></div></header>
       <section class="rd-dsr-context rd-dsr-section"><div data-route-field></div><div data-warehouse-field></div></section>
       <div class="rd-dsr-search" data-retailer-field></div>
@@ -18,6 +17,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
     </main>`);
 
   const body = $(page.body), panel = body.find("[data-panel]"), state = body.find("[data-state]");
+  body.find("input, select, textarea").addClass("form-control");
   let assigned = [], selected = null, catalog = [], lines = [], deliveryKey = null, collectionKey = null;
   let customerControl, itemControl;
   const routeControl = makeLinkControl(body.find("[data-route-field]")[0], "route", __("Route / রুট"), "Distribution Route", reloadRoute);

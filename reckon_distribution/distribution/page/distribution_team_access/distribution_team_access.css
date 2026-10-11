@@ -1,13 +1,58 @@
-.rd-team-access { max-width: 900px; padding: 28px; }
+.rd-team-access {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 20px 0 48px;
+}
+
+.rd-team-hero {
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--margin-lg);
+  padding-bottom: var(--margin-md);
+}
+
+.rd-team-hero h2 { margin-top: 0; }
 .rd-team-hero p { color: var(--text-muted); max-width: 700px; }
-.rd-team-card { border: 1px solid var(--border-color); border-radius: 8px; margin-top: 18px; padding: 20px; }
-.rd-team-card > label { display: grid; gap: 6px; font-weight: 600; max-width: 420px; }
-.rd-team-card > label select { min-height: 44px; padding: 8px 10px; }
-.rd-team-form { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.rd-team-form label { display: grid; gap: 6px; font-weight: 600; }
-.rd-team-form input, .rd-team-form select { min-height: 44px; padding: 8px 10px; }
-.rd-team-form button { align-self: end; min-height: 46px; }
-.rd-team-row { align-items: center; border-top: 1px solid var(--border-color); display: flex; gap: 16px; justify-content: space-between; padding: 12px 0; }
+
+.rd-team-card {
+  border-top: 1px solid var(--border-color);
+  margin-top: var(--margin-lg);
+  padding-top: var(--margin-md);
+}
+
+.rd-team-card > label,
+.rd-team-form label {
+  display: grid;
+  font-weight: 600;
+  gap: var(--margin-xs);
+}
+
+.rd-team-card > label { max-width: 420px; }
+.rd-team-card select,
+.rd-team-form input,
+.rd-team-form select { width: 100%; }
+
+.rd-team-form {
+  display: grid;
+  gap: var(--margin-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rd-team-form button { align-self: end; }
+
+.rd-team-row {
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: var(--margin-md);
+  justify-content: space-between;
+  padding: var(--padding-sm) 0;
+}
+
 .rd-team-row span { color: var(--text-muted); }
-.rd-team-row em { color: var(--green, #2e9b69); font-style: normal; }
-@media (max-width: 650px) { .rd-team-access { padding: 18px; } .rd-team-form { grid-template-columns: 1fr; } }
+.rd-team-row em { color: var(--green-600); font-style: normal; }
+
+@media (max-width: 650px) {
+  .rd-team-access { padding: var(--margin-md) 0 var(--margin-xl); }
+  .rd-team-form { grid-template-columns: 1fr; }
+  .rd-team-row { align-items: flex-start; flex-wrap: wrap; }
+}

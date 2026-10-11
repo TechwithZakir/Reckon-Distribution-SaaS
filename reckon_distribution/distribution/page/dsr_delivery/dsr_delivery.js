@@ -3,7 +3,7 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ"), single_column: true });
   $(page.body).html(`
     <main class="rd-dsr-delivery rd-theme-page">
-      <header class="rd-dsr-hero"><div><p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p><h2>${__("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ")}</h2><p>${__("Complete delivery and collection independently for each assigned retailer. / নির্ধারিত প্রতিটি রিটেইলারের ডেলিভারি ও টাকা আলাদাভাবে সম্পন্ন করুন।")}</p></div><span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span></header>
+      <header class="rd-dsr-hero"><div><p class="rd-kicker">${__("DSR route work / DSR রুটের কাজ")}</p><h2>${__("Deliver & Collect / ডেলিভারি ও টাকা সংগ্রহ")}</h2><p>${__("Complete delivery and collection independently for each assigned retailer. / নির্ধারিত প্রতিটি রিটেইলারের ডেলিভারি ও টাকা আলাদাভাবে সম্পন্ন করুন।")}</p></div><div class="rd-page-list-actions"><button class="btn btn-default btn-sm" data-open-deliveries>${__("Deliveries")}</button><button class="btn btn-default btn-sm" data-open-collections>${__("Collections")}</button><span class="rd-sync-state" data-state>${__("Ready / প্রস্তুত")}</span></div></header>
       <section class="rd-dsr-context rd-dsr-section"><div data-route-field></div><div data-warehouse-field></div></section>
       <div class="rd-dsr-search" data-retailer-field></div>
       <section class="rd-dsr-panel" data-panel hidden>
@@ -27,6 +27,10 @@ frappe.pages["dsr-delivery"].on_page_load = function (wrapper) {
   itemControl = makeLinkControl(body.find("[data-item-field]")[0], "item_code", __("Product / পণ্য"), "Item", renderUoms, () => ({ filters: { name: ["in", catalog.map((row) => row.item_code)] } }));
   loadContext();
   body.find("[data-uom]").on("change", updatePricePreview); body.find("[data-qty]").on("input", updatePricePreview); body.find("[data-add-line]").on("click", addLine); body.find("[data-save]").on("click", saveAll);
+  body.find("[data-open-deliveries]").on("click", () => openList("Delivery Note"));
+  body.find("[data-open-collections]").on("click", () => openList("DSR Collection Receipt"));
+
+  function openList(doctype) { frappe.set_route("List", doctype); }
 
   function loadContext() { frappe.call({ method: "reckon_distribution.field_sales.get_dsr_delivery_context" }).then((response) => { const context = response.message || {}; if (context.default_route) routeControl.set_value(context.default_route); if (context.default_warehouse) warehouseControl.set_value(context.default_warehouse); if (context.default_account) accountControl.set_value(context.default_account); loadOutlets(routeControl.get_value()); }).catch(() => loadOutlets()); }
   function reloadRoute() { selected = null; panel.prop("hidden", true); loadOutlets(routeControl.get_value()); }

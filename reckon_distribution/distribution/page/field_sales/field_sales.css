@@ -1,6 +1,8 @@
 .rd-field-sales { max-width: 720px; margin: 0 auto; padding: 24px 16px 96px; }
 .rd-field-sales__top { align-items: center; display: flex; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .rd-field-sales__top h2 { margin: 0; }
+.rd-page-list-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.rd-page-list-actions .btn { white-space: nowrap; }
 .rd-sync-state { background: var(--subtle-fg); border-radius: 999px; color: var(--text-muted); font-size: 12px; padding: 8px 12px; }
 .rd-search { display: grid; gap: 8px; margin-bottom: 16px; }
 .rd-search span { font-weight: 600; }

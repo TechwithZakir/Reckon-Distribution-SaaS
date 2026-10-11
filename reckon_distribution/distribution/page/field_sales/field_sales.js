@@ -8,7 +8,7 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
 
   $(page.body).html(`
     <main class="rd-field-sales rd-theme-page">
-      <section class="rd-field-sales__top"><div><p class="rd-kicker">${__("আজকের রুট")}</p><h2>${__("Field Sales")}</h2></div><span class="rd-sync-state" data-sync-state>${__("Ready to sync")}</span></section>
+      <section class="rd-field-sales__top"><div><p class="rd-kicker">${__("আজকের রুট")}</p><h2>${__("Field Sales")}</h2></div><div class="rd-page-list-actions"><button class="btn btn-default btn-sm" data-open-orders>${__("Orders")}</button><button class="btn btn-default btn-sm" data-open-visits>${__("Visits")}</button><span class="rd-sync-state" data-sync-state>${__("Ready to sync")}</span></div></section>
       <label class="rd-search"><span>${__("Search retailer")}</span><input data-retailer-search placeholder="${__("Retailer name")}" /></label>
       <section class="rd-outlets" data-outlets><p class="text-muted">${__("Loading assigned outlets...")}</p></section>
       <section class="rd-retailer-panel" data-retailer-panel hidden>
@@ -37,6 +37,12 @@ frappe.pages["field-sales"].on_page_load = function (wrapper) {
   $(page.body).find("[data-submit-delivery]").on("click", submitDelivery);
   $(page.body).find("[data-receive-payment]").on("click", receivePayment);
   $(page.body).find("[data-item]").on("change", renderUoms);
+  $(page.body).find("[data-open-orders]").on("click", () => openList("SR Order"));
+  $(page.body).find("[data-open-visits]").on("click", () => openList("Outlet Visit"));
+
+  function openList(doctype) {
+    frappe.set_route("List", doctype);
+  }
 
   function loadOutlets() {
     frappe.call({ method: "reckon_distribution.field_sales.get_assigned_outlets" }).then((r) => {

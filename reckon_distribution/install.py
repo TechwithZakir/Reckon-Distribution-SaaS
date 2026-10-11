@@ -353,6 +353,17 @@ def ensure_purchase_receipt_fields() -> None:
             "insert_after": "stock_entry_type",
         },
         {
+            "dt": "Stock Entry",
+            "fieldname": "rd_dsr_day_settlement",
+            "label": "DSR Day Settlement",
+            "fieldtype": "Link",
+            "options": "DSR Day Settlement",
+            "hidden": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "insert_after": "rd_van_loading_challan",
+        },
+        {
             "dt": "Payment Entry",
             "fieldname": "rd_collection_receipt",
             "label": "DSR Collection Receipt",
@@ -371,6 +382,28 @@ def ensure_purchase_receipt_fields() -> None:
             "read_only": 1,
             "no_copy": 1,
             "insert_after": "rd_collection_receipt",
+        },
+        {
+            "dt": "Payment Entry",
+            "fieldname": "rd_dsr_day_settlement",
+            "label": "DSR Day Settlement",
+            "fieldtype": "Link",
+            "options": "DSR Day Settlement",
+            "hidden": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "insert_after": "rd_office_expense",
+        },
+        {
+            "dt": "Stock Reconciliation",
+            "fieldname": "rd_dsr_day_settlement",
+            "label": "DSR Day Settlement",
+            "fieldtype": "Link",
+            "options": "DSR Day Settlement",
+            "hidden": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "insert_after": "company",
         },
         {
             "dt": "Delivery Note",
@@ -938,6 +971,7 @@ def reload_distribution_layout_doctypes() -> None:
         frappe.reload_doc("distribution", "doctype", "dsr_challan_item")
     if frappe.db.exists("DocType", "DSR Day Settlement"):
         frappe.reload_doc("distribution", "doctype", "dsr_day_settlement_item")
+        frappe.reload_doc("distribution", "doctype", "dsr_day_settlement_payment")
         frappe.reload_doc("distribution", "doctype", "dsr_day_settlement")
 
 
@@ -1213,6 +1247,7 @@ def ensure_native_master_permissions() -> None:
         "Cost Center": {"read"},
         "Report": {"read"},
         "Stock Ledger Entry": {"read", "report", "export", "print"},
+        "Stock Reconciliation": {"read", "report", "export", "print"},
         "Payment Ledger Entry": {"read", "report", "export", "print"},
         # Financial reports execute against GL Entry but never expose its desk
         # list outside the tenant-bound Script Reports below.
@@ -1235,6 +1270,7 @@ def ensure_native_master_permissions() -> None:
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
     procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
     operational_report_doctypes = {"Stock Ledger Entry"}
+    settlement_posting_doctypes = {"Stock Reconciliation"}
     accounting_report_doctypes = {
         "GL Entry",
         "Payment Ledger Entry",
@@ -1242,6 +1278,12 @@ def ensure_native_master_permissions() -> None:
         "Journal Entry",
     }
     procurement_roles = {
+        "Reckon Distribution Admin",
+        "Reckon Distribution Manager",
+        "Company Admin",
+        "Company Manager",
+    }
+    settlement_posting_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",
         "Company Admin",
@@ -1286,6 +1328,8 @@ def ensure_native_master_permissions() -> None:
                 )
                 perm.insert(ignore_permissions=True)
             if doctype in procurement_doctypes and role not in procurement_roles:
+                rights = set()
+            elif doctype in settlement_posting_doctypes and role not in settlement_posting_roles:
                 rights = set()
             elif doctype in accounting_report_doctypes and role not in procurement_roles:
                 rights = set()
@@ -1400,6 +1444,7 @@ def ensure_distribution_transaction_permissions() -> None:
         "DSR Challan": {"read", "write", "create", "submit", "print"},
         "Delivery Note": {"read", "write", "create", "submit", "print", "report"},
         "DSR Collection Receipt": {"read", "write", "create", "report"},
+        "DSR Day Settlement": {"read", "write", "create", "submit", "print"},
     }
     permission_flags = {
         "read",
@@ -1468,9 +1513,12 @@ def ensure_distribution_transaction_permissions() -> None:
                     }
                 )
                 perm.insert(ignore_permissions=True)
-            # DSR users submit Delivery Notes from the delivery page, while
-            # delete/cancel rights remain absent from this permission row.
             rights = full_rights
+            if doctype == "DSR Day Settlement":
+                if role in {"Reckon Distribution Admin", "Company Admin", "System Manager"}:
+                    rights = full_rights | {"delete", "cancel", "amend"}
+                elif role in {"Reckon Distribution Manager", "Company Manager"}:
+                    rights = full_rights | {"delete", "cancel", "amend"}
             for right in permission_flags:
                 enabled = right in rights
                 perm.db_set(right, 1 if enabled else 0)

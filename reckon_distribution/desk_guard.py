@@ -172,6 +172,7 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Journal Entry",
         "Delivery Note",
         "Stock Entry",
+        "Stock Reconciliation",
         "Stock Ledger Entry",
         "Report",
         # Frappe stores saved list filters in this user-scoped metadata DocType.
@@ -197,6 +198,7 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Return Inspection",
         "DSR Day Settlement",
         "DSR Day Settlement Item",
+        "DSR Day Settlement Payment",
         "Office Expense",
         "Office Expense Item",
         "Office Expense Settings",

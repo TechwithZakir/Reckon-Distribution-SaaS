@@ -102,9 +102,10 @@ class TestDSRDaySettlement(FrappeTestCase):
         ):
             source = _challan_stock_source(challan)
 
-        self.assertEqual(source["_Test Item"]["loaded_qty"], 20)
-        self.assertEqual(source["_Test Item"]["delivered_qty"], 3)
-        self.assertEqual(source["_Test Item"]["returned_qty"], 1)
+        source_row = source[("_Test Item", "")]
+        self.assertEqual(source_row["loaded_qty"], 20)
+        self.assertEqual(source_row["delivered_qty"], 3)
+        self.assertEqual(source_row["returned_qty"], 1)
 
     def test_create_settlement_links_the_daily_challan(self):
         challan = frappe._dict(

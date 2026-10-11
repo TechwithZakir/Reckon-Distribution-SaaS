@@ -4,9 +4,10 @@
  "module":"Distribution",
  "istable":1,
  "editable_grid":1,
- "field_order":["item_code","uom","loaded_qty","paid_delivery_qty","accepted_return_qty","expected_closing_qty","closing_qty","variance_qty","variance_reason","opening_qty","free_delivery_qty"],
+ "field_order":["item_code","batch_no","uom","loaded_qty","paid_delivery_qty","accepted_return_qty","expected_closing_qty","closing_qty","variance_qty","variance_reason","opening_qty","free_delivery_qty"],
  "fields":[
   {"fieldname":"item_code","fieldtype":"Link","label":"Item","options":"Item","reqd":1,"in_list_view":1},
+  {"fieldname":"batch_no","fieldtype":"Link","label":"Batch","options":"Batch","read_only":1,"in_list_view":1},
   {"fieldname":"uom","fieldtype":"Link","label":"Stock UOM","options":"UOM","read_only":1,"in_list_view":1},
   {"fieldname":"opening_qty","fieldtype":"Float","label":"Opening Van Stock","default":0,"hidden":1},
   {"fieldname":"loaded_qty","fieldtype":"Float","label":"Challan Qty","default":0,"read_only":1,"in_list_view":1},

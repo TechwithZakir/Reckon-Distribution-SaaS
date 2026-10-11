@@ -269,7 +269,7 @@ def dsr_ledger(filters: dict | None = None):
         f"""
         select dsr, coalesce(sum(cash_handover), 0) as amount
         from `tabDSR Day Settlement`
-        where company = %s and status = 'Approved' and settlement_date < %s{dsr_clause}
+        where company = %s and status in ('Approved', 'Submitted') and settlement_date < %s{dsr_clause}
         group by dsr
         """,
         [company, from_date, *dsr_values],
@@ -294,7 +294,7 @@ def dsr_ledger(filters: dict | None = None):
         select settlement_date as posting_date, dsr, name as reference, route as detail,
             cash_handover as handed_over
         from `tabDSR Day Settlement`
-        where company = %s and status = 'Approved' and settlement_date between %s and %s{dsr_clause}
+        where company = %s and status in ('Approved', 'Submitted') and settlement_date between %s and %s{dsr_clause}
         """,
         [company, from_date, to_date, *dsr_values],
         as_dict=True,

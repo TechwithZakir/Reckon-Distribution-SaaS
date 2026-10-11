@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 import frappe
 from frappe import _
@@ -17,7 +17,7 @@ DISTRIBUTION_QUERY_REPORTS = frozenset(
     {
         "Stock Ledger",
         "Stock Balance",
-        "Sales Register",
+        "Distribution Sales Register",
         "Purchase Register",
         "Accounting Ledger",
         "Day Book",
@@ -40,7 +40,7 @@ DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
 )
 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
     {
-        "Sales Register",
+        "Distribution Sales Register",
         "Purchase Register",
         "Accounting Ledger",
         "Day Book",
@@ -259,6 +259,9 @@ def restrict_distribution_desk_request() -> None:
             _redirect_to_distribution()
         if desk_route == "query-report":
             report_name = unquote(desk_path.removeprefix("query-report/")).strip("/")
+            if report_name == "Sales Register":
+                _redirect_to_distribution_report("Distribution Sales Register")
+                return
             if not _can_access_distribution_report(report_name):
                 _redirect_to_distribution()
 
@@ -484,6 +487,11 @@ def _redirect_to_distribution() -> None:
     after-request hook can safely replace the completed response with a 302.
     """
     frappe.flags.distribution_redirect = f"/{DISTRIBUTION_DESK_ROUTE}"
+
+
+def _redirect_to_distribution_report(report_name: str) -> None:
+    """Redirect replaced native report routes to their Distribution equivalent."""
+    frappe.flags.distribution_redirect = f"/desk/query-report/{quote(report_name)}"
 
 
 def redirect_distribution_desk_response(response, request) -> None:

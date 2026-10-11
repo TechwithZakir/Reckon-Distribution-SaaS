@@ -16,7 +16,7 @@ def after_install() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
-    remove_distribution_accounts_payable_access()
+    remove_distribution_legacy_report_access()
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -36,7 +36,7 @@ def after_migrate() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
-    remove_distribution_accounts_payable_access()
+    remove_distribution_legacy_report_access()
     remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
@@ -75,23 +75,23 @@ def remove_legacy_daily_balance_report() -> None:
         frappe.delete_doc("Report", report_name, ignore_permissions=True, force=True)
 
 
-def remove_distribution_accounts_payable_access() -> None:
-    """Withdraw the native Accounts Payable report from Distribution users."""
-    report_name = "Accounts Payable"
-    if not frappe.db.exists("Report", report_name):
-        return
-    report = frappe.get_doc("Report", report_name)
+def remove_distribution_legacy_report_access() -> None:
+    """Withdraw native reports replaced by Distribution-specific equivalents."""
     distribution_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",
         "Company Admin",
         "Company Manager",
     }
-    original_count = len(report.roles)
-    report.set("roles", [row for row in report.roles if row.role not in distribution_roles])
-    if len(report.roles) != original_count:
-        report.save(ignore_permissions=True)
-        frappe.clear_cache(doctype="Report")
+    for report_name in ("Accounts Payable", "Sales Register"):
+        if not frappe.db.exists("Report", report_name):
+            continue
+        report = frappe.get_doc("Report", report_name)
+        original_count = len(report.roles)
+        report.set("roles", [row for row in report.roles if row.role not in distribution_roles])
+        if len(report.roles) != original_count:
+            report.save(ignore_permissions=True)
+            frappe.clear_cache(doctype="Report")
 
 
 def ensure_office_expense_defaults() -> None:
@@ -1299,7 +1299,7 @@ def ensure_distribution_report_roles() -> None:
     reports = {
         "Stock Ledger": operational_roles,
         "Stock Balance": operational_roles,
-        "Sales Register": management_roles,
+        "Distribution Sales Register": management_roles,
         "Purchase Register": management_roles,
         "Accounting Ledger": management_roles,
         "Day Book": management_roles,
@@ -1366,8 +1366,8 @@ def ensure_distribution_transaction_permissions() -> None:
     """Give operational roles the transaction access used by custom pages."""
     transaction_permissions = {
         "DSR Challan": {"read", "write", "create", "submit", "print"},
-        "Delivery Note": {"read", "write", "create", "submit", "print"},
-        "DSR Collection Receipt": {"read", "write", "create"},
+        "Delivery Note": {"read", "write", "create", "submit", "print", "report"},
+        "DSR Collection Receipt": {"read", "write", "create", "report"},
     }
     permission_flags = {
         "read",
@@ -1532,7 +1532,7 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         section("Reports", "chart-no-axes-combined"),
         link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
         link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
-        link("Sales Register", "Sales Register", "Report", "receipt-text", child=True),
+        link("Sales Register", "Distribution Sales Register", "Report", "receipt-text", child=True),
         link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
         link(
             "Accounting Ledger",

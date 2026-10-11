@@ -376,11 +376,57 @@ def ledger_summary(filters: dict | None = None):
             }
         )
     return columns, data, [
-        summary(_("Opening Balance"), sum(row.opening_balance for row in data), currency),
-        summary(_("Total Debit"), sum(row.debit for row in data), currency, "Green"),
-        summary(_("Total Credit"), sum(row.credit for row in data), currency, "Blue"),
-        summary(_("Closing Balance"), sum(row.closing_balance for row in data), currency),
+        summary(_("Opening Balance"), sum(row["opening_balance"] for row in data), currency),
+        summary(_("Total Debit"), sum(row["debit"] for row in data), currency, "Green"),
+        summary(_("Total Credit"), sum(row["credit"] for row in data), currency, "Blue"),
+        summary(_("Closing Balance"), sum(row["closing_balance"] for row in data), currency),
     ]
+
+
+def distribution_sales_register(filters: dict | None = None):
+    """Show the submitted Delivery Notes produced by the Distribution workflow."""
+    values, company, from_date, to_date, currency = report_context(filters)
+    columns = [
+        {"label": _("Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 105},
+        {
+            "label": _("Delivery Note"),
+            "fieldname": "delivery_note",
+            "fieldtype": "Link",
+            "options": "Delivery Note",
+            "width": 160,
+        },
+        {"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 190},
+        {"label": _("Route"), "fieldname": "route", "fieldtype": "Link", "options": "Distribution Route", "width": 180},
+        {"label": _("DSR"), "fieldname": "dsr", "fieldtype": "Link", "options": "User", "width": 180},
+        {"label": _("Amount"), "fieldname": "amount", "fieldtype": "Currency", "options": "currency", "width": 135},
+    ]
+    conditions = [
+        "company = %s",
+        "docstatus = 1",
+        "ifnull(is_return, 0) = 0",
+        "posting_date between %s and %s",
+    ]
+    parameters = [company, from_date, to_date]
+    for filter_name, column in (("customer", "customer"), ("route", "rd_route"), ("dsr", "rd_dsr")):
+        if value := values.get(filter_name):
+            conditions.append(f"{column} = %s")
+            parameters.append(value)
+    data = frappe.db.sql(
+        f"""
+        select posting_date, name as delivery_note, customer, rd_route as route, rd_dsr as dsr,
+            coalesce(grand_total, 0) as amount
+        from `tabDelivery Note`
+        where {' and '.join(conditions)}
+        order by posting_date desc, creation desc
+        """,
+        parameters,
+        as_dict=True,
+    )
+    total = 0.0
+    for row in data:
+        row.currency = currency
+        total += flt(row.amount)
+    return columns, data, [summary(_("Total Sales"), total, currency, "Green")]
 
 
 def profit_and_loss(filters: dict | None = None):

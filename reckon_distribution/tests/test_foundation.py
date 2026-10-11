@@ -175,6 +175,11 @@ class TestFoundation(FrappeTestCase):
         self.assertIn('"payment_type": "Pay"', source)
         self.assertNotIn("create_office_expense_journal_entry", source)
 
+    def test_distribution_dashboard_uses_safe_aggregate_syntax(self):
+        source = (Path(__file__).parents[1] / "dashboard.py").read_text()
+        self.assertIn('frappe.db.get_value(doctype, filters, {"SUM": fieldname})', source)
+        self.assertNotIn('f"sum(`{fieldname}`)"', source)
+
     def test_distribution_sidebar_groups_core_work_and_reports(self):
         sidebar_path = (
             Path(__file__).parents[1]

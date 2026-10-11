@@ -31,7 +31,7 @@ def _count(doctype: str, filters: dict) -> int:
 
 
 def _sum(doctype: str, fieldname: str, filters: dict) -> float:
-    value = frappe.db.get_value(doctype, filters, f"sum(`{fieldname}`)")
+    value = frappe.db.get_value(doctype, filters, {"SUM": fieldname})
     return flt(value)
 
 

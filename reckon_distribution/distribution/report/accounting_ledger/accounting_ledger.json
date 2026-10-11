@@ -12,10 +12,10 @@
  ],
  "is_standard": "Yes",
  "module": "Distribution",
- "name": "Daily Opening & Closing Balance",
+ "name": "Accounting Ledger",
  "prepared_report": 0,
  "ref_doctype": "GL Entry",
- "report_name": "Daily Opening & Closing Balance",
+ "report_name": "Accounting Ledger",
  "report_type": "Script Report",
  "roles": [
   {"role": "Reckon Distribution Admin"},

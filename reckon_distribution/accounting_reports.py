@@ -62,64 +62,53 @@ def _cash_openings(company: str, accounts: list[str], from_date) -> dict[str, fl
     return {row.account: flt(row.balance) for row in rows}
 
 
-def daily_opening_closing_balance(filters: dict | None = None):
+def accounting_ledger(filters: dict | None = None):
     values, company, from_date, to_date, currency = report_context(filters)
     accounts = _cash_accounts(company, values.get("cash_account"))
     columns = [
+        {"label": _("No."), "fieldname": "row_no", "fieldtype": "Int", "width": 55},
         {"label": _("Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 105},
-        {"label": _("Cash / Bank Account"), "fieldname": "account", "fieldtype": "Link", "options": "Account", "width": 220},
-        {"label": _("Opening Balance"), "fieldname": "opening_balance", "fieldtype": "Currency", "options": "currency", "width": 135},
-        {"label": _("Receipts"), "fieldname": "receipts", "fieldtype": "Currency", "options": "currency", "width": 120},
-        {"label": _("Payments"), "fieldname": "payments", "fieldtype": "Currency", "options": "currency", "width": 120},
-        {"label": _("Closing Balance"), "fieldname": "closing_balance", "fieldtype": "Currency", "options": "currency", "width": 135},
+        {"label": _("Description"), "fieldname": "description", "fieldtype": "Data", "width": 360},
+        {"label": _("Income"), "fieldname": "income", "fieldtype": "Currency", "options": "currency", "width": 135},
+        {"label": _("Expense"), "fieldname": "expense", "fieldtype": "Currency", "options": "currency", "width": 135},
+        {"label": _("Balance"), "fieldname": "balance", "fieldtype": "Currency", "options": "currency", "width": 135},
     ]
     if not accounts:
         return columns, [], []
 
     placeholders, account_values = _account_placeholders(accounts)
-    movements = frappe.db.sql(
+    data = frappe.db.sql(
         f"""
-        select posting_date, account, coalesce(sum(debit), 0) as receipts,
-            coalesce(sum(credit), 0) as payments
+        select posting_date, account, voucher_type, voucher_no, remarks,
+            coalesce(debit, 0) as income, coalesce(credit, 0) as expense
         from `tabGL Entry`
         where company = %s and posting_date between %s and %s and ifnull(is_cancelled, 0) = 0
           and account in ({placeholders})
-        group by posting_date, account
+        order by posting_date, creation, name
         """,
         [company, from_date, to_date, *account_values],
         as_dict=True,
     )
-    movement_by_day = {(row.account, row.posting_date): row for row in movements}
-    balances = defaultdict(float, _cash_openings(company, accounts, from_date))
-    data = []
-    total_receipts = total_payments = 0.0
-    opening_total = sum(balances.values())
-    for posting_date in _dates(from_date, to_date):
-        for account in accounts:
-            movement = movement_by_day.get((account, posting_date))
-            receipts = flt(movement.receipts) if movement else 0.0
-            payments = flt(movement.payments) if movement else 0.0
-            opening = balances[account]
-            closing = opening + receipts - payments
-            data.append(
-                {
-                    "posting_date": posting_date,
-                    "account": account,
-                    "opening_balance": opening,
-                    "receipts": receipts,
-                    "payments": payments,
-                    "closing_balance": closing,
-                    "currency": currency,
-                }
-            )
-            balances[account] = closing
-            total_receipts += receipts
-            total_payments += payments
+    balance = sum(_cash_openings(company, accounts, from_date).values())
+    opening_balance = balance
+    total_income = total_expense = 0.0
+    for row_no, row in enumerate(data, start=1):
+        income = flt(row.income)
+        expense = flt(row.expense)
+        balance += income - expense
+        row.row_no = row_no
+        row.description = row.remarks or _("{0} {1}").format(row.voucher_type, row.voucher_no)
+        if len(accounts) > 1:
+            row.description = _("{0} - {1}").format(row.account, row.description)
+        row.balance = balance
+        row.currency = currency
+        total_income += income
+        total_expense += expense
     return columns, data, [
-        summary(_("Opening Balance"), opening_total, currency),
-        summary(_("Receipts"), total_receipts, currency, "Green"),
-        summary(_("Payments"), total_payments, currency, "Orange"),
-        summary(_("Closing Balance"), sum(balances.values()), currency),
+        summary(_("Opening Balance"), opening_balance, currency),
+        summary(_("Total Income"), total_income, currency, "Green"),
+        summary(_("Total Expense"), total_expense, currency, "Orange"),
+        summary(_("Closing Balance"), balance, currency),
     ]
 
 

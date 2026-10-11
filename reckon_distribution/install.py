@@ -16,6 +16,7 @@ def after_install() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
+    remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
     remove_distribution_reports_page()
@@ -34,6 +35,7 @@ def after_migrate() -> None:
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
+    remove_legacy_daily_balance_report()
     setup_workspace()
     remove_legacy_challan_pages()
     remove_distribution_reports_page()
@@ -59,6 +61,16 @@ def ensure_company_sales_price_lists() -> None:
 
     for company in frappe.get_all("Distribution Settings", pluck="company"):
         get_or_create_company_sales_price_list(company)
+
+
+def remove_legacy_daily_balance_report() -> None:
+    """Replace the initial daily-balance report with the accounting ledger."""
+    report_name = "Daily Opening & Closing Balance"
+    if not frappe.db.exists("Report", report_name):
+        return
+    report = frappe.get_doc("Report", report_name)
+    if report.module == "Distribution" and report.is_standard == "Yes":
+        frappe.delete_doc("Report", report_name, ignore_permissions=True, force=True)
 
 
 def ensure_office_expense_defaults() -> None:
@@ -1261,7 +1273,7 @@ def ensure_distribution_report_roles() -> None:
         "Sales Register": management_roles,
         "Purchase Register": management_roles,
         "Accounts Payable": management_roles,
-        "Daily Opening & Closing Balance": management_roles,
+        "Accounting Ledger": management_roles,
         "Day Book": management_roles,
         "Cash Book": management_roles,
         "Supplier Ledger": management_roles,
@@ -1494,8 +1506,8 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
         link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
         link(
-            "Daily Opening & Closing Balance",
-            "Daily Opening & Closing Balance",
+            "Accounting Ledger",
+            "Accounting Ledger",
             "Report",
             "calendar-days",
             child=True,

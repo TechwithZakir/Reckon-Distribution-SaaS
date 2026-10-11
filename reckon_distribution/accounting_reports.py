@@ -105,7 +105,7 @@ def accounting_ledger(filters: dict | None = None):
 
 
 def day_book(filters: dict | None = None):
-    _, company, from_date, to_date, currency = report_context(filters)
+    values, company, from_date, to_date, currency = report_context(filters)
     columns = [
         {"label": _("Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 100},
         {"label": _("Voucher Type"), "fieldname": "voucher_type", "fieldtype": "Data", "width": 145},
@@ -324,7 +324,7 @@ def dsr_ledger(filters: dict | None = None):
 
 
 def ledger_summary(filters: dict | None = None):
-    _, company, from_date, to_date, currency = report_context(filters)
+    values, company, from_date, to_date, currency = report_context(filters)
     columns = [
         {"label": _("Account"), "fieldname": "account", "fieldtype": "Link", "options": "Account", "width": 250},
         {"label": _("Account Type"), "fieldname": "root_type", "fieldtype": "Data", "width": 110},
@@ -384,7 +384,7 @@ def ledger_summary(filters: dict | None = None):
 
 
 def profit_and_loss(filters: dict | None = None):
-    _, company, from_date, to_date, currency = report_context(filters)
+    values, company, from_date, to_date, currency = report_context(filters)
     columns = [
         {"label": _("Type"), "fieldname": "statement_type", "fieldtype": "Data", "width": 110},
         {"label": _("Account"), "fieldname": "account", "fieldtype": "Link", "options": "Account", "width": 280},

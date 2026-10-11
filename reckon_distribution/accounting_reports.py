@@ -304,14 +304,21 @@ def dsr_ledger(filters: dict | None = None):
         data.append({**row, "transaction_type": _("Collection"), "handed_over": 0.0, "sort_order": 0})
     for row in settlements:
         data.append({**row, "transaction_type": _("Cash Handover"), "collected": 0.0, "sort_order": 1})
-    data.sort(key=lambda row: (row.posting_date, row.dsr, row.sort_order, row.reference))
+    data.sort(
+        key=lambda row: (
+            row["posting_date"],
+            row["dsr"],
+            row["sort_order"],
+            row["reference"],
+        )
+    )
     collected_total = handover_total = 0.0
     for row in data:
-        collected = flt(row.collected)
-        handed_over = flt(row.handed_over)
-        balances[row.dsr] += collected - handed_over
-        row.balance = balances[row.dsr]
-        row.currency = currency
+        collected = flt(row["collected"])
+        handed_over = flt(row["handed_over"])
+        balances[row["dsr"]] += collected - handed_over
+        row["balance"] = balances[row["dsr"]]
+        row["currency"] = currency
         collected_total += collected
         handover_total += handed_over
         row.pop("sort_order", None)

@@ -271,6 +271,17 @@ def ensure_purchase_receipt_fields() -> None:
             "insert_after": "payment_type",
         },
         {
+            "dt": "Payment Entry",
+            "fieldname": "rd_office_expense",
+            "label": "Office Expense",
+            "fieldtype": "Link",
+            "options": "Office Expense",
+            "hidden": 1,
+            "read_only": 1,
+            "no_copy": 1,
+            "insert_after": "rd_collection_receipt",
+        },
+        {
             "dt": "Delivery Note",
             "fieldname": "rd_route",
             "label": "Distribution Route",

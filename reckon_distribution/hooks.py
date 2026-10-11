@@ -187,6 +187,10 @@ override_whitelisted_methods = {
     "erpnext.stock.doctype.warehouse.warehouse.get_children": "reckon_distribution.warehouse.get_children",
 }
 
+override_doctype_class = {
+    "Payment Entry": "reckon_distribution.overrides.payment_entry.DistributionPaymentEntry",
+}
+
 # Load this controller only on the Distribution-owned forms listed above.
 doctype_js = {
     doctype: "public/js/company_context.js"

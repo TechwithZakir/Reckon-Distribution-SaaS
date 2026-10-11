@@ -156,6 +156,25 @@ class TestFoundation(FrappeTestCase):
         self.assertTrue(setup_permissions["Reckon Distribution Manager"].read)
         self.assertFalse(setup_permissions["Reckon Distribution Manager"].write)
 
+    def test_office_expense_posts_through_a_pay_payment_entry(self):
+        expense = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "distribution"
+                / "doctype"
+                / "office_expense"
+                / "office_expense.json"
+            ).read_text()
+        )
+        payment_entry = next(
+            field for field in expense["fields"] if field["fieldname"] == "payment_entry"
+        )
+        self.assertEqual(payment_entry["options"], "Payment Entry")
+        self.assertIn("override_doctype_class", Path(hooks.__file__).read_text())
+        source = (Path(__file__).parents[1] / "office_expense.py").read_text()
+        self.assertIn('"payment_type": "Pay"', source)
+        self.assertNotIn("create_office_expense_journal_entry", source)
+
     def test_distribution_sidebar_groups_core_work_and_reports(self):
         sidebar_path = (
             Path(__file__).parents[1]

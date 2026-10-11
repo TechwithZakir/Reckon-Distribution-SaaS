@@ -78,50 +78,62 @@ def validate_office_expense(doc: Document) -> None:
     doc.status = {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(doc.docstatus, "Draft")
 
 
-def create_office_expense_journal_entry(doc: Document) -> None:
-    """Post one controlled Journal Entry after the user submits an expense."""
-    if doc.journal_entry:
-        existing = frappe.get_doc("Journal Entry", doc.journal_entry)
+def create_office_expense_payment_entry(doc: Document) -> None:
+    """Post a controlled Pay Payment Entry after an office expense is submitted."""
+    if doc.payment_entry:
+        existing = frappe.get_doc("Payment Entry", doc.payment_entry)
         if existing.docstatus == 1:
             return
         frappe.throw(_("The linked accounting voucher must be submitted before this expense can continue."))
 
-    account_type = frappe.db.get_value("Account", doc.payment_account, "account_type")
-    accounts = [
+    payment_entry = frappe.get_doc(
         {
-            "account": row.expense_account,
-            "debit_in_account_currency": flt(row.amount),
-            "cost_center": row.cost_center,
-        }
-        for row in doc.items
-    ]
-    accounts.append(
-        {
-            "account": doc.payment_account,
-            "credit_in_account_currency": flt(doc.total_amount),
-        }
-    )
-    journal_entry = frappe.get_doc(
-        {
-            "doctype": "Journal Entry",
-            "voucher_type": "Cash Entry" if account_type == "Cash" else "Bank Entry",
+            "doctype": "Payment Entry",
+            "payment_type": "Pay",
             "company": doc.company,
             "posting_date": doc.posting_date,
-            "user_remark": _("Office Expense {0} paid to {1}").format(doc.name, doc.payee),
-            "accounts": accounts,
+            "mode_of_payment": doc.payment_method,
+            # This is an internal, no-party cash/bank payment. The overridden
+            # controller permits it only when it is linked to this Office Expense.
+            "paid_from": doc.payment_account,
+            "paid_to": doc.payment_account,
+            "paid_amount": flt(doc.total_amount),
+            "received_amount": flt(doc.total_amount),
+            "cost_center": doc.cost_center,
+            "reference_no": doc.reference_no or doc.name,
+            "reference_date": doc.reference_date or doc.posting_date,
+            "custom_remarks": 1,
+            "remarks": _("Office Expense {0} paid to {1}").format(doc.name, doc.payee),
+            "rd_office_expense": doc.name,
+            "deductions": [
+                {
+                    "account": row.expense_account,
+                    "amount": flt(row.amount),
+                    "cost_center": row.cost_center,
+                }
+                for row in doc.items
+            ],
         }
     )
-    journal_entry.flags.ignore_permissions = True
-    journal_entry.insert(ignore_permissions=True)
-    journal_entry.flags.ignore_permissions = True
-    journal_entry.submit()
-    doc.db_set("journal_entry", journal_entry.name, update_modified=False)
+    payment_entry.flags.reckon_office_expense_payment = True
+    payment_entry.flags.ignore_permissions = True
+    payment_entry.insert(ignore_permissions=True)
+    # Persist the ownership link before submit. This lets the narrowly scoped
+    # controller exception apply on submit and later cancellation as well.
+    doc.db_set("payment_entry", payment_entry.name, update_modified=False)
+    payment_entry.flags.ignore_permissions = True
+    payment_entry.submit()
     doc.db_set("status", "Submitted", update_modified=False)
 
 
-def cancel_office_expense_journal_entry(doc: Document) -> None:
-    """Cancel the generated voucher so an expense cannot leave an orphan posting."""
-    if doc.journal_entry and frappe.db.exists("Journal Entry", doc.journal_entry):
+def cancel_office_expense_payment_entry(doc: Document) -> None:
+    """Cancel the generated Payment Entry, retaining support for legacy vouchers."""
+    if doc.payment_entry and frappe.db.exists("Payment Entry", doc.payment_entry):
+        payment_entry = frappe.get_doc("Payment Entry", doc.payment_entry)
+        if payment_entry.docstatus == 1:
+            payment_entry.flags.ignore_permissions = True
+            payment_entry.cancel()
+    elif doc.journal_entry and frappe.db.exists("Journal Entry", doc.journal_entry):
         journal_entry = frappe.get_doc("Journal Entry", doc.journal_entry)
         if journal_entry.docstatus == 1:
             journal_entry.flags.ignore_permissions = True

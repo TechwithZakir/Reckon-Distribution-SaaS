@@ -175,6 +175,18 @@ class TestFoundation(FrappeTestCase):
         self.assertIn('"payment_type": "Pay"', source)
         self.assertNotIn("create_office_expense_journal_entry", source)
 
+    def test_office_expense_uses_scoped_link_fields(self):
+        doctype_root = Path(__file__).parents[1] / "distribution" / "doctype"
+        expense = json.loads((doctype_root / "office_expense" / "office_expense.json").read_text())
+        item = json.loads((doctype_root / "office_expense_item" / "office_expense_item.json").read_text())
+        payment_method = next(field for field in expense["fields"] if field["fieldname"] == "payment_method")
+        category = next(field for field in item["fields"] if field["fieldname"] == "expense_category")
+        self.assertEqual((payment_method["fieldtype"], payment_method["options"]), ("Link", "Mode of Payment"))
+        self.assertEqual((category["fieldtype"], category["options"]), ("Link", "Account"))
+        source = (Path(__file__).parents[1] / "office_expense.py").read_text()
+        self.assertIn("get_office_expense_payment_methods", source)
+        self.assertIn("get_office_expense_categories", source)
+
     def test_distribution_dashboard_uses_safe_aggregate_syntax(self):
         source = (Path(__file__).parents[1] / "dashboard.py").read_text()
         self.assertIn('frappe.db.get_value(doctype, filters, {"SUM": fieldname})', source)

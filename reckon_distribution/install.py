@@ -22,6 +22,7 @@ def after_install() -> None:
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
     ensure_office_expense_defaults()
+    migrate_office_expense_category_links()
     ensure_simplified_procurement_layout()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -39,6 +40,7 @@ def after_migrate() -> None:
     ensure_purchase_receipt_fields()
     ensure_procurement_setting_defaults()
     ensure_office_expense_defaults()
+    migrate_office_expense_category_links()
     ensure_simplified_procurement_layout()
     reload_distribution_layout_doctypes()
     ensure_dense_layout_fields()
@@ -74,6 +76,39 @@ def ensure_office_expense_defaults() -> None:
         )
     for company in sorted(filter(None, companies)):
         seed_defaults(company)
+
+
+def migrate_office_expense_category_links() -> None:
+    """Convert old text categories to their configured Account link values."""
+    required_doctypes = {"Office Expense", "Office Expense Item", "Office Expense Settings"}
+    if not required_doctypes.issubset(
+        frappe.get_all("DocType", filters={"name": ["in", list(required_doctypes)]}, pluck="name")
+    ):
+        return
+
+    from reckon_distribution.office_expense import _category_map
+
+    category_maps: dict[str, dict] = {}
+    rows = frappe.db.sql(
+        """
+        SELECT item.name, item.expense_category, expense.company
+        FROM `tabOffice Expense Item` item
+        INNER JOIN `tabOffice Expense` expense ON expense.name = item.parent
+        WHERE item.expense_category IS NOT NULL AND item.expense_category != ''
+        """,
+        as_dict=True,
+    )
+    for row in rows:
+        if row.company not in category_maps:
+            if not frappe.db.exists("Office Expense Settings", row.company):
+                category_maps[row.company] = {}
+                continue
+            category_maps[row.company] = _category_map(
+                frappe.get_doc("Office Expense Settings", row.company)
+            )
+        category = category_maps[row.company].get(row.expense_category)
+        if category:
+            frappe.db.set_value("Office Expense Item", row.name, "expense_category", category.expense_account)
 
 
 def ensure_master_quick_entry() -> None:

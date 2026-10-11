@@ -1,10 +1,19 @@
 frappe.ui.form.on("Office Expense", {
+  setup(frm) {
+    frm.set_query("payment_method", () => ({
+      query: "reckon_distribution.office_expense.get_office_expense_payment_methods",
+    }));
+    frm.set_query("expense_category", "items", () => ({
+      query: "reckon_distribution.office_expense.get_office_expense_categories",
+    }));
+  },
   refresh(frm) {
-    loadOfficeExpenseChoices(frm);
+    loadOfficeExpenseDefaults(frm);
     updateOfficeExpenseTotal(frm);
   },
   company(frm) {
-    loadOfficeExpenseChoices(frm);
+    frm.__officeExpenseDefaultsLoaded = false;
+    loadOfficeExpenseDefaults(frm);
   },
   validate(frm) {
     updateOfficeExpenseTotal(frm);
@@ -17,9 +26,9 @@ frappe.ui.form.on("Office Expense Item", {
   },
 });
 
-function loadOfficeExpenseChoices(frm) {
-  if (frm.__officeExpenseChoicesLoading || frm.__officeExpenseChoicesLoaded) return;
-  frm.__officeExpenseChoicesLoading = true;
+function loadOfficeExpenseDefaults(frm) {
+  if (frm.__officeExpenseDefaultsLoading || frm.__officeExpenseDefaultsLoaded) return;
+  frm.__officeExpenseDefaultsLoading = true;
   frappe.call({ method: "reckon_distribution.office_expense.get_office_expense_defaults" })
     .then((response) => {
       const settings = response.message || {};
@@ -30,22 +39,16 @@ function loadOfficeExpenseChoices(frm) {
         );
         return;
       }
-      frm.__officeExpenseChoicesLoaded = true;
-      frm.set_df_property("payment_method", "options", settings.payment_methods.join("\n"));
-      frm.fields_dict.items.grid.update_docfield_property(
-        "expense_category",
-        "options",
-        settings.categories.join("\n")
-      );
+      frm.__officeExpenseDefaultsLoaded = true;
       if (!frm.doc.payment_method) frm.set_value("payment_method", settings.default_payment_method);
       if (frm.is_new() && !frm.doc.items.length) {
         const row = frm.add_child("items");
-        row.expense_category = settings.default_expense_category;
+        row.expense_category = settings.default_expense_account;
         frm.refresh_field("items");
       }
     })
     .finally(() => {
-      frm.__officeExpenseChoicesLoading = false;
+      frm.__officeExpenseDefaultsLoading = false;
     });
 }
 

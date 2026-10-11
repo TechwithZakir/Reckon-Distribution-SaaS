@@ -57,8 +57,11 @@ def validate_office_expense(doc: Document) -> None:
         frappe.throw(_("Add at least one expense item."))
     for row in doc.items:
         if not row.expense_category:
-            row.expense_category = settings.default_expense_category
-        category_setup = categories.get(row.expense_category)
+            default_category = _get_category_setup(
+                categories, settings.default_expense_category
+            )
+            row.expense_category = default_category.expense_account
+        category_setup = _get_category_setup(categories, row.expense_category)
         if not category_setup:
             frappe.throw(
                 _("Expense Category {0} is not enabled in Office Expense Setup.").format(
@@ -71,7 +74,7 @@ def validate_office_expense(doc: Document) -> None:
             frappe.throw(_("Expense amount in row {0} must be greater than zero.").format(row.idx))
         row.expense_account = category_setup.expense_account
         row.cost_center = doc.cost_center
-        _validate_expense_account(doc.company, row.expense_account, row.expense_category)
+        _validate_expense_account(doc.company, row.expense_account, category_setup.category)
         total += flt(row.amount)
 
     doc.total_amount = total
@@ -149,14 +152,61 @@ def get_office_expense_defaults() -> dict:
         return {"configured": False, "company": tenant.company}
 
     settings = frappe.get_doc("Office Expense Settings", tenant.company)
+    categories = _category_map(settings)
+    default_category = categories[settings.default_expense_category]
     return {
         "configured": True,
         "company": tenant.company,
         "default_expense_category": settings.default_expense_category,
+        "default_expense_account": default_category.expense_account,
         "default_payment_method": settings.default_payment_method,
-        "categories": sorted(_category_map(settings)),
+        "categories": sorted(categories),
+        "expense_accounts": sorted({row.expense_account for row in categories.values()}),
         "payment_methods": sorted(_payment_method_map(settings)),
     }
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_office_expense_payment_methods(doctype, txt, searchfield, start, page_len, filters):
+    """Return only enabled payment methods from the active Company's setup."""
+    settings = _get_settings(require_tenant().company)
+    payment_methods = sorted(_payment_method_map(settings))
+    if not payment_methods:
+        return []
+    return frappe.get_all(
+        "Mode of Payment",
+        filters={"name": ["in", payment_methods]},
+        or_filters={"name": ["like", f"%{txt}%"]},
+        fields=["name"],
+        start=start,
+        limit_start=start,
+        limit_page_length=page_len,
+        as_list=True,
+    )
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_office_expense_categories(doctype, txt, searchfield, start, page_len, filters):
+    """Return only enabled expense accounts mapped in the active Company's setup."""
+    settings = _get_settings(require_tenant().company)
+    accounts = sorted({row.expense_account for row in _category_map(settings).values()})
+    if not accounts:
+        return []
+    return frappe.get_all(
+        "Account",
+        filters={"name": ["in", accounts], "is_group": 0, "disabled": 0},
+        or_filters={
+            "name": ["like", f"%{txt}%"],
+            "account_name": ["like", f"%{txt}%"],
+        },
+        fields=["name", "account_name"],
+        start=start,
+        limit_start=start,
+        limit_page_length=page_len,
+        as_list=True,
+    )
 
 
 def _get_settings(company: str) -> Document:
@@ -175,6 +225,13 @@ def _category_map(settings: Document) -> dict[str, Document]:
             frappe.throw(_("Expense Category {0} is configured more than once.").format(category))
         categories[category] = row
     return categories
+
+
+def _get_category_setup(categories: dict[str, Document], value: str) -> Document | None:
+    """Resolve either legacy category text or the configured Account link."""
+    if value in categories:
+        return categories[value]
+    return next((row for row in categories.values() if row.expense_account == value), None)
 
 
 def _payment_method_map(settings: Document) -> dict[str, Document]:

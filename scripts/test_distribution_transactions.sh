@@ -55,6 +55,7 @@ command -v bench >/dev/null 2>&1 || {
 }
 
 modules=(
+    reckon_distribution.tests.test_demo_data
     reckon_distribution.tests.test_field_sales
     reckon_distribution.tests.test_collection
     reckon_distribution.tests.test_due_assignment

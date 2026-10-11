@@ -69,3 +69,9 @@ This runs the existing transaction tests for SR field sales and DSR collection,
 due assignment, day settlement, delivery/returns, van loading, and purchase
 receipt support in sequence. It is also restricted to a dedicated test or
 staging site.
+
+## Distribution demo data
+
+For a linked 100-record, six-month training or QA data set, see
+[Distribution Test Seed Data](docs/test-seed-data.md). The seed creates clearly
+marked `RD Demo` records and must not be run on a live operating tenant.

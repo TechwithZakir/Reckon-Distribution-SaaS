@@ -1,0 +1,618 @@
+"""Idempotent, company-isolated sample data for Distribution acceptance testing.
+
+Run this only against a development, QA, or training tenant.  The seed creates
+real ERPNext stock and accounting postings so the Distribution pages, dashboard,
+and reports can be reviewed using representative history rather than mock rows.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from collections import Counter
+
+import frappe
+from frappe import _
+from frappe.utils import add_days, add_months, cint, flt, getdate, nowdate
+
+from reckon_distribution.collection import confirm_collection
+from reckon_distribution.master_data import get_or_create_company_sales_price_list
+from reckon_distribution.seed import ensure_office_expense_defaults, run_distribution_seed
+from reckon_distribution.settlement import create_day_settlement
+
+DEMO_RECORD_COUNT = 100
+DEMO_USER = "Administrator"
+TRANSACTION_PLAN = (
+    ("purchase_orders", 10),
+    ("purchase_receipts", 10),
+    ("challans", 10),
+    ("deliveries", 20),
+    ("collections", 10),
+    ("settlements", 10),
+    ("office_expenses", 10),
+    ("outlet_visits", 10),
+    ("sr_orders", 10),
+)
+
+
+def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, months: int = 6) -> dict:
+    """Create exactly 100 linked RD Demo records across the current and prior six months.
+
+    The records use a company-derived marker and are detected before inserting,
+    which makes a repeated run safe.  Generated ERPNext stock, payment, and
+    draft supplier-invoice documents are intentionally not counted in the 100
+    requested operational records.
+    """
+    _require_system_manager()
+    records = cint(records)
+    months = cint(months)
+    if records != DEMO_RECORD_COUNT:
+        frappe.throw(_("This seed is intentionally fixed at {0} operational records.").format(DEMO_RECORD_COUNT))
+    if months != 6:
+        frappe.throw(_("This seed is intentionally fixed to the current and prior six months."))
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+
+    token = _token(company)
+    start_date = add_months(getdate(nowdate()), -months)
+    dates = [_sample_date(start_date, index, 10) for index in range(10)]
+    masters = _ensure_demo_masters(company, token, start_date)
+    result = Counter()
+
+    for index, posting_date in enumerate(dates, start=1):
+        item = masters["items"][(index - 1) % len(masters["items"])]
+        customer = masters["customers"][(index - 1) % len(masters["customers"])]
+        marker = f"{token}-{index:02d}"
+
+        _count(result, "purchase_orders", _purchase_order(masters, item, posting_date, marker))
+        receipt = _purchase_receipt(masters, item, posting_date, marker)
+        _count(result, "purchase_receipts", receipt)
+        challan = _challan(masters, item, posting_date, marker)
+        _count(result, "challans", challan)
+
+        for delivery_index, quantity in enumerate((18, 22), start=1):
+            _count(
+                result,
+                "deliveries",
+                _delivery(
+                    masters,
+                    challan,
+                    customer,
+                    item,
+                    posting_date,
+                    f"{marker}-DN-{delivery_index}",
+                    quantity,
+                ),
+            )
+
+        _count(result, "collections", _collection(masters, customer, posting_date, marker))
+        _count(result, "settlements", _settlement(challan))
+        _count(result, "office_expenses", _office_expense(masters, posting_date, marker, index))
+        _count(result, "outlet_visits", _outlet_visit(masters, customer, posting_date, marker))
+        _count(result, "sr_orders", _sr_order(masters, customer, item, posting_date, marker))
+
+    expected = sum(quantity for _, quantity in TRANSACTION_PLAN)
+    if expected != DEMO_RECORD_COUNT:
+        frappe.throw(_("The RD Demo transaction plan must total {0} records.").format(DEMO_RECORD_COUNT))
+    return {
+        "company": company,
+        "marker": token,
+        "period": {"from_date": start_date, "to_date": getdate(nowdate())},
+        "requested_records": DEMO_RECORD_COUNT,
+        "created": dict(result),
+        "created_total": sum(result.values()),
+        "rerun_safe": True,
+        "note": "Generated stock, payment, and draft supplier invoice records are not included in the total.",
+    }
+
+
+def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
+    """Create only the narrowly scoped masters a blank training tenant needs."""
+    run_distribution_seed(company, f"{token}-defaults")
+    ensure_office_expense_defaults(company)
+    currency = frappe.db.get_value("Company", company, "default_currency") or "BDT"
+    price_list = get_or_create_company_sales_price_list(company)
+    source_warehouse = _leaf_warehouse(company)
+    van_warehouse = _demo_van_warehouse(company, token)
+    supplier = _supplier(company, token)
+    customers = [_customer(company, token, index) for index in range(1, 6)]
+    items = [_item(company, token, index) for index in range(1, 4)]
+    for index, item in enumerate(items, start=1):
+        _item_price(company, item, price_list, 80 + index * 15, currency)
+
+    route = _route(company, token)
+    for customer in customers:
+        _route_assignment(company, customer, route, start_date)
+
+    settings = frappe.get_doc("Distribution Settings", company)
+    changed = False
+    if not settings.default_warehouse:
+        settings.default_warehouse = source_warehouse
+        changed = True
+    if not settings.default_cash_account:
+        settings.default_cash_account = _office_cash_account(company)
+        changed = True
+    if changed:
+        settings.save(ignore_permissions=True)
+
+    return {
+        "company": company,
+        "currency": currency,
+        "token": token,
+        "price_list": price_list,
+        "source_warehouse": source_warehouse,
+        "van_warehouse": van_warehouse,
+        "supplier": supplier,
+        "customers": customers,
+        "items": items,
+        "route": route,
+        "cash_account": _office_cash_account(company),
+        "expense_settings": frappe.get_doc("Office Expense Settings", company),
+    }
+
+
+def _purchase_order(masters: dict, item: str, posting_date, marker: str) -> tuple[str, bool]:
+    existing = frappe.db.get_value(
+        "Purchase Order",
+        {"company": masters["company"], "supplier": masters["supplier"], "transaction_date": posting_date, "supplier_ref": f"{marker}-PO"},
+        "name",
+    )
+    if existing:
+        return existing, False
+    doc = frappe.get_doc(
+        {
+            "doctype": "Purchase Order",
+            "company": masters["company"],
+            "supplier": masters["supplier"],
+            "transaction_date": posting_date,
+            "schedule_date": posting_date,
+            "set_warehouse": masters["source_warehouse"],
+            "supplier_ref": f"{marker}-PO",
+            "currency": masters["currency"],
+            "price_list_currency": masters["currency"],
+            "ignore_pricing_rule": 1,
+            "items": [_purchase_item(item, masters["source_warehouse"], posting_date, 160, 55)],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    return doc.name, True
+
+
+def _purchase_receipt(masters: dict, item: str, posting_date, marker: str) -> tuple[str, bool]:
+    existing = frappe.db.get_value(
+        "Purchase Receipt",
+        {"company": masters["company"], "bill_no": f"{marker}-PR"},
+        "name",
+    )
+    if existing:
+        return existing, False
+    row = _purchase_item(item, masters["source_warehouse"], posting_date, 160, 55)
+    row.update({"received_qty": 160, "accepted_qty": 160, "rd_paid_qty": 160, "rd_free_qty": 0})
+    doc = frappe.get_doc(
+        {
+            "doctype": "Purchase Receipt",
+            "company": masters["company"],
+            "supplier": masters["supplier"],
+            "posting_date": posting_date,
+            "posting_time": "08:00:00",
+            "set_warehouse": masters["source_warehouse"],
+            "bill_no": f"{marker}-PR",
+            "bill_date": posting_date,
+            "currency": masters["currency"],
+            "price_list_currency": masters["currency"],
+            "ignore_pricing_rule": 1,
+            "items": [row],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    return doc.name, True
+
+
+def _purchase_item(item: str, warehouse: str, schedule_date, qty: int, rate: int) -> dict:
+    return {
+        "item_code": item,
+        "qty": qty,
+        "received_qty": qty,
+        "stock_qty": qty,
+        "uom": "Nos",
+        "stock_uom": "Nos",
+        "conversion_factor": 1,
+        "warehouse": warehouse,
+        "schedule_date": schedule_date,
+        "rate": rate,
+        "base_rate": rate,
+        "amount": qty * rate,
+        "base_amount": qty * rate,
+    }
+
+
+def _challan(masters: dict, item: str, posting_date, marker: str) -> tuple[str, bool]:
+    existing = frappe.db.get_value(
+        "DSR Challan",
+        {"company": masters["company"], "route": masters["route"], "posting_date": posting_date},
+        "name",
+    )
+    if existing:
+        return existing, False
+    doc = frappe.get_doc(
+        {
+            "doctype": "DSR Challan",
+            "company": masters["company"],
+            "posting_date": posting_date,
+            "status": "Draft",
+            "distributor_warehouse": masters["source_warehouse"],
+            "van_warehouse": masters["van_warehouse"],
+            "route": masters["route"],
+            "dsr": DEMO_USER,
+            "items": [
+                {
+                    "item_code": item,
+                    "uom": "Nos",
+                    "conversion_factor": 1,
+                    "qty": 80,
+                    "unit_price": _selling_rate(masters["price_list"], item),
+                    "stock_category": "Saleable",
+                }
+            ],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    return doc.name, True
+
+
+def _delivery(
+    masters: dict,
+    challan: tuple[str, bool],
+    customer: str,
+    item: str,
+    posting_date,
+    marker: str,
+    quantity: int,
+) -> tuple[str, bool]:
+    existing = frappe.db.get_value("Delivery Note", {"rd_idempotency_key": marker}, "name")
+    if existing:
+        return existing, False
+    challan_name = challan[0]
+    rate = _selling_rate(masters["price_list"], item)
+    doc = frappe.get_doc(
+        {
+            "doctype": "Delivery Note",
+            "company": masters["company"],
+            "customer": customer,
+            "posting_date": posting_date,
+            "posting_time": "12:00:00",
+            "set_warehouse": masters["van_warehouse"],
+            "selling_price_list": masters["price_list"],
+            "price_list_currency": masters["currency"],
+            "ignore_pricing_rule": 1,
+            "rd_route": masters["route"],
+            "rd_dsr": DEMO_USER,
+            "rd_dsr_challan": challan_name,
+            "rd_idempotency_key": marker,
+            "items": [
+                {
+                    "item_code": item,
+                    "qty": quantity,
+                    "uom": "Nos",
+                    "stock_uom": "Nos",
+                    "conversion_factor": 1,
+                    "stock_qty": quantity,
+                    "warehouse": masters["van_warehouse"],
+                    "rate": rate,
+                    "base_rate": rate,
+                    "amount": quantity * rate,
+                    "base_amount": quantity * rate,
+                }
+            ],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    return doc.name, True
+
+
+def _collection(masters: dict, customer: str, posting_date, marker: str) -> tuple[str, bool]:
+    key = f"{marker}-COL"
+    existing = frappe.db.get_value("DSR Collection Receipt", {"idempotency_key": key}, "name")
+    if existing:
+        return existing, False
+    doc = frappe.get_doc(
+        {
+            "doctype": "DSR Collection Receipt",
+            "company": masters["company"],
+            "customer": customer,
+            "route": masters["route"],
+            "dsr": DEMO_USER,
+            "collection_date": posting_date,
+            "amount": 4_000,
+            "payment_method": "Cash",
+            "reference_no": f"{marker}-COL",
+            "receiving_account": masters["cash_account"],
+            "note": f"RD Demo cash collection {marker}",
+            "idempotency_key": key,
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    confirm_collection(doc.name)
+    return doc.name, True
+
+
+def _settlement(challan: tuple[str, bool]) -> tuple[str, bool]:
+    challan_name = challan[0]
+    existing = frappe.db.get_value("DSR Day Settlement", {"challan": challan_name}, "name")
+    if existing:
+        return existing, False
+    settlement_name = create_day_settlement(challan_name)
+    doc = frappe.get_doc("DSR Day Settlement", settlement_name)
+    doc.cash_handover = 4_000
+    for row in doc.stock_items:
+        row.closing_qty = row.expected_closing_qty
+    doc.submit()
+    return doc.name, True
+
+
+def _office_expense(masters: dict, posting_date, marker: str, index: int) -> tuple[str, bool]:
+    reference = f"{marker}-EXP"
+    existing = frappe.db.get_value(
+        "Office Expense", {"company": masters["company"], "reference_no": reference}, "name"
+    )
+    if existing:
+        return existing, False
+    settings = masters["expense_settings"]
+    category = settings.categories[(index - 1) % len(settings.categories)].expense_account
+    doc = frappe.get_doc(
+        {
+            "doctype": "Office Expense",
+            "company": masters["company"],
+            "posting_date": posting_date,
+            "payment_method": settings.default_payment_method,
+            "payee": f"RD Demo Expense Supplier {index}",
+            "reference_no": reference,
+            "reference_date": posting_date,
+            "remarks": f"RD Demo office expense {marker}",
+            "items": [
+                {
+                    "expense_category": category,
+                    "description": "Training and report verification expense",
+                    "amount": 500 + index * 25,
+                }
+            ],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    return doc.name, True
+
+
+def _outlet_visit(masters: dict, customer: str, posting_date, marker: str) -> tuple[str, bool]:
+    key = f"{marker}-VIS"
+    existing = frappe.db.get_value("Outlet Visit", {"idempotency_key": key}, "name")
+    if existing:
+        return existing, False
+    doc = frappe.get_doc(
+        {
+            "doctype": "Outlet Visit",
+            "company": masters["company"],
+            "customer": customer,
+            "route": masters["route"],
+            "field_user": DEMO_USER,
+            "visited_on": posting_date,
+            "visit_status": "Completed",
+            "idempotency_key": key,
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    return doc.name, True
+
+
+def _sr_order(masters: dict, customer: str, item: str, posting_date, marker: str) -> tuple[str, bool]:
+    key = f"{marker}-SRO"
+    existing = frappe.db.get_value("SR Order", {"idempotency_key": key}, "name")
+    if existing:
+        return existing, False
+    rate = _selling_rate(masters["price_list"], item)
+    doc = frappe.get_doc(
+        {
+            "doctype": "SR Order",
+            "company": masters["company"],
+            "customer": customer,
+            "route": masters["route"],
+            "field_user": DEMO_USER,
+            "order_date": posting_date,
+            "price_list": masters["price_list"],
+            "status": "Draft",
+            "idempotency_key": key,
+            "items": [
+                {
+                    "item_code": item,
+                    "uom": "Nos",
+                    "qty": 12,
+                    "conversion_factor": 1,
+                    "stock_qty": 12,
+                    "rate": rate,
+                }
+            ],
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    return doc.name, True
+
+
+def _supplier(company: str, token: str) -> str:
+    supplier_name = f"RD Demo Supplier {token}"
+    existing = frappe.db.get_value("Supplier", {"rd_company": company, "supplier_name": supplier_name}, "name")
+    if existing:
+        return existing
+    group = _first_leaf("Supplier Group")
+    return frappe.get_doc(
+        {"doctype": "Supplier", "supplier_name": supplier_name, "supplier_group": group, "rd_company": company}
+    ).insert(ignore_permissions=True).name
+
+
+def _customer(company: str, token: str, index: int) -> str:
+    customer_name = f"RD Demo Retailer {index} {token}"
+    existing = frappe.db.get_value("Customer", {"rd_company": company, "customer_name": customer_name}, "name")
+    if existing:
+        return existing
+    return frappe.get_doc(
+        {
+            "doctype": "Customer",
+            "customer_name": customer_name,
+            "customer_group": _first_leaf("Customer Group"),
+            "territory": _first_leaf("Territory"),
+            "rd_company": company,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _item(company: str, token: str, index: int) -> str:
+    item_code = f"{token}-ITEM-{index}"
+    if frappe.db.exists("Item", item_code):
+        return item_code
+    return frappe.get_doc(
+        {
+            "doctype": "Item",
+            "item_code": item_code,
+            "item_name": f"RD Demo Product {index} {token}",
+            "item_group": _first_leaf("Item Group"),
+            "stock_uom": "Nos",
+            "is_stock_item": 1,
+            "rd_company": company,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _item_price(company: str, item: str, price_list: str, rate: int, currency: str) -> str:
+    existing = frappe.db.get_value(
+        "Item Price", {"item_code": item, "price_list": price_list, "selling": 1, "uom": "Nos"}, "name"
+    )
+    if existing:
+        return existing
+    return frappe.get_doc(
+        {
+            "doctype": "Item Price",
+            "item_code": item,
+            "price_list": price_list,
+            "selling": 1,
+            "uom": "Nos",
+            "price_list_rate": rate,
+            "currency": currency,
+            "rd_company": company,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _route(company: str, token: str) -> str:
+    code = f"DEMO{token[-4:]}"
+    existing = frappe.db.get_value("Distribution Route", {"company": company, "route_code": code}, "name")
+    if existing:
+        return existing
+    return frappe.get_doc(
+        {
+            "doctype": "Distribution Route",
+            "company": company,
+            "route_code": code,
+            "route_name": f"RD Demo Route {token}",
+            "active": 1,
+            "assigned_user": DEMO_USER,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _route_assignment(company: str, customer: str, route: str, start_date) -> str:
+    existing = frappe.db.get_value(
+        "Retailer Route Assignment", {"company": company, "customer": customer, "route": route}, "name"
+    )
+    if existing:
+        return existing
+    return frappe.get_doc(
+        {
+            "doctype": "Retailer Route Assignment",
+            "company": company,
+            "customer": customer,
+            "route": route,
+            "assigned_user": DEMO_USER,
+            "effective_from": start_date,
+            "effective_to": add_days(getdate(nowdate()), 31),
+            "active": 1,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _leaf_warehouse(company: str) -> str:
+    warehouse = frappe.db.get_value(
+        "Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name", order_by="lft asc"
+    )
+    if not warehouse:
+        frappe.throw(_("Create one leaf Warehouse for {0} before seeding RD Demo data.").format(company))
+    return warehouse
+
+
+def _demo_van_warehouse(company: str, token: str) -> str:
+    name = f"RD Demo Van {token}"
+    existing = frappe.db.get_value("Warehouse", {"company": company, "warehouse_name": name}, "name")
+    if existing:
+        return existing
+    parent = frappe.db.get_value(
+        "Warehouse", {"company": company, "is_group": 1, "disabled": 0}, "name", order_by="lft asc"
+    )
+    if not parent:
+        frappe.throw(_("Create a Warehouse group for {0} before seeding RD Demo data.").format(company))
+    return frappe.get_doc(
+        {
+            "doctype": "Warehouse",
+            "warehouse_name": name,
+            "company": company,
+            "parent_warehouse": parent,
+            "is_group": 0,
+        }
+    ).insert(ignore_permissions=True).name
+
+
+def _office_cash_account(company: str) -> str:
+    settings = frappe.get_doc("Office Expense Settings", company)
+    account = next((row.payment_account for row in settings.payment_methods if row.enabled), None)
+    if not account:
+        frappe.throw(_("Office Expense Settings needs an enabled Cash or Bank payment account."))
+    return account
+
+
+def _selling_rate(price_list: str, item: str) -> float:
+    rate = frappe.db.get_value(
+        "Item Price", {"item_code": item, "price_list": price_list, "selling": 1, "uom": "Nos"}, "price_list_rate"
+    )
+    if rate is None:
+        frappe.throw(_("RD Demo Item {0} has no selling price.").format(item))
+    return flt(rate)
+
+
+def _first_leaf(doctype: str) -> str:
+    name = frappe.db.get_value(doctype, {"is_group": 0}, "name", order_by="lft asc")
+    if not name:
+        frappe.throw(_("Create a leaf {0} before seeding RD Demo data.").format(doctype))
+    return name
+
+
+def _sample_date(start_date, index: int, total: int):
+    end_date = getdate(nowdate())
+    if total <= 1:
+        return end_date
+    offset = (end_date - start_date).days * index // (total - 1)
+    return add_days(start_date, offset)
+
+
+def _token(company: str) -> str:
+    digest = hashlib.sha1(company.encode()).hexdigest()[:6].upper()
+    return f"RDDEMO-{digest}"
+
+
+def _count(counter: Counter, key: str, record: tuple[str, bool]) -> None:
+    if record[1]:
+        counter[key] += 1
+
+
+def _require_system_manager() -> None:
+    if frappe.session.user == "Administrator":
+        return
+    frappe.only_for("System Manager")

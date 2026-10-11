@@ -365,7 +365,8 @@ def ledger_summary(filters: dict | None = None):
         debit = flt(movement.get("debit"))
         credit = flt(movement.get("credit"))
         data.append(
-            {
+            frappe._dict(
+                {
                 "account": account,
                 "root_type": movement.get("root_type") or "",
                 "opening_balance": opening,
@@ -373,7 +374,8 @@ def ledger_summary(filters: dict | None = None):
                 "credit": credit,
                 "closing_balance": opening + debit - credit,
                 "currency": currency,
-            }
+                }
+            )
         )
     return columns, data, [
         summary(_("Opening Balance"), sum(row["opening_balance"] for row in data), currency),

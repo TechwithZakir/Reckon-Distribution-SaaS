@@ -13,6 +13,7 @@ from reckon_distribution.constants import (
 
 def after_install() -> None:
     setup_roles()
+    refresh_distribution_report_definitions()
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
@@ -33,6 +34,7 @@ def after_install() -> None:
 
 def after_migrate() -> None:
     setup_roles()
+    refresh_distribution_report_definitions()
     ensure_company_owned_master_fields()
     ensure_company_sales_price_lists()
     ensure_distribution_permissions()
@@ -73,6 +75,13 @@ def remove_legacy_daily_balance_report() -> None:
     report = frappe.get_doc("Report", report_name)
     if report.module == "Distribution" and report.is_standard == "Yes":
         frappe.delete_doc("Report", report_name, ignore_permissions=True, force=True)
+
+
+def refresh_distribution_report_definitions() -> None:
+    """Repair report records and role rows on sites upgraded from earlier builds."""
+    for report_module in ("distribution_sales_register", "ledger_summary"):
+        frappe.reload_doc("distribution", "report", report_module)
+    frappe.clear_cache(doctype="Report")
 
 
 def remove_distribution_legacy_report_access() -> None:

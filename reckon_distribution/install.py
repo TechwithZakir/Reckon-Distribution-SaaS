@@ -1602,7 +1602,7 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
     items = [
         link("Distribution Home", "distribution", "Page", "house"),
         section("Sales & Delivery", "shopping-bag"),
-        link("Field Sales", "field-sales", "Page", "map-pin", child=True),
+        link("SR Sales", "field-sales", "Page", "map-pin", child=True),
         link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck", child=True),
         link("DSR Challan", "DSR Challan", "DocType", "package-check", child=True),
         link("DSR Day Settlement", "DSR Day Settlement", "DocType", "calculator", child=True),
@@ -1682,7 +1682,7 @@ def _workspace_doc(update: bool = False) -> dict:
             {"color": "Blue", "label": "Master Setup", "link_to": "distribution-master-setup", "type": "Page"},
             {"color": "Blue", "label": "Distribution Warehouses", "link_to": "Warehouse", "type": "DocType"},
             {"color": "Purple", "label": "Team & Access", "link_to": "distribution-team-access", "type": "Page"},
-            {"color": "Green", "label": "Field Sales", "link_to": "field-sales", "type": "Page"},
+            {"color": "Green", "label": "SR Sales", "link_to": "field-sales", "type": "Page"},
             {"color": "Orange", "label": "DSR Challan", "link_to": "DSR Challan", "type": "DocType"},
             {"color": "Green", "label": "Deliver & Collect", "link_to": "dsr-delivery", "type": "Page"},
             {"color": "Red", "label": "Day Settlement", "link_to": "DSR Day Settlement", "type": "DocType"},

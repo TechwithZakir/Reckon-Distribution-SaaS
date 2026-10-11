@@ -68,8 +68,6 @@ def validate_office_expense(doc: Document) -> None:
                     row.expense_category or _("selected category")
                 )
             )
-        if not row.description or not row.description.strip():
-            frappe.throw(_("Enter a description for expense row {0}.").format(row.idx))
         if flt(row.amount) <= 0:
             frappe.throw(_("Expense amount in row {0} must be greater than zero.").format(row.idx))
         row.expense_account = category_setup.expense_account

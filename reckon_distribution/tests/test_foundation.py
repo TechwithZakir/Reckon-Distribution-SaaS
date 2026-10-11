@@ -187,6 +187,19 @@ class TestFoundation(FrappeTestCase):
         self.assertIn("get_office_expense_payment_methods", source)
         self.assertIn("get_office_expense_categories", source)
 
+    def test_office_expense_item_description_is_optional(self):
+        metadata = json.loads(
+            (
+                Path(__file__).parents[1]
+                / "distribution"
+                / "doctype"
+                / "office_expense_item"
+                / "office_expense_item.json"
+            ).read_text()
+        )
+        description = next(field for field in metadata["fields"] if field["fieldname"] == "description")
+        self.assertFalse(description.get("reqd"))
+
     def test_distribution_dashboard_uses_safe_aggregate_syntax(self):
         source = (Path(__file__).parents[1] / "dashboard.py").read_text()
         self.assertIn('frappe.db.get_value(doctype, filters, {"SUM": fieldname})', source)

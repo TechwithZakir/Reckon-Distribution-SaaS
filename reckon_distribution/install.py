@@ -1148,6 +1148,9 @@ def ensure_native_master_permissions() -> None:
         "Cost Center": {"read"},
         "Report": {"read"},
         "Stock Ledger Entry": {"read", "report", "export", "print"},
+        # Financial reports execute against GL Entry but never expose its desk
+        # list outside the tenant-bound Script Reports below.
+        "GL Entry": {"read", "report", "export", "print"},
         "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Receipt": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Invoice": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
@@ -1164,6 +1167,7 @@ def ensure_native_master_permissions() -> None:
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
     procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
     operational_report_doctypes = {"Stock Ledger Entry"}
+    accounting_report_doctypes = {"GL Entry"}
     procurement_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",
@@ -1210,6 +1214,8 @@ def ensure_native_master_permissions() -> None:
                 perm.insert(ignore_permissions=True)
             if doctype in procurement_doctypes and role not in procurement_roles:
                 rights = set()
+            elif doctype in accounting_report_doctypes and role not in procurement_roles:
+                rights = set()
             elif doctype in operational_report_doctypes:
                 rights = full_rights
             else:
@@ -1255,6 +1261,13 @@ def ensure_distribution_report_roles() -> None:
         "Sales Register": management_roles,
         "Purchase Register": management_roles,
         "Accounts Payable": management_roles,
+        "Daily Opening & Closing Balance": management_roles,
+        "Day Book": management_roles,
+        "Cash Book": management_roles,
+        "Supplier Ledger": management_roles,
+        "DSR Wise Ledger": management_roles,
+        "Ledger Summary": management_roles,
+        "Profit & Loss": management_roles,
     }
     for report_name, role_names in reports.items():
         if not frappe.db.exists("Report", report_name):
@@ -1480,6 +1493,19 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Sales Register", "Sales Register", "Report", "receipt-text", child=True),
         link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
         link("Accounts Payable", "Accounts Payable", "Report", "landmark", child=True),
+        link(
+            "Daily Opening & Closing Balance",
+            "Daily Opening & Closing Balance",
+            "Report",
+            "calendar-days",
+            child=True,
+        ),
+        link("Day Book", "Day Book", "Report", "book-open-check", child=True),
+        link("Cash Book", "Cash Book", "Report", "wallet-cards", child=True),
+        link("Supplier Ledger", "Supplier Ledger", "Report", "contact-round", child=True),
+        link("DSR Wise Ledger", "DSR Wise Ledger", "Report", "users-round", child=True),
+        link("Ledger Summary", "Ledger Summary", "Report", "list-tree", child=True),
+        link("Profit & Loss", "Profit & Loss", "Report", "chart-no-axes-combined", child=True),
         section("Setup & Access", "settings"),
         link("Office Expense Setup", "Office Expense Settings", "DocType", "wallet-cards", child=True),
         link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),

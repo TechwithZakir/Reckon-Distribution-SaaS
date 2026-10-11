@@ -20,6 +20,13 @@ DISTRIBUTION_QUERY_REPORTS = frozenset(
         "Sales Register",
         "Purchase Register",
         "Accounts Payable",
+        "Daily Opening & Closing Balance",
+        "Day Book",
+        "Cash Book",
+        "Supplier Ledger",
+        "DSR Wise Ledger",
+        "Ledger Summary",
+        "Profit & Loss",
     }
 )
 DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
@@ -31,7 +38,18 @@ DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
     }
 )
 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
-    {"Sales Register", "Purchase Register", "Accounts Payable"}
+    {
+        "Sales Register",
+        "Purchase Register",
+        "Accounts Payable",
+        "Daily Opening & Closing Balance",
+        "Day Book",
+        "Cash Book",
+        "Supplier Ledger",
+        "DSR Wise Ledger",
+        "Ledger Summary",
+        "Profit & Loss",
+    }
 )
 ALLOWED_DISTRIBUTION_PAGES = {
     "distribution",

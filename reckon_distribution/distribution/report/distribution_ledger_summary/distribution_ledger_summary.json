@@ -1,0 +1,25 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {"fieldname": "from_date", "fieldtype": "Date", "label": "From Date", "default": "Today", "reqd": 1},
+  {"fieldname": "to_date", "fieldtype": "Date", "label": "To Date", "default": "Today", "reqd": 1}
+ ],
+ "is_standard": "Yes",
+ "module": "Distribution",
+ "name": "Ledger Summary",
+ "prepared_report": 0,
+ "ref_doctype": "GL Entry",
+ "report_name": "Ledger Summary",
+ "report_type": "Script Report",
+ "roles": [
+  {"role": "Reckon Distribution Admin"},
+  {"role": "Reckon Distribution Manager"},
+  {"role": "Company Admin"},
+  {"role": "Company Manager"}
+ ]
+}

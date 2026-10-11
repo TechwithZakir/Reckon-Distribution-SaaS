@@ -18,7 +18,7 @@ DISTRIBUTION_QUERY_REPORTS = frozenset(
         "Stock Ledger",
         "Stock Balance",
         "Distribution Sales Register",
-        "Purchase Register",
+        "Distribution Purchase Register",
         "Accounting Ledger",
         "Day Book",
         "Cash Book",
@@ -41,7 +41,7 @@ DISTRIBUTION_MANAGEMENT_ROLES = frozenset(
 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS = frozenset(
     {
         "Distribution Sales Register",
-        "Purchase Register",
+        "Distribution Purchase Register",
         "Accounting Ledger",
         "Day Book",
         "Cash Book",
@@ -263,6 +263,9 @@ def restrict_distribution_desk_request() -> None:
             report_name = unquote(desk_path.removeprefix("query-report/")).strip("/")
             if report_name == "Sales Register":
                 _redirect_to_distribution_report("Distribution Sales Register")
+                return
+            if report_name == "Purchase Register":
+                _redirect_to_distribution_report("Distribution Purchase Register")
                 return
             if not _can_access_distribution_report(report_name):
                 _redirect_to_distribution()

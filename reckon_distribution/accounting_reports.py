@@ -438,6 +438,62 @@ def distribution_sales_register(filters: dict | None = None):
     return columns, data, [summary(_("Total Sales"), total, currency, "Green")]
 
 
+def distribution_purchase_register(filters: dict | None = None):
+    """Show submitted supplier invoices without native report empty-state messages."""
+    values, company, from_date, to_date, currency = report_context(filters)
+    columns = [
+        {"label": _("Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 105},
+        {
+            "label": _("Purchase Invoice"),
+            "fieldname": "purchase_invoice",
+            "fieldtype": "Link",
+            "options": "Purchase Invoice",
+            "width": 160,
+        },
+        {
+            "label": _("Purchase Receipt"),
+            "fieldname": "purchase_receipt",
+            "fieldtype": "Link",
+            "options": "Purchase Receipt",
+            "width": 160,
+        },
+        {"label": _("Supplier"), "fieldname": "supplier", "fieldtype": "Link", "options": "Supplier", "width": 210},
+        {"label": _("Supplier Bill No."), "fieldname": "bill_no", "fieldtype": "Data", "width": 150},
+        {"label": _("Net Amount"), "fieldname": "net_total", "fieldtype": "Currency", "options": "currency", "width": 125},
+        {"label": _("Taxes"), "fieldname": "taxes", "fieldtype": "Currency", "options": "currency", "width": 115},
+        {"label": _("Grand Total"), "fieldname": "grand_total", "fieldtype": "Currency", "options": "currency", "width": 130},
+        {"label": _("Outstanding"), "fieldname": "outstanding_amount", "fieldtype": "Currency", "options": "currency", "width": 130},
+    ]
+    conditions = ["company = %s", "docstatus = 1", "posting_date between %s and %s"]
+    parameters = [company, from_date, to_date]
+    if supplier := values.get("supplier"):
+        conditions.append("supplier = %s")
+        parameters.append(supplier)
+    data = frappe.db.sql(
+        f"""
+        select posting_date, name as purchase_invoice, rd_source_purchase_receipt as purchase_receipt,
+            supplier, bill_no, coalesce(net_total, 0) as net_total,
+            coalesce(total_taxes_and_charges, 0) as taxes,
+            coalesce(grand_total, 0) as grand_total,
+            coalesce(outstanding_amount, 0) as outstanding_amount
+        from `tabPurchase Invoice`
+        where {' and '.join(conditions)}
+        order by posting_date desc, creation desc
+        """,
+        parameters,
+        as_dict=True,
+    )
+    total = outstanding = 0.0
+    for row in data:
+        row.currency = currency
+        total += flt(row.grand_total)
+        outstanding += flt(row.outstanding_amount)
+    return columns, data, [
+        summary(_("Total Purchases"), total, currency, "Orange"),
+        summary(_("Outstanding"), outstanding, currency),
+    ]
+
+
 def profit_and_loss(filters: dict | None = None):
     values, company, from_date, to_date, currency = report_context(filters)
     columns = [

@@ -81,7 +81,11 @@ def remove_legacy_daily_balance_report() -> None:
 
 def refresh_distribution_report_definitions() -> None:
     """Repair report records and role rows on sites upgraded from earlier builds."""
-    for report_module in ("distribution_sales_register", "ledger_summary"):
+    for report_module in (
+        "distribution_sales_register",
+        "distribution_purchase_register",
+        "ledger_summary",
+    ):
         frappe.reload_doc("distribution", "report", report_module)
     frappe.clear_cache(doctype="Report")
 
@@ -94,7 +98,7 @@ def remove_distribution_legacy_report_access() -> None:
         "Company Admin",
         "Company Manager",
     }
-    for report_name in ("Accounts Payable", "Sales Register"):
+    for report_name in ("Accounts Payable", "Sales Register", "Purchase Register"):
         if not frappe.db.exists("Report", report_name):
             continue
         report = frappe.get_doc("Report", report_name)
@@ -1376,7 +1380,7 @@ def ensure_distribution_report_roles() -> None:
         "Stock Ledger": operational_roles,
         "Stock Balance": operational_roles,
         "Distribution Sales Register": management_roles,
-        "Purchase Register": management_roles,
+        "Distribution Purchase Register": management_roles,
         "Accounting Ledger": management_roles,
         "Day Book": management_roles,
         "Cash Book": management_roles,
@@ -1613,7 +1617,13 @@ def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
         link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
         link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
         link("Sales Register", "Distribution Sales Register", "Report", "receipt-text", child=True),
-        link("Purchase Register", "Purchase Register", "Report", "clipboard-list", child=True),
+        link(
+            "Purchase Register",
+            "Distribution Purchase Register",
+            "Report",
+            "clipboard-list",
+            child=True,
+        ),
         link(
             "Accounting Ledger",
             "Accounting Ledger",

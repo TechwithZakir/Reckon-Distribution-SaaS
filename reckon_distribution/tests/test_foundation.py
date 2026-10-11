@@ -225,7 +225,7 @@ class TestFoundation(FrappeTestCase):
                 "Stock Ledger",
                 "Stock Balance",
                 "Sales Register",
-                "Purchase Register",
+                "Distribution Purchase Register",
                 "Accounts Payable",
             }.issubset(links)
         )
@@ -326,7 +326,7 @@ class TestFoundation(FrappeTestCase):
             "Stock Ledger",
             "Stock Balance",
             "Sales Register",
-            "Purchase Register",
+            "Distribution Purchase Register",
             "Accounts Payable",
         ):
             if frappe.db.exists("Report", report_name):
@@ -372,7 +372,7 @@ class TestFoundation(FrappeTestCase):
         self.assertIn("Stock Ledger", DISTRIBUTION_QUERY_REPORTS)
         self.assertIn("Stock Balance", DISTRIBUTION_QUERY_REPORTS)
         self.assertTrue(
-            {"Sales Register", "Purchase Register"}.issubset(
+            {"Sales Register", "Distribution Purchase Register"}.issubset(
                 DISTRIBUTION_MANAGEMENT_QUERY_REPORTS
             )
         )
@@ -394,7 +394,7 @@ class TestFoundation(FrappeTestCase):
                 "Reckon Distribution Admin",
                 "Reckon Distribution Manager",
             },
-            "Purchase Register": {
+            "Distribution Purchase Register": {
                 "Reckon Distribution Admin",
                 "Reckon Distribution Manager",
             },

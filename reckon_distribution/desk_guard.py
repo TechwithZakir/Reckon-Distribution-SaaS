@@ -163,6 +163,13 @@ ALLOWED_DISTRIBUTION_DOCTYPES = frozenset(
         "Purchase Receipt Item",
         "Purchase Invoice Item",
         "Payment Entry Reference",
+        # These accounting records are report dependencies only. Their report
+        # and generic API access is tenant-scoped by the hooks in hooks.py;
+        # the corresponding Desk pages remain outside the allowed page list.
+        "GL Entry",
+        "Payment Ledger Entry",
+        "Sales Invoice",
+        "Journal Entry",
         "Delivery Note",
         "Stock Entry",
         "Stock Ledger Entry",

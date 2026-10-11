@@ -1185,6 +1185,8 @@ def ensure_native_master_permissions() -> None:
         # Financial reports execute against GL Entry but never expose its desk
         # list outside the tenant-bound Script Reports below.
         "GL Entry": {"read", "report", "export", "print"},
+        "Sales Invoice": {"read", "report", "export", "print"},
+        "Journal Entry": {"read", "report", "export", "print"},
         "Purchase Order": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Receipt": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
         "Purchase Invoice": {"read", "write", "create", "delete", "report", "export", "print", "email", "submit", "cancel", "amend"},
@@ -1201,7 +1203,12 @@ def ensure_native_master_permissions() -> None:
     read_only_roles = {"Reckon Distribution User", "DSR", "SR"}
     procurement_doctypes = {"Purchase Order", "Purchase Receipt", "Purchase Invoice", "Payment Entry"}
     operational_report_doctypes = {"Stock Ledger Entry"}
-    accounting_report_doctypes = {"GL Entry", "Payment Ledger Entry"}
+    accounting_report_doctypes = {
+        "GL Entry",
+        "Payment Ledger Entry",
+        "Sales Invoice",
+        "Journal Entry",
+    }
     procurement_roles = {
         "Reckon Distribution Admin",
         "Reckon Distribution Manager",

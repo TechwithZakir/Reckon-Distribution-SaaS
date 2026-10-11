@@ -126,6 +126,10 @@ permission_query_conditions = {
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Stock Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Stock Ledger Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "GL Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Payment Ledger Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Sales Invoice": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
+    "Journal Entry": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "DSR Due Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
     "Retailer Route Assignment": "reckon_saas_platform.tenant_security.get_tenant_owned_query",
@@ -159,6 +163,10 @@ has_permission = {
     "Van Loading Acknowledgement": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Stock Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Stock Ledger Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "GL Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Payment Ledger Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Sales Invoice": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
+    "Journal Entry": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Collection Receipt": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "DSR Due Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Retailer Route Assignment": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
@@ -195,7 +203,7 @@ override_doctype_class = {
 doctype_js = {
     doctype: "public/js/company_context.js"
     for doctype in permission_query_conditions
-    if doctype != "Company"
+    if doctype not in {"Company", "GL Entry", "Payment Ledger Entry", "Sales Invoice", "Journal Entry"}
 }
 for _doctype in doctype_js:
     doc_events.setdefault(_doctype, {})["before_validate"] = (

@@ -202,8 +202,9 @@ class TestFoundation(FrappeTestCase):
 
     def test_distribution_dashboard_uses_safe_aggregate_syntax(self):
         source = (Path(__file__).parents[1] / "dashboard.py").read_text()
-        self.assertIn('frappe.db.get_value(doctype, filters, {"SUM": fieldname})', source)
-        self.assertNotIn('f"sum(`{fieldname}`)"', source)
+        self.assertIn("def _sum(doctype: str, fieldname: str, filters: dict)", source)
+        self.assertIn("frappe.get_list(", source)
+        self.assertNotIn('{"SUM": fieldname}', source)
 
     def test_distribution_sidebar_groups_core_work_and_reports(self):
         sidebar_path = (

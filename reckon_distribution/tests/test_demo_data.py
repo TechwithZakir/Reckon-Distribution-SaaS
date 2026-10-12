@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import unittest
 
 from frappe.tests.utils import FrappeTestCase
@@ -11,6 +12,7 @@ from reckon_distribution.demo_data import (
     ROLLBACK_ORDER,
     SEED_SCHEMA_REQUIREMENTS,
     TRANSACTION_PLAN,
+    _delivery,
     _fiscal_period,
     _sample_date,
 )
@@ -60,6 +62,12 @@ class TestDistributionDemoDataPlan(FrappeTestCase):
 
         self.assertIn("posting_time", fields)
         self.assertIn("remarks", fields)
+
+    def test_seed_posts_delivery_after_the_challan_stock_transfer(self):
+        self.assertIn(
+            "_ensure_delivery_stock(masters, item, posting_date, marker, quantity)",
+            inspect.getsource(_delivery),
+        )
 
 
 if __name__ == "__main__":

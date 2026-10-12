@@ -969,6 +969,7 @@ def _delivery(
         _submit_if_draft("Delivery Note", existing)
         return existing, False
     challan_name = challan[0]
+    _ensure_delivery_stock(masters, item, posting_date, marker, quantity)
     rate = _selling_rate(masters["price_list"], item)
     doc = frappe.get_doc(
         {
@@ -1007,6 +1008,51 @@ def _delivery(
     doc.insert(ignore_permissions=True)
     doc.submit()
     return doc.name, True
+
+
+def _ensure_delivery_stock(masters: dict, item: str, posting_date, marker: str, quantity: int) -> None:
+    """Ensure the van ledger can support a demo delivery at its posting time.
+
+    A submitted DSR Challan normally supplies this stock.  A corrective transfer
+    is needed only when a tenant's historical stock reposting has not made the
+    challan transfer available yet.  It is deliberately marker-tagged so the
+    rollback reverses it along with the rest of the demo lifecycle.
+    """
+    from erpnext.stock.utils import get_stock_balance
+
+    available_qty = flt(
+        get_stock_balance(item, masters["van_warehouse"], posting_date, posting_time="11:30:00")
+    )
+    missing_qty = flt(quantity) - available_qty
+    if missing_qty <= 0:
+        return
+
+    entry = frappe.get_doc(
+        {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": masters["company"],
+            "posting_date": posting_date,
+            "posting_time": "11:30:00",
+            "set_posting_time": 1,
+            "from_warehouse": masters["source_warehouse"],
+            "to_warehouse": masters["van_warehouse"],
+            "remarks": f"{marker}-STOCK van delivery safeguard",
+            "items": [
+                {
+                    "item_code": item,
+                    "qty": missing_qty,
+                    "uom": "Nos",
+                    "conversion_factor": 1,
+                    "s_warehouse": masters["source_warehouse"],
+                    "t_warehouse": masters["van_warehouse"],
+                }
+            ],
+        }
+    )
+    entry.insert(ignore_permissions=True)
+    entry.submit()
 
 
 def _sales_invoice(delivery_name: str, posting_date, marker: str, delivery_index: int) -> tuple[str, bool]:

@@ -37,7 +37,9 @@ documents without changing the published 100-record total:
 
 If a prior interrupted run left a receipt without stock ledger quantity, the seed
 creates one marker-tagged Material Receipt only for the missing challan quantity.
-It is included in the rollback plan.
+Before each delivery it also verifies the van's ledger balance and, only when a
+historical challan transfer is not yet available, posts a marker-tagged corrective
+transfer. Both safeguards are included in the rollback plan.
 
 The dates are distributed from six months before today through today. The script
 uses a company-derived `RDDEMO-...` marker in masters, references, and idempotency

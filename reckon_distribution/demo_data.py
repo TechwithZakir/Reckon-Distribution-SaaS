@@ -15,7 +15,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, add_months, cint, flt, getdate, nowdate
 
-from reckon_distribution.collection import confirm_collection
+from reckon_distribution.collection import cancel_collection, confirm_collection
 from reckon_distribution.master_data import get_or_create_company_sales_price_list
 from reckon_distribution.seed import ensure_office_expense_defaults, run_distribution_seed
 from reckon_distribution.settlement import create_day_settlement
@@ -32,6 +32,21 @@ TRANSACTION_PLAN = (
     ("office_expenses", 10),
     ("outlet_visits", 10),
     ("sr_orders", 10),
+)
+ROLLBACK_ORDER = (
+    "DSR Day Settlement",
+    "Office Expense",
+    "DSR Collection Receipt",
+    "Delivery Note",
+    "DSR Challan",
+    "Purchase Invoice",
+    "Purchase Receipt",
+    "Purchase Order",
+    "SR Order",
+    "Outlet Visit",
+    "Stock Entry",
+    "Stock Reconciliation",
+    "Payment Entry",
 )
 SEED_SCHEMA_REQUIREMENTS = {
     "Purchase Order": ("company", "supplier", "transaction_date", "schedule_date", "set_warehouse", "items"),
@@ -56,6 +71,9 @@ SEED_SCHEMA_REQUIREMENTS = {
     ),
     "Delivery Note": ("rd_route", "rd_dsr", "rd_dsr_challan", "rd_idempotency_key"),
     "Purchase Invoice": ("rd_source_purchase_receipt",),
+    "Stock Entry": ("rd_van_loading_challan", "rd_dsr_day_settlement"),
+    "Stock Reconciliation": ("rd_dsr_day_settlement",),
+    "Payment Entry": ("rd_collection_receipt", "rd_office_expense", "rd_dsr_day_settlement"),
 }
 
 
@@ -93,6 +111,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         _count(result, "purchase_orders", _purchase_order(masters, item, posting_date))
         receipt = _purchase_receipt(masters, posting_date, marker)
         _count(result, "purchase_receipts", receipt)
+        _ensure_challan_stock(masters, item, posting_date, marker)
         challan = _challan(masters, item, posting_date, marker)
         _count(result, "challans", challan)
 
@@ -130,6 +149,147 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         "rerun_safe": True,
         "note": "Generated stock, payment, and draft supplier invoice records are not included in the total.",
     }
+
+
+def rollback_distribution_test_data(
+    company: str, dry_run: bool = True, confirm_rollback: bool = False
+) -> dict:
+    """Reverse and remove only this Company's RD Demo transactions.
+
+    A preview is the default. A confirmed rollback cancels submitted documents
+    first, allowing ERPNext to reverse stock and accounting entries before the
+    cancelled demo records are removed. Shared setup, fiscal years, and seeded
+    masters are deliberately retained.
+    """
+    _require_system_manager()
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+
+    _validate_seed_schema()
+    token = _token(company)
+    plan = _rollback_plan(company, token)
+    counts = {doctype: len(names) for doctype, names in plan.items() if names}
+    dry_run = bool(cint(dry_run))
+    confirm_rollback = bool(cint(confirm_rollback))
+    if dry_run:
+        return {
+            "company": company,
+            "marker": token,
+            "writes": False,
+            "records": counts,
+            "names": plan,
+            "note": "Preview only. Set dry_run=false and confirm_rollback=true to reverse this dataset.",
+        }
+    if not confirm_rollback:
+        frappe.throw(
+            _(
+                "Refusing to change data without confirm_rollback=true. Run the default preview first."
+            )
+        )
+
+    removed = {}
+    for doctype in ROLLBACK_ORDER:
+        names = plan.get(doctype, [])
+        for name in names:
+            _rollback_document(doctype, name)
+        if names:
+            removed[doctype] = len(names)
+
+    return {
+        "company": company,
+        "marker": token,
+        "writes": True,
+        "removed": removed,
+        "note": "RD Demo transactions were reversed and removed. Masters and fiscal years were retained.",
+    }
+
+
+def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
+    """Select only records that carry the fixed, company-specific demo marker."""
+    marker = f"{token}-%"
+    supplier = frappe.db.get_value(
+        "Supplier", {"rd_company": company, "supplier_name": f"RD Demo Supplier {token}"}, "name"
+    )
+    route = frappe.db.get_value(
+        "Distribution Route", {"company": company, "route_code": f"DEMO{token[-4:]}"}, "name"
+    )
+    purchase_receipts = _names(
+        "Purchase Receipt", {"company": company, "supplier_delivery_note": ["like", f"{marker}-PR"]}
+    )
+    challans = _names("DSR Challan", {"company": company, "route": route}) if route else []
+    settlements = _names("DSR Day Settlement", {"challan": ["in", challans]}) if challans else []
+    collections = _names(
+        "DSR Collection Receipt", {"company": company, "idempotency_key": ["like", f"{marker}-COL"]}
+    )
+    expenses = _names("Office Expense", {"company": company, "reference_no": ["like", f"{marker}-EXP"]})
+    stock_entries = set()
+    if challans:
+        stock_entries.update(_names("Stock Entry", {"rd_van_loading_challan": ["in", challans]}))
+    if settlements:
+        stock_entries.update(_names("Stock Entry", {"rd_dsr_day_settlement": ["in", settlements]}))
+    stock_entries.update(
+        _names("Stock Entry", {"company": company, "remarks": ["like", f"{marker}-STOCK%"]})
+    )
+
+    return {
+        "DSR Day Settlement": settlements,
+        "Office Expense": expenses,
+        "DSR Collection Receipt": collections,
+        "Delivery Note": _names(
+            "Delivery Note",
+            {"company": company, "rd_idempotency_key": ["like", f"{marker}-DN-%"]},
+        ),
+        "DSR Challan": challans,
+        "Purchase Invoice": _names(
+            "Purchase Invoice", {"rd_source_purchase_receipt": ["in", purchase_receipts]}
+        )
+        if purchase_receipts
+        else [],
+        "Purchase Receipt": purchase_receipts,
+        "Purchase Order": _names("Purchase Order", {"company": company, "supplier": supplier})
+        if supplier
+        else [],
+        "SR Order": _names("SR Order", {"company": company, "idempotency_key": ["like", f"{marker}-SRO"]}),
+        "Outlet Visit": _names(
+            "Outlet Visit", {"company": company, "idempotency_key": ["like", f"{marker}-VIS"]}
+        ),
+        "Stock Entry": sorted(stock_entries),
+        "Stock Reconciliation": _names(
+            "Stock Reconciliation", {"rd_dsr_day_settlement": ["in", settlements]}
+        )
+        if settlements
+        else [],
+        "Payment Entry": _payment_entry_names(collections, expenses, settlements),
+    }
+
+
+def _payment_entry_names(collections: list[str], expenses: list[str], settlements: list[str]) -> list[str]:
+    names = set()
+    for fieldname, records in (
+        ("rd_collection_receipt", collections),
+        ("rd_office_expense", expenses),
+        ("rd_dsr_day_settlement", settlements),
+    ):
+        if records:
+            names.update(_names("Payment Entry", {fieldname: ["in", records]}))
+    return sorted(names)
+
+
+def _names(doctype: str, filters: dict) -> list[str]:
+    return frappe.get_all(doctype, filters=filters, pluck="name", limit_page_length=10_000)
+
+
+def _rollback_document(doctype: str, name: str) -> None:
+    if not frappe.db.exists(doctype, name):
+        return
+    if doctype == "DSR Collection Receipt":
+        cancel_collection(name)
+    else:
+        doc = frappe.get_doc(doctype, name)
+        if doc.docstatus == 1:
+            doc.flags.ignore_permissions = True
+            doc.cancel()
+    frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
 
 
 def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
@@ -349,6 +509,7 @@ def _purchase_receipt(masters: dict, posting_date, marker: str) -> tuple[str, bo
     doc = _make_purchase_receipt(purchase_order_doc, masters, posting_date)
     doc.posting_date = posting_date
     doc.posting_time = "08:00:00"
+    doc.set_posting_time = 1
     doc.set_warehouse = masters["source_warehouse"]
     doc.supplier_delivery_note = f"{marker}-PR"
     doc.currency = masters["currency"]
@@ -360,6 +521,42 @@ def _purchase_receipt(masters: dict, posting_date, marker: str) -> tuple[str, bo
     doc.insert(ignore_permissions=True)
     doc.submit()
     return doc.name, True
+
+
+def _ensure_challan_stock(masters: dict, item: str, posting_date, marker: str) -> None:
+    """Guarantee the demo handoff has stock even if an older partial run did not post it."""
+    from erpnext.stock.utils import get_stock_balance
+
+    required_qty = 80
+    available_qty = flt(get_stock_balance(item, masters["source_warehouse"], posting_date))
+    if available_qty >= required_qty:
+        return
+
+    entry = frappe.get_doc(
+        {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Receipt",
+            "purpose": "Material Receipt",
+            "company": masters["company"],
+            "posting_date": posting_date,
+            "posting_time": "08:30:00",
+            "set_posting_time": 1,
+            "to_warehouse": masters["source_warehouse"],
+            "remarks": f"{marker}-STOCK source warehouse safeguard",
+            "items": [
+                {
+                    "item_code": item,
+                    "qty": required_qty - available_qty,
+                    "uom": "Nos",
+                    "conversion_factor": 1,
+                    "t_warehouse": masters["source_warehouse"],
+                    "basic_rate": 55,
+                }
+            ],
+        }
+    )
+    entry.insert(ignore_permissions=True)
+    entry.submit()
 
 
 def _make_purchase_receipt(purchase_order, masters: dict, posting_date):
@@ -442,6 +639,7 @@ def _challan(masters: dict, item: str, posting_date, marker: str) -> tuple[str, 
         "name",
     )
     if existing:
+        _submit_if_draft("DSR Challan", existing)
         return existing, False
     doc = frappe.get_doc(
         {
@@ -481,6 +679,7 @@ def _delivery(
 ) -> tuple[str, bool]:
     existing = frappe.db.get_value("Delivery Note", {"rd_idempotency_key": marker}, "name")
     if existing:
+        _submit_if_draft("Delivery Note", existing)
         return existing, False
     challan_name = challan[0]
     rate = _selling_rate(masters["price_list"], item)
@@ -525,6 +724,11 @@ def _collection(masters: dict, customer: str, posting_date, marker: str) -> tupl
     key = f"{marker}-COL"
     existing = frappe.db.get_value("DSR Collection Receipt", {"idempotency_key": key}, "name")
     if existing:
+        collection = frappe.get_doc("DSR Collection Receipt", existing)
+        if collection.status == "Cancelled":
+            frappe.throw(_("RD Demo collection {0} is cancelled and cannot be reused.").format(existing))
+        if collection.status != "Confirmed":
+            confirm_collection(existing)
         return existing, False
     doc = frappe.get_doc(
         {
@@ -551,14 +755,27 @@ def _settlement(challan: tuple[str, bool]) -> tuple[str, bool]:
     challan_name = challan[0]
     existing = frappe.db.get_value("DSR Day Settlement", {"challan": challan_name}, "name")
     if existing:
+        doc = frappe.get_doc("DSR Day Settlement", existing)
+        if doc.docstatus == 0:
+            _prepare_demo_settlement(doc)
+            doc.submit()
+        if doc.docstatus != 1:
+            frappe.throw(_("RD Demo settlement {0} is cancelled and cannot be reused.").format(existing))
+        if doc.status != "Submitted":
+            frappe.throw(_("RD Demo settlement {0} is not submitted.").format(existing))
         return existing, False
     settlement_name = create_day_settlement(challan_name)
     doc = frappe.get_doc("DSR Day Settlement", settlement_name)
+    _prepare_demo_settlement(doc)
+    doc.submit()
+    return doc.name, True
+
+
+def _prepare_demo_settlement(doc) -> None:
+    """Populate required reconciliation values before submitting a new or resumed draft."""
     doc.cash_handover = 4_000
     for row in doc.stock_items:
         row.closing_qty = row.expected_closing_qty
-    doc.submit()
-    return doc.name, True
 
 
 def _office_expense(masters: dict, posting_date, marker: str, index: int) -> tuple[str, bool]:
@@ -567,6 +784,7 @@ def _office_expense(masters: dict, posting_date, marker: str, index: int) -> tup
         "Office Expense", {"company": masters["company"], "reference_no": reference}, "name"
     )
     if existing:
+        _submit_if_draft("Office Expense", existing)
         return existing, False
     settings = masters["expense_settings"]
     category = settings.categories[(index - 1) % len(settings.categories)].expense_account

@@ -7,6 +7,7 @@ from frappe.utils import add_days, add_months, getdate, nowdate
 
 from reckon_distribution.demo_data import (
     DEMO_RECORD_COUNT,
+    ROLLBACK_ORDER,
     SEED_SCHEMA_REQUIREMENTS,
     TRANSACTION_PLAN,
     _fiscal_period,
@@ -37,6 +38,16 @@ class TestDistributionDemoDataPlan(FrappeTestCase):
 
         self.assertIn("supplier_delivery_note", receipt_fields)
         self.assertNotIn("bill_no", receipt_fields)
+
+    def test_rollback_reverses_operational_dependents_before_source_documents(self):
+        self.assertLess(ROLLBACK_ORDER.index("DSR Day Settlement"), ROLLBACK_ORDER.index("DSR Challan"))
+        self.assertLess(ROLLBACK_ORDER.index("Delivery Note"), ROLLBACK_ORDER.index("DSR Challan"))
+        self.assertLess(ROLLBACK_ORDER.index("Purchase Invoice"), ROLLBACK_ORDER.index("Purchase Receipt"))
+        self.assertLess(ROLLBACK_ORDER.index("Purchase Receipt"), ROLLBACK_ORDER.index("Purchase Order"))
+
+    def test_seed_requires_the_native_stock_entry_links_used_by_rollback(self):
+        self.assertIn("rd_van_loading_challan", SEED_SCHEMA_REQUIREMENTS["Stock Entry"])
+        self.assertIn("rd_dsr_day_settlement", SEED_SCHEMA_REQUIREMENTS["Stock Entry"])
 
 
 if __name__ == "__main__":

@@ -33,10 +33,15 @@ TRANSACTION_PLAN = (
     ("outlet_visits", 10),
     ("sr_orders", 10),
 )
+GENERATED_DOCUMENT_PLAN = (
+    ("purchase_invoices", 10),
+    ("sales_invoices", 20),
+)
 ROLLBACK_ORDER = (
     "DSR Day Settlement",
     "Office Expense",
     "DSR Collection Receipt",
+    "Sales Invoice",
     "Delivery Note",
     "DSR Challan",
     "Purchase Invoice",
@@ -69,8 +74,10 @@ SEED_SCHEMA_REQUIREMENTS = {
         "rd_paid_qty",
         "rd_free_qty",
     ),
-    "Delivery Note": ("rd_route", "rd_dsr", "rd_dsr_challan", "rd_idempotency_key"),
+    "Delivery Note": ("rd_route", "rd_dsr", "rd_dsr_challan", "rd_idempotency_key", "items"),
+    "Delivery Note Item": ("item_code", "qty", "warehouse", "rd_stock_category"),
     "Purchase Invoice": ("rd_source_purchase_receipt",),
+    "Sales Invoice": ("company", "customer", "posting_date", "posting_time", "remarks", "items"),
     "Stock Entry": ("rd_van_loading_challan", "rd_dsr_day_settlement"),
     "Stock Reconciliation": ("rd_dsr_day_settlement",),
     "Payment Entry": ("rd_collection_receipt", "rd_office_expense", "rd_dsr_day_settlement"),
@@ -95,13 +102,14 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
     if not frappe.db.exists("Company", company):
         frappe.throw(_("Company {0} does not exist.").format(company))
 
-    _validate_seed_schema()
+    _validate_seed_preflight(company)
     token = _token(company)
     start_date = add_months(getdate(nowdate()), -months)
     dates = [_sample_date(start_date, index, 10) for index in range(10)]
     _ensure_fiscal_year_coverage(company, dates)
     masters = _ensure_demo_masters(company, token, start_date)
     result = Counter()
+    generated = Counter()
 
     for index, posting_date in enumerate(dates, start=1):
         item = masters["items"][(index - 1) % len(masters["items"])]
@@ -111,24 +119,27 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         _count(result, "purchase_orders", _purchase_order(masters, item, posting_date))
         receipt = _purchase_receipt(masters, posting_date, marker)
         _count(result, "purchase_receipts", receipt)
+        _count(generated, "purchase_invoices", _purchase_invoice(receipt[0], posting_date, marker))
         _ensure_challan_stock(masters, item, posting_date, marker)
         challan = _challan(masters, item, posting_date, marker)
         _count(result, "challans", challan)
 
         for delivery_index, quantity in enumerate((18, 22), start=1):
+            delivery = _delivery(
+                masters,
+                challan,
+                customer,
+                item,
+                posting_date,
+                f"{marker}-DN-{delivery_index}",
+                quantity,
+            )
             _count(
                 result,
                 "deliveries",
-                _delivery(
-                    masters,
-                    challan,
-                    customer,
-                    item,
-                    posting_date,
-                    f"{marker}-DN-{delivery_index}",
-                    quantity,
-                ),
+                delivery,
             )
+            _count(generated, "sales_invoices", _sales_invoice(delivery[0], posting_date, marker, delivery_index))
 
         _count(result, "collections", _collection(masters, customer, posting_date, marker))
         _count(result, "settlements", _settlement(challan))
@@ -139,6 +150,12 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
     expected = sum(quantity for _, quantity in TRANSACTION_PLAN)
     if expected != DEMO_RECORD_COUNT:
         frappe.throw(_("The RD Demo transaction plan must total {0} records.").format(DEMO_RECORD_COUNT))
+    expected_generated = dict(GENERATED_DOCUMENT_PLAN)
+    if sum(expected_generated.values()) != 30:
+        frappe.throw(_("The RD Demo generated-document plan must total 30 records."))
+    audit = audit_distribution_test_data(company)
+    if not audit["healthy"]:
+        frappe.throw(_("RD Demo integrity audit failed: {0}").format("; ".join(audit["errors"])))
     return {
         "company": company,
         "marker": token,
@@ -146,8 +163,54 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         "requested_records": DEMO_RECORD_COUNT,
         "created": dict(result),
         "created_total": sum(result.values()),
+        "created_generated": dict(generated),
+        "generated_documents": expected_generated,
+        "integrity_audit": audit,
         "rerun_safe": True,
-        "note": "Generated stock, payment, and draft supplier invoice records are not included in the total.",
+        "note": "Generated stock, Payment Entry, Purchase Invoice, and Sales Invoice records are not included in the 100 operational records.",
+    }
+
+
+def preflight_distribution_test_data(company: str) -> dict:
+    """Validate that a tenant can receive the linked RD Demo dataset without writing data."""
+    _require_system_manager()
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+    _validate_seed_preflight(company)
+    return {
+        "company": company,
+        "marker": _token(company),
+        "operational_documents": dict(TRANSACTION_PLAN),
+        "generated_documents": dict(GENERATED_DOCUMENT_PLAN),
+        "writes": False,
+        "note": "Preflight passed. The seed can be run safely after reviewing this result.",
+    }
+
+
+def audit_distribution_test_data(company: str) -> dict:
+    """Verify the complete RD Demo lifecycle and report incomplete records precisely."""
+    _require_system_manager()
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+
+    plan = _seed_audit_plan(company, _token(company))
+    expected = {**dict(TRANSACTION_PLAN), **dict(GENERATED_DOCUMENT_PLAN)}
+    errors = []
+    for key, expected_count in expected.items():
+        names = plan[key]["names"]
+        if len(names) != expected_count:
+            errors.append(_("{0}: expected {1}, found {2}.").format(key, expected_count, len(names)))
+        invalid = plan[key]["invalid"]
+        if invalid:
+            errors.append(_("{0}: invalid records {1}.").format(key, ", ".join(invalid)))
+
+    return {
+        "company": company,
+        "marker": _token(company),
+        "healthy": not errors,
+        "errors": errors,
+        "records": {key: len(value["names"]) for key, value in plan.items()},
+        "invalid_records": {key: value["invalid"] for key, value in plan.items() if value["invalid"]},
     }
 
 
@@ -235,6 +298,9 @@ def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
         "DSR Day Settlement": settlements,
         "Office Expense": expenses,
         "DSR Collection Receipt": collections,
+        "Sales Invoice": _names(
+            "Sales Invoice", {"company": company, "remarks": ["like", f"{marker}-DN-%-SI"]}
+        ),
         "Delivery Note": _names(
             "Delivery Note",
             {"company": company, "rd_idempotency_key": ["like", f"{marker}-DN-%"]},
@@ -355,6 +421,184 @@ def _validate_seed_schema() -> None:
                 "Run `bench --site <site> migrate` and try again."
             ).format(", ".join(missing))
         )
+
+
+def _validate_seed_preflight(company: str) -> None:
+    """Validate schema and Company accounting defaults before the first insert."""
+    _validate_seed_schema()
+    defaults = frappe.db.get_value(
+        "Company",
+        company,
+        ["default_currency", "default_receivable_account", "default_payable_account"],
+        as_dict=True,
+    )
+    missing = []
+    if not defaults or not defaults.default_currency:
+        missing.append("default currency")
+    if not defaults or not defaults.default_receivable_account:
+        missing.append("default receivable account")
+    if not defaults or not defaults.default_payable_account:
+        missing.append("default payable account")
+    if missing:
+        frappe.throw(
+            _("Company {0} must have {1} before seeding invoices and payments.").format(
+                company, ", ".join(missing)
+            )
+        )
+
+
+def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]]:
+    """Return each expected demo document with records that cannot support reports."""
+    marker = f"{token}-%"
+    supplier = frappe.db.get_value(
+        "Supplier", {"rd_company": company, "supplier_name": f"RD Demo Supplier {token}"}, "name"
+    )
+    route = frappe.db.get_value(
+        "Distribution Route", {"company": company, "route_code": f"DEMO{token[-4:]}"}, "name"
+    )
+    purchase_orders = _audit_documents(
+        "Purchase Order", {"company": company, "supplier": supplier}, docstatus=1
+    ) if supplier else _empty_audit()
+    purchase_receipts = _audit_documents(
+        "Purchase Receipt",
+        {"company": company, "supplier_delivery_note": ["like", f"{marker}-PR"]},
+        docstatus=1,
+    )
+    purchase_invoices = _audit_documents(
+        "Purchase Invoice",
+        {"rd_source_purchase_receipt": ["in", purchase_receipts["names"]]},
+        docstatus=1,
+    ) if purchase_receipts["names"] else _empty_audit()
+    challans = _audit_documents(
+        "DSR Challan", {"company": company, "route": route}, docstatus=1, status="Submitted"
+    ) if route else _empty_audit()
+    deliveries = _audit_documents(
+        "Delivery Note",
+        {"company": company, "rd_idempotency_key": ["like", f"{marker}-DN-%"]},
+        docstatus=1,
+    )
+    sales_invoices = _audit_documents(
+        "Sales Invoice", {"company": company, "remarks": ["like", f"{marker}-DN-%-SI"]}, docstatus=1
+    )
+    collections = _audit_documents(
+        "DSR Collection Receipt",
+        {"company": company, "idempotency_key": ["like", f"{marker}-COL"]},
+        status="Confirmed",
+    )
+    settlements = _audit_documents(
+        "DSR Day Settlement", {"challan": ["in", challans["names"]]}, docstatus=1, status="Submitted"
+    ) if challans["names"] else _empty_audit()
+    expenses = _audit_documents(
+        "Office Expense",
+        {"company": company, "reference_no": ["like", f"{marker}-EXP"]},
+        docstatus=1,
+        status="Submitted",
+    )
+    visits = _audit_documents(
+        "Outlet Visit", {"company": company, "idempotency_key": ["like", f"{marker}-VIS"]}, status="Completed"
+    )
+    orders = _audit_documents(
+        "SR Order", {"company": company, "idempotency_key": ["like", f"{marker}-SRO"]}, status="Draft"
+    )
+    challans["invalid"].extend(
+        _invalid_submitted_links("DSR Challan", challans["names"], "stock_entry", "Stock Entry")
+    )
+    deliveries["invalid"].extend(
+        _invalid_allowed_links(
+            "Delivery Note", deliveries["names"], "rd_dsr_challan", challans["names"]
+        )
+    )
+    sales_invoices["invalid"].extend(
+        _invalid_sales_invoice_delivery_links(sales_invoices["names"], deliveries["names"])
+    )
+    collections["invalid"].extend(
+        _invalid_submitted_links(
+            "DSR Collection Receipt", collections["names"], "payment_entry", "Payment Entry"
+        )
+    )
+    settlements["invalid"].extend(
+        _invalid_submitted_links(
+            "DSR Day Settlement", settlements["names"], "stock_return_entry", "Stock Entry"
+        )
+    )
+    expenses["invalid"].extend(
+        _invalid_submitted_links("Office Expense", expenses["names"], "payment_entry", "Payment Entry")
+    )
+    return {
+        "purchase_orders": purchase_orders,
+        "purchase_receipts": purchase_receipts,
+        "purchase_invoices": purchase_invoices,
+        "challans": challans,
+        "deliveries": deliveries,
+        "sales_invoices": sales_invoices,
+        "collections": collections,
+        "settlements": settlements,
+        "office_expenses": expenses,
+        "outlet_visits": visits,
+        "sr_orders": orders,
+    }
+
+
+def _audit_documents(doctype: str, filters: dict, *, docstatus: int | None = None, status: str | None = None) -> dict:
+    fields = ["name", "docstatus"]
+    if frappe.get_meta(doctype).has_field("status"):
+        fields.append("status")
+    rows = frappe.get_all(doctype, filters=filters, fields=fields, order_by="name")
+    invalid = []
+    for row in rows:
+        if docstatus is not None and cint(row.docstatus) != docstatus:
+            invalid.append(row.name)
+            continue
+        if status is not None and row.get("status") != status:
+            invalid.append(row.name)
+    return {"names": [row.name for row in rows], "invalid": invalid}
+
+
+def _empty_audit() -> dict[str, list[str]]:
+    return {"names": [], "invalid": []}
+
+
+def _invalid_submitted_links(
+    doctype: str, names: list[str], link_field: str, linked_doctype: str
+) -> list[str]:
+    if not names:
+        return []
+    rows = frappe.get_all(doctype, filters={"name": ["in", names]}, fields=["name", link_field])
+    invalid = []
+    for row in rows:
+        linked_name = row.get(link_field)
+        if not linked_name or frappe.db.get_value(linked_doctype, linked_name, "docstatus") != 1:
+            invalid.append(row.name)
+    return invalid
+
+
+def _invalid_allowed_links(
+    doctype: str, names: list[str], link_field: str, allowed_names: list[str]
+) -> list[str]:
+    if not names:
+        return []
+    allowed = set(allowed_names)
+    rows = frappe.get_all(doctype, filters={"name": ["in", names]}, fields=["name", link_field])
+    return [row.name for row in rows if row.get(link_field) not in allowed]
+
+
+def _invalid_sales_invoice_delivery_links(invoice_names: list[str], delivery_names: list[str]) -> list[str]:
+    if not invoice_names:
+        return []
+    linked = frappe.get_all(
+        "Sales Invoice Item",
+        filters={"parent": ["in", invoice_names]},
+        fields=["parent", "delivery_note"],
+    )
+    allowed = set(delivery_names)
+    linked_by_invoice = {}
+    for row in linked:
+        linked_by_invoice.setdefault(row.parent, set()).add(row.delivery_note)
+    return [
+        invoice_name
+        for invoice_name in invoice_names
+        if not linked_by_invoice.get(invoice_name, set()).intersection(allowed)
+    ]
 
 
 def _ensure_fiscal_year_coverage(company: str, dates: list[date]) -> None:
@@ -512,6 +756,8 @@ def _purchase_receipt(masters: dict, posting_date, marker: str) -> tuple[str, bo
     doc.set_posting_time = 1
     doc.set_warehouse = masters["source_warehouse"]
     doc.supplier_delivery_note = f"{marker}-PR"
+    doc.bill_no = f"{marker}-BILL"
+    doc.bill_date = posting_date
     doc.currency = masters["currency"]
     doc.price_list_currency = masters["currency"]
     doc.ignore_pricing_rule = 1
@@ -520,6 +766,47 @@ def _purchase_receipt(masters: dict, posting_date, marker: str) -> tuple[str, bo
         row.rd_free_qty = 0
     doc.insert(ignore_permissions=True)
     doc.submit()
+    return doc.name, True
+
+
+def _purchase_invoice(receipt_name: str, posting_date, marker: str) -> tuple[str, bool]:
+    """Submit one native supplier invoice per seeded receipt for payable reports."""
+    existing = frappe.db.get_value(
+        "Purchase Invoice",
+        {"rd_source_purchase_receipt": receipt_name, "docstatus": ["!=", 2]},
+        "name",
+    )
+    if existing:
+        doc = frappe.get_doc("Purchase Invoice", existing)
+        if doc.docstatus == 0:
+            doc.posting_date = posting_date
+            doc.posting_time = "09:00:00"
+            doc.set_posting_time = 1
+            doc.bill_no = f"{marker}-BILL"
+            doc.bill_date = posting_date
+            doc.due_date = posting_date
+            doc.remarks = f"{marker}-PI"
+            doc.submit()
+        if doc.docstatus != 1:
+            frappe.throw(_("RD Demo Purchase Invoice {0} is cancelled and cannot be reused.").format(existing))
+        frappe.db.set_value("Purchase Receipt", receipt_name, "rd_invoice_status", "Submitted")
+        return existing, False
+
+    from reckon_distribution.purchase_receipt import _map_purchase_invoice
+
+    receipt = _submit_if_draft("Purchase Receipt", receipt_name)
+    doc = _map_purchase_invoice(receipt)
+    doc.posting_date = posting_date
+    doc.posting_time = "09:00:00"
+    doc.set_posting_time = 1
+    doc.bill_no = f"{marker}-BILL"
+    doc.bill_date = posting_date
+    doc.due_date = posting_date
+    doc.remarks = f"{marker}-PI"
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    receipt.db_set("rd_purchase_invoice", doc.name, update_modified=False)
+    receipt.db_set("rd_invoice_status", "Submitted", update_modified=False)
     return doc.name, True
 
 
@@ -690,6 +977,7 @@ def _delivery(
             "customer": customer,
             "posting_date": posting_date,
             "posting_time": "12:00:00",
+            "set_posting_time": 1,
             "set_warehouse": masters["van_warehouse"],
             "selling_price_list": masters["price_list"],
             "price_list_currency": masters["currency"],
@@ -707,6 +995,7 @@ def _delivery(
                     "conversion_factor": 1,
                     "stock_qty": quantity,
                     "warehouse": masters["van_warehouse"],
+                    "rd_stock_category": "Saleable",
                     "rate": rate,
                     "base_rate": rate,
                     "amount": quantity * rate,
@@ -715,6 +1004,32 @@ def _delivery(
             ],
         }
     )
+    doc.insert(ignore_permissions=True)
+    doc.submit()
+    return doc.name, True
+
+
+def _sales_invoice(delivery_name: str, posting_date, marker: str, delivery_index: int) -> tuple[str, bool]:
+    """Submit one native Sales Invoice per delivery for revenue and ageing reports."""
+    invoice_marker = f"{marker}-DN-{delivery_index}-SI"
+    existing = frappe.db.get_value(
+        "Sales Invoice", {"remarks": invoice_marker, "docstatus": ["!=", 2]}, "name"
+    )
+    if existing:
+        _submit_if_draft("Sales Invoice", existing)
+        return existing, False
+
+    from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
+
+    delivery = _submit_if_draft("Delivery Note", delivery_name)
+    doc = make_sales_invoice(delivery.name)
+    doc.posting_date = posting_date
+    doc.posting_time = "12:30:00"
+    doc.set_posting_time = 1
+    doc.due_date = posting_date
+    doc.update_stock = 0
+    doc.ignore_pricing_rule = 1
+    doc.remarks = invoice_marker
     doc.insert(ignore_permissions=True)
     doc.submit()
     return doc.name, True

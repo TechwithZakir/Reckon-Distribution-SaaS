@@ -19,12 +19,21 @@ unlinked report rows:
 | **Total** | **100** |
 
 Each Purchase Receipt is mapped from its submitted Purchase Order and uses its
-native Supplier Delivery Note reference as the repeat-safe seed marker. Purchase
-receipts create the stock used by the challans. Challans transfer stock to an
-`RD Demo Van`, delivery notes issue that stock, and settlements return each
-closing balance to the source warehouse. Collections and office expenses create
-the normal Payment Entry postings, so cash, ledger, profit and loss, stock, sales,
-and purchase reports have representative history.
+native Supplier Delivery Note reference as the repeat-safe seed marker. The seed
+submits one linked Purchase Invoice per receipt and one linked Sales Invoice per
+Delivery Note. Purchase receipts create the stock used by the challans. Challans
+transfer stock to an `RD Demo Van`, delivery notes issue that stock, and
+settlements return each closing balance to the source warehouse. Collections and
+office expenses create the normal Payment Entry postings.
+
+The 100 operational records therefore produce these additional ERPNext accounting
+documents without changing the published 100-record total:
+
+| Generated document | Records | Reports populated |
+| --- | ---: | --- |
+| Submitted Purchase Invoice | 10 | Purchase Register, Supplier Ledger, Supplier Aging |
+| Submitted Sales Invoice | 20 | Sales Register, Customer Aging, Profit & Loss |
+| Payment Entry / stock postings | workflow-driven | Cash Book, Day Book, Accounting Ledger, Stock Ledger |
 
 If a prior interrupted run left a receipt without stock ledger quantity, the seed
 creates one marker-tagged Material Receipt only for the missing challan quantity.
@@ -41,7 +50,17 @@ only the period needed, using the start month and day from the existing fiscal
 calendar. A Company with no Fiscal Year at all is left unchanged and receives a
 clear setup error instead of an invented accounting calendar.
 
-Run it as a System Manager or with Bench, against a training, QA, or staging site:
+Run the read-only preflight first. It verifies migrations, Company receivable and
+payable defaults, and the fixed 100-record plan without changing data:
+
+```bash
+bench --site distribution-test.localhost execute \
+  reckon_distribution.demo_data.preflight_distribution_test_data \
+  --kwargs '{"company":"Horizon"}'
+```
+
+Then run it as a System Manager or with Bench, against a training, QA, or staging
+site:
 
 ```bash
 bench --site distribution-test.localhost execute \
@@ -56,6 +75,16 @@ account mappings; the test seed ensures they are present before transactions are
 created. Run `bench --site <site> migrate` before the seed: it checks all required
 ERPNext and Distribution fields before writing any transaction and reports an
 actionable migration error when the schema is outdated.
+
+After a seed or an interrupted-run recovery, run the read-only integrity audit.
+It checks document counts, submitted statuses, and every native link that makes
+the operational and accounting reports usable:
+
+```bash
+bench --site distribution-test.localhost execute \
+  reckon_distribution.demo_data.audit_distribution_test_data \
+  --kwargs '{"company":"Horizon"}'
+```
 
 ## Roll Back the RD Demo Dataset
 

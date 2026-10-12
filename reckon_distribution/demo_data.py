@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter
+from datetime import date, timedelta
 
 import frappe
 from frappe import _
@@ -55,6 +56,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
     token = _token(company)
     start_date = add_months(getdate(nowdate()), -months)
     dates = [_sample_date(start_date, index, 10) for index in range(10)]
+    _ensure_fiscal_year_coverage(company, dates)
     masters = _ensure_demo_masters(company, token, start_date)
     result = Counter()
 
@@ -148,6 +150,99 @@ def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
         "cash_account": _office_cash_account(company),
         "expense_settings": frappe.get_doc("Office Expense Settings", company),
     }
+
+
+def _ensure_fiscal_year_coverage(company: str, dates: list[date]) -> None:
+    """Extend the Company's established fiscal calendar for the seed period.
+
+    ERPNext never permits stock or accounting entries outside an active fiscal
+    year.  A training tenant often has an older fiscal year but no current one,
+    so derive missing periods from its existing start month and day.  We do not
+    invent a fiscal calendar for a Company that has never configured one.
+    """
+    configured = _company_fiscal_years(company)
+    template = configured[-1] if configured else _latest_fiscal_year()
+    if not template:
+        frappe.throw(
+            _(
+                "Configure at least one Fiscal Year before seeding RD Demo data. "
+                "The seed will then extend that same fiscal calendar for the requested period."
+            )
+        )
+
+    template_start = getdate(template.year_start_date)
+    for posting_date in dates:
+        if _has_fiscal_year(company, posting_date):
+            continue
+        start_date, end_date = _fiscal_period(posting_date, template_start.month, template_start.day)
+        _ensure_fiscal_year(company, start_date, end_date)
+
+
+def _company_fiscal_years(company: str) -> list:
+    years = []
+    for values in frappe.get_all(
+        "Fiscal Year", fields=["name", "year_start_date", "year_end_date"], order_by="year_end_date asc"
+    ):
+        fiscal_year = frappe.get_doc("Fiscal Year", values.name)
+        if any(row.company == company for row in fiscal_year.get("companies") or []):
+            years.append(values)
+    return years
+
+
+def _latest_fiscal_year():
+    years = frappe.get_all(
+        "Fiscal Year", fields=["name", "year_start_date", "year_end_date"], order_by="year_end_date desc", limit_page_length=1
+    )
+    return years[0] if years else None
+
+
+def _has_fiscal_year(company: str, posting_date) -> bool:
+    from erpnext.accounts.utils import get_fiscal_year
+
+    try:
+        get_fiscal_year(posting_date, company=company)
+    except Exception as error:
+        from erpnext.accounts.utils import FiscalYearError
+
+        if isinstance(error, FiscalYearError):
+            return False
+        raise
+    return True
+
+
+def _fiscal_period(posting_date, start_month: int, start_day: int) -> tuple[date, date]:
+    posting_date = getdate(posting_date)
+    start_year = posting_date.year
+    if (posting_date.month, posting_date.day) < (start_month, start_day):
+        start_year -= 1
+    start_date = date(start_year, start_month, start_day)
+    return start_date, date(start_year + 1, start_month, start_day) - timedelta(days=1)
+
+
+def _ensure_fiscal_year(company: str, start_date: date, end_date: date) -> str:
+    existing = frappe.db.get_value(
+        "Fiscal Year", {"year_start_date": start_date, "year_end_date": end_date}, "name"
+    )
+    if existing:
+        fiscal_year = frappe.get_doc("Fiscal Year", existing)
+        if not any(row.company == company for row in fiscal_year.get("companies") or []):
+            fiscal_year.append("companies", {"company": company})
+            fiscal_year.save(ignore_permissions=True)
+        return fiscal_year.name
+
+    label = f"{start_date.year}-{end_date.year}"
+    if frappe.db.exists("Fiscal Year", label):
+        abbreviation = frappe.db.get_value("Company", company, "abbr") or company
+        label = f"{label} {abbreviation}"
+    return frappe.get_doc(
+        {
+            "doctype": "Fiscal Year",
+            "year": label,
+            "year_start_date": start_date,
+            "year_end_date": end_date,
+            "companies": [{"company": company}],
+        }
+    ).insert(ignore_permissions=True).name
 
 
 def _purchase_order(masters: dict, item: str, posting_date) -> tuple[str, bool]:

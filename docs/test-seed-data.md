@@ -29,6 +29,12 @@ uses a company-derived `RDDEMO-...` marker in masters, references, and idempoten
 keys. A repeat run reuses existing records and only creates records missing from a
 partially completed run. It never deletes or modifies normal tenant transactions.
 
+Before posting transactions, the script verifies fiscal-year coverage for every
+sample date. If the Company is missing an upcoming period, it creates or attaches
+only the period needed, using the start month and day from the existing fiscal
+calendar. A Company with no Fiscal Year at all is left unchanged and receives a
+clear setup error instead of an invented accounting calendar.
+
 Run it as a System Manager or with Bench, against a training, QA, or staging site:
 
 ```bash

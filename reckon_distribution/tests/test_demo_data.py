@@ -5,7 +5,12 @@ import unittest
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, add_months, getdate, nowdate
 
-from reckon_distribution.demo_data import DEMO_RECORD_COUNT, TRANSACTION_PLAN, _sample_date
+from reckon_distribution.demo_data import (
+    DEMO_RECORD_COUNT,
+    TRANSACTION_PLAN,
+    _fiscal_period,
+    _sample_date,
+)
 
 
 class TestDistributionDemoDataPlan(FrappeTestCase):
@@ -19,6 +24,12 @@ class TestDistributionDemoDataPlan(FrappeTestCase):
         self.assertEqual(_sample_date(start, 0, 10), start)
         self.assertEqual(_sample_date(start, 9, 10), today)
         self.assertGreaterEqual(_sample_date(start, 5, 10), add_days(start, 1))
+
+    def test_fiscal_period_preserves_the_configured_year_start(self):
+        start, end = _fiscal_period("2026-04-12", 7, 1)
+
+        self.assertEqual(str(start), "2025-07-01")
+        self.assertEqual(str(end), "2026-06-30")
 
 
 if __name__ == "__main__":

@@ -18,8 +18,10 @@ unlinked report rows:
 | SR sales orders | 10 |
 | **Total** | **100** |
 
-Purchase receipts create the stock used by the challans. Challans transfer stock
-to an `RD Demo Van`, delivery notes issue that stock, and settlements return each
+Each Purchase Receipt is mapped from its submitted Purchase Order and uses its
+native Supplier Delivery Note reference as the repeat-safe seed marker. Purchase
+receipts create the stock used by the challans. Challans transfer stock to an
+`RD Demo Van`, delivery notes issue that stock, and settlements return each
 closing balance to the source warehouse. Collections and office expenses create
 the normal Payment Entry postings, so cash, ledger, profit and loss, stock, sales,
 and purchase reports have representative history.
@@ -47,4 +49,6 @@ The selected company must already have ERPNext chart-of-accounts defaults, one
 leaf warehouse, and leaf Item Group, Customer Group, Supplier Group, and Territory
 records. The normal Distribution installation seed supplies the office-expense
 account mappings; the test seed ensures they are present before transactions are
-created.
+created. Run `bench --site <site> migrate` before the seed: it checks all required
+ERPNext and Distribution fields before writing any transaction and reports an
+actionable migration error when the schema is outdated.

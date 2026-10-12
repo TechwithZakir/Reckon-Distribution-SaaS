@@ -33,6 +33,30 @@ TRANSACTION_PLAN = (
     ("outlet_visits", 10),
     ("sr_orders", 10),
 )
+SEED_SCHEMA_REQUIREMENTS = {
+    "Purchase Order": ("company", "supplier", "transaction_date", "schedule_date", "set_warehouse", "items"),
+    "Purchase Order Item": ("item_code", "qty", "uom", "warehouse", "schedule_date"),
+    "Purchase Receipt": (
+        "company",
+        "supplier",
+        "posting_date",
+        "posting_time",
+        "set_warehouse",
+        "supplier_delivery_note",
+        "items",
+    ),
+    "Purchase Receipt Item": (
+        "item_code",
+        "qty",
+        "warehouse",
+        "purchase_order",
+        "purchase_order_item",
+        "rd_paid_qty",
+        "rd_free_qty",
+    ),
+    "Delivery Note": ("rd_route", "rd_dsr", "rd_dsr_challan", "rd_idempotency_key"),
+    "Purchase Invoice": ("rd_source_purchase_receipt",),
+}
 
 
 def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, months: int = 6) -> dict:
@@ -53,6 +77,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
     if not frappe.db.exists("Company", company):
         frappe.throw(_("Company {0} does not exist.").format(company))
 
+    _validate_seed_schema()
     token = _token(company)
     start_date = add_months(getdate(nowdate()), -months)
     dates = [_sample_date(start_date, index, 10) for index in range(10)]
@@ -66,7 +91,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         marker = f"{token}-{index:02d}"
 
         _count(result, "purchase_orders", _purchase_order(masters, item, posting_date))
-        receipt = _purchase_receipt(masters, item, posting_date, marker)
+        receipt = _purchase_receipt(masters, posting_date, marker)
         _count(result, "purchase_receipts", receipt)
         challan = _challan(masters, item, posting_date, marker)
         _count(result, "challans", challan)
@@ -150,6 +175,26 @@ def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
         "cash_account": _office_cash_account(company),
         "expense_settings": frappe.get_doc("Office Expense Settings", company),
     }
+
+
+def _validate_seed_schema() -> None:
+    """Fail before writes when the site has not received Distribution migrations."""
+    missing = []
+    for doctype, fieldnames in SEED_SCHEMA_REQUIREMENTS.items():
+        if not frappe.db.exists("DocType", doctype):
+            missing.append(doctype)
+            continue
+        meta = frappe.get_meta(doctype)
+        for fieldname in fieldnames:
+            if not meta.has_field(fieldname):
+                missing.append(f"{doctype}.{fieldname}")
+    if missing:
+        frappe.throw(
+            _(
+                "The Distribution seed requires an up-to-date site schema. Missing: {0}. "
+                "Run `bench --site <site> migrate` and try again."
+            ).format(", ".join(missing))
+        )
 
 
 def _ensure_fiscal_year_coverage(company: str, dates: list[date]) -> None:
@@ -257,6 +302,7 @@ def _purchase_order(masters: dict, item: str, posting_date) -> tuple[str, bool]:
         "name",
     )
     if existing:
+        _submit_if_draft("Purchase Order", existing)
         return existing, False
     doc = frappe.get_doc(
         {
@@ -273,37 +319,102 @@ def _purchase_order(masters: dict, item: str, posting_date) -> tuple[str, bool]:
         }
     )
     doc.insert(ignore_permissions=True)
+    doc.submit()
     return doc.name, True
 
 
-def _purchase_receipt(masters: dict, item: str, posting_date, marker: str) -> tuple[str, bool]:
+def _purchase_receipt(masters: dict, posting_date, marker: str) -> tuple[str, bool]:
     existing = frappe.db.get_value(
         "Purchase Receipt",
         {"company": masters["company"], "supplier_delivery_note": f"{marker}-PR"},
         "name",
     )
     if existing:
+        _submit_if_draft("Purchase Receipt", existing)
         return existing, False
-    row = _purchase_item(item, masters["source_warehouse"], posting_date, 160, 55)
-    row.update({"received_qty": 160, "accepted_qty": 160, "rd_paid_qty": 160, "rd_free_qty": 0})
-    doc = frappe.get_doc(
+    purchase_order = frappe.db.get_value(
+        "Purchase Order",
         {
-            "doctype": "Purchase Receipt",
             "company": masters["company"],
             "supplier": masters["supplier"],
-            "posting_date": posting_date,
-            "posting_time": "08:00:00",
-            "set_warehouse": masters["source_warehouse"],
-            "supplier_delivery_note": f"{marker}-PR",
-            "currency": masters["currency"],
-            "price_list_currency": masters["currency"],
-            "ignore_pricing_rule": 1,
-            "items": [row],
-        }
+            "transaction_date": posting_date,
+            "schedule_date": posting_date,
+        },
+        "name",
     )
+    if not purchase_order:
+        frappe.throw(_("RD Demo purchase order for {0} was not found.").format(posting_date))
+
+    purchase_order_doc = _submit_if_draft("Purchase Order", purchase_order)
+    doc = _make_purchase_receipt(purchase_order_doc, masters, posting_date)
+    doc.posting_date = posting_date
+    doc.posting_time = "08:00:00"
+    doc.set_warehouse = masters["source_warehouse"]
+    doc.supplier_delivery_note = f"{marker}-PR"
+    doc.currency = masters["currency"]
+    doc.price_list_currency = masters["currency"]
+    doc.ignore_pricing_rule = 1
+    for row in doc.get("items") or []:
+        row.rd_paid_qty = flt(row.qty)
+        row.rd_free_qty = 0
     doc.insert(ignore_permissions=True)
     doc.submit()
     return doc.name, True
+
+
+def _make_purchase_receipt(purchase_order, masters: dict, posting_date):
+    """Map the native Purchase Order so receipt rows retain ERPNext links."""
+    try:
+        from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+
+        return make_purchase_receipt(purchase_order.name)
+    except ImportError:
+        doc = frappe.get_doc(
+            {
+                "doctype": "Purchase Receipt",
+                "company": masters["company"],
+                "supplier": masters["supplier"],
+                "posting_date": posting_date,
+                "posting_time": "08:00:00",
+                "set_warehouse": masters["source_warehouse"],
+                "items": [],
+            }
+        )
+        for order_item in purchase_order.get("items") or []:
+            pending_qty = flt(order_item.qty) - flt(order_item.received_qty)
+            if pending_qty <= 0:
+                continue
+            row = _purchase_item(
+                item=order_item.item_code,
+                warehouse=order_item.warehouse,
+                schedule_date=posting_date,
+                qty=pending_qty,
+                rate=order_item.rate,
+            )
+            row.update(
+                {
+                    "purchase_order": purchase_order.name,
+                    "purchase_order_item": order_item.name,
+                    "rd_paid_qty": pending_qty,
+                    "rd_free_qty": 0,
+                }
+            )
+            doc.append("items", row)
+        return doc
+
+
+def _submit_if_draft(doctype: str, name: str):
+    """Resume a prior partial seed only when its source document is still usable."""
+    doc = frappe.get_doc(doctype, name)
+    if doc.docstatus == 0:
+        doc.submit()
+    if doc.docstatus != 1:
+        frappe.throw(
+            _("RD Demo {0} {1} is cancelled and cannot be reused. Delete it or create a new demo Company.").format(
+                doctype, name
+            )
+        )
+    return doc
 
 
 def _purchase_item(item: str, warehouse: str, schedule_date, qty: int, rate: int) -> dict:

@@ -7,6 +7,7 @@ from frappe.utils import add_days, add_months, getdate, nowdate
 
 from reckon_distribution.demo_data import (
     DEMO_RECORD_COUNT,
+    SEED_SCHEMA_REQUIREMENTS,
     TRANSACTION_PLAN,
     _fiscal_period,
     _sample_date,
@@ -30,6 +31,12 @@ class TestDistributionDemoDataPlan(FrappeTestCase):
 
         self.assertEqual(str(start), "2025-07-01")
         self.assertEqual(str(end), "2026-06-30")
+
+    def test_purchase_receipt_uses_the_erpnext_v16_delivery_reference(self):
+        receipt_fields = SEED_SCHEMA_REQUIREMENTS["Purchase Receipt"]
+
+        self.assertIn("supplier_delivery_note", receipt_fields)
+        self.assertNotIn("bill_no", receipt_fields)
 
 
 if __name__ == "__main__":

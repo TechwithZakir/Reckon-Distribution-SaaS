@@ -63,7 +63,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         customer = masters["customers"][(index - 1) % len(masters["customers"])]
         marker = f"{token}-{index:02d}"
 
-        _count(result, "purchase_orders", _purchase_order(masters, item, posting_date, marker))
+        _count(result, "purchase_orders", _purchase_order(masters, item, posting_date))
         receipt = _purchase_receipt(masters, item, posting_date, marker)
         _count(result, "purchase_receipts", receipt)
         challan = _challan(masters, item, posting_date, marker)
@@ -150,10 +150,15 @@ def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
     }
 
 
-def _purchase_order(masters: dict, item: str, posting_date, marker: str) -> tuple[str, bool]:
+def _purchase_order(masters: dict, item: str, posting_date) -> tuple[str, bool]:
     existing = frappe.db.get_value(
         "Purchase Order",
-        {"company": masters["company"], "supplier": masters["supplier"], "transaction_date": posting_date, "supplier_ref": f"{marker}-PO"},
+        {
+            "company": masters["company"],
+            "supplier": masters["supplier"],
+            "transaction_date": posting_date,
+            "schedule_date": posting_date,
+        },
         "name",
     )
     if existing:
@@ -166,7 +171,6 @@ def _purchase_order(masters: dict, item: str, posting_date, marker: str) -> tupl
             "transaction_date": posting_date,
             "schedule_date": posting_date,
             "set_warehouse": masters["source_warehouse"],
-            "supplier_ref": f"{marker}-PO",
             "currency": masters["currency"],
             "price_list_currency": masters["currency"],
             "ignore_pricing_rule": 1,

@@ -14,6 +14,8 @@ from reckon_distribution.tenant_security import (
 ACTIVE_CHALLAN_STATUSES = {"Submitted", "Approved", "Acknowledged"}
 SETTLEMENT_STATUSES = {"Draft", "Submitted", "Cancelled", "Pending Approval", "Approved", "Rejected"}
 EPSILON = 0.000001
+STOCK_RECONCILIATION_POSTING_TIME = "22:45:00"
+STOCK_RETURN_POSTING_TIME = "23:00:00"
 
 
 def validate_day_settlement(doc, method=None) -> None:
@@ -431,6 +433,8 @@ def _post_stock_reconciliation(doc, challan) -> None:
             "doctype": "Stock Reconciliation",
             "company": doc.company,
             "posting_date": doc.settlement_date,
+            "posting_time": STOCK_RECONCILIATION_POSTING_TIME,
+            "set_posting_time": 1,
             "purpose": "Stock Reconciliation",
             "rd_dsr_day_settlement": doc.name,
             "items": items,
@@ -469,6 +473,8 @@ def _return_closing_stock(doc, challan) -> None:
             "stock_entry_type": "Material Transfer",
             "company": doc.company,
             "posting_date": doc.settlement_date,
+            "posting_time": STOCK_RETURN_POSTING_TIME,
+            "set_posting_time": 1,
             "from_warehouse": challan.van_warehouse,
             "to_warehouse": challan.distributor_warehouse,
             "rd_dsr_day_settlement": doc.name,

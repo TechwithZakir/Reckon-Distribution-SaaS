@@ -65,8 +65,8 @@ jobs:
       - name: Lint Python
         run: ruff check .
 
-      - name: Test Company permission service
-        run: python -m unittest discover -s tests -p test_company_permission_service.py -v
+      - name: Run database-free regression tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Check HRMS remains optional
         run: |

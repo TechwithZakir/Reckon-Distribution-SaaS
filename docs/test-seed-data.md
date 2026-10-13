@@ -35,11 +35,12 @@ documents without changing the published 100-record total:
 | Submitted Sales Invoice | 20 | Sales Register, Customer Aging, Profit & Loss |
 | Payment Entry / stock postings | workflow-driven | Cash Book, Day Book, Accounting Ledger, Stock Ledger |
 
-If a prior interrupted run left a receipt without stock ledger quantity, the seed
-creates one marker-tagged Material Receipt only for the missing challan quantity.
-Before each delivery it also verifies the van's ledger balance and, only when a
-historical challan transfer is not yet available, posts a marker-tagged corrective
-transfer. Both safeguards are included in the rollback plan.
+Every seeded transaction uses an explicit daily posting sequence: receipt at
+08:00, challan stock transfer at 08:45, deliveries at 12:00 and 13:00, and the
+settlement stock reconciliation and return at the end of the day. Before each
+delivery, the seed verifies the actual van stock ledger balance. It fails with a
+precise diagnostic if the linked challan transfer was not posted; it never masks
+an invalid lifecycle by adding unlinked stock movements.
 
 The dates are distributed from six months before today through today. The script
 uses a company-derived `RDDEMO-...` marker in masters, references, and idempotency
@@ -79,8 +80,8 @@ ERPNext and Distribution fields before writing any transaction and reports an
 actionable migration error when the schema is outdated.
 
 After a seed or an interrupted-run recovery, run the read-only integrity audit.
-It checks document counts, submitted statuses, and every native link that makes
-the operational and accounting reports usable:
+It checks document counts, submitted statuses, stock-ledger postings, GL entries,
+and every native link that makes the operational and accounting reports usable:
 
 ```bash
 bench --site distribution-test.localhost execute \
@@ -108,4 +109,16 @@ Run the rollback only after reviewing the preview:
 bench --site distribution-test.localhost execute \
   reckon_distribution.demo_data.rollback_distribution_test_data \
   --kwargs '{"company":"Horizon","dry_run":false,"confirm_rollback":true}'
+```
+
+## Lifecycle Test
+
+For QA, run a complete seed, audit, and rollback exercise. It refuses to run if
+an RD Demo dataset is already present, and it removes every created transaction
+after the audit passes. It retains shared demo masters and fiscal years.
+
+```bash
+bench --site distribution-test.localhost execute \
+  reckon_distribution.demo_data.test_distribution_demo_data_lifecycle \
+  --kwargs '{"company":"Horizon","confirm_cleanup":true}'
 ```

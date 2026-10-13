@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import inspect
 import unittest
+from unittest.mock import patch
 
+import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, add_months, getdate, nowdate
 
 from reckon_distribution.demo_data import (
+    DELIVERY_PLAN,
     DEMO_RECORD_COUNT,
     GENERATED_DOCUMENT_PLAN,
     ROLLBACK_ORDER,
@@ -15,6 +18,9 @@ from reckon_distribution.demo_data import (
     _delivery,
     _fiscal_period,
     _sample_date,
+)
+from reckon_distribution.demo_data import (
+    test_distribution_demo_data_lifecycle as run_demo_data_lifecycle_test,
 )
 
 
@@ -63,11 +69,19 @@ class TestDistributionDemoDataPlan(FrappeTestCase):
         self.assertIn("posting_time", fields)
         self.assertIn("remarks", fields)
 
-    def test_seed_posts_delivery_after_the_challan_stock_transfer(self):
+    def test_seed_checks_van_stock_before_creating_each_delivery(self):
         self.assertIn(
-            "_ensure_delivery_stock(masters, item, posting_date, marker, quantity)",
+            "_assert_delivery_stock(masters, item, posting_date, marker, quantity, posting_time)",
             inspect.getsource(_delivery),
         )
+
+    def test_delivery_and_invoice_times_follow_the_daily_stock_lifecycle(self):
+        self.assertEqual(DELIVERY_PLAN, ((18, "12:00:00", "12:30:00"), (22, "13:00:00", "13:30:00")))
+
+    def test_lifecycle_test_requires_explicit_cleanup_confirmation(self):
+        with patch("reckon_distribution.demo_data.frappe.db.exists", return_value=True):
+            with self.assertRaises(frappe.ValidationError):
+                run_demo_data_lifecycle_test("_Test Tenant Company A")
 
 
 if __name__ == "__main__":

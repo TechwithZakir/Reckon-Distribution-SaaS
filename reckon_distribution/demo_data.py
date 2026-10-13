@@ -37,6 +37,10 @@ GENERATED_DOCUMENT_PLAN = (
     ("purchase_invoices", 10),
     ("sales_invoices", 20),
 )
+DELIVERY_PLAN = (
+    (18, "12:00:00", "12:30:00"),
+    (22, "13:00:00", "13:30:00"),
+)
 ROLLBACK_ORDER = (
     "DSR Day Settlement",
     "Office Expense",
@@ -124,7 +128,7 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
         challan = _challan(masters, item, posting_date, marker)
         _count(result, "challans", challan)
 
-        for delivery_index, quantity in enumerate((18, 22), start=1):
+        for delivery_index, (quantity, delivery_time, invoice_time) in enumerate(DELIVERY_PLAN, start=1):
             delivery = _delivery(
                 masters,
                 challan,
@@ -133,13 +137,18 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
                 posting_date,
                 f"{marker}-DN-{delivery_index}",
                 quantity,
+                delivery_time,
             )
             _count(
                 result,
                 "deliveries",
                 delivery,
             )
-            _count(generated, "sales_invoices", _sales_invoice(delivery[0], posting_date, marker, delivery_index))
+            _count(
+                generated,
+                "sales_invoices",
+                _sales_invoice(delivery[0], posting_date, marker, delivery_index, invoice_time),
+            )
 
         _count(result, "collections", _collection(masters, customer, posting_date, marker))
         _count(result, "settlements", _settlement(challan))
@@ -264,6 +273,52 @@ def rollback_distribution_test_data(
         "writes": True,
         "removed": removed,
         "note": "RD Demo transactions were reversed and removed. Masters and fiscal years were retained.",
+    }
+
+
+def test_distribution_demo_data_lifecycle(company: str, confirm_cleanup: bool = False) -> dict:
+    """Run a full seed, audit, and rollback test against an empty RD Demo dataset.
+
+    This is intended for a QA or training tenant. It refuses to run when a prior
+    demo dataset exists and requires explicit cleanup confirmation because the
+    test creates and then reverses real ERPNext stock and accounting postings.
+    """
+    _require_system_manager()
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+    if not cint(confirm_cleanup):
+        frappe.throw(_("Set confirm_cleanup=true to run the seed-and-rollback lifecycle test."))
+
+    before = _rollback_plan(company, _token(company))
+    existing = {doctype: names for doctype, names in before.items() if names}
+    if existing:
+        frappe.throw(
+            _(
+                "RD Demo records already exist. Review or roll them back before running the lifecycle test: {0}"
+            ).format(", ".join(existing))
+        )
+
+    seeded = seed_distribution_test_data(company)
+    audit = audit_distribution_test_data(company)
+    if not audit["healthy"]:
+        frappe.throw(_("RD Demo lifecycle audit failed: {0}").format("; ".join(audit["errors"])))
+
+    rollback = rollback_distribution_test_data(company, dry_run=False, confirm_rollback=True)
+    remaining = _rollback_plan(company, _token(company))
+    undeleted = {doctype: names for doctype, names in remaining.items() if names}
+    if undeleted:
+        frappe.throw(
+            _("RD Demo lifecycle rollback left records behind: {0}").format(", ".join(undeleted))
+        )
+
+    return {
+        "company": company,
+        "marker": _token(company),
+        "passed": True,
+        "seeded": seeded,
+        "audit": audit,
+        "rollback": rollback,
+        "note": "The test dataset was fully rolled back; shared demo masters and fiscal years were retained.",
     }
 
 
@@ -524,6 +579,18 @@ def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]
     expenses["invalid"].extend(
         _invalid_submitted_links("Office Expense", expenses["names"], "payment_entry", "Payment Entry")
     )
+    purchase_receipts["invalid"].extend(
+        _invalid_stock_ledger_vouchers("Purchase Receipt", purchase_receipts["names"])
+    )
+    deliveries["invalid"].extend(
+        _invalid_stock_ledger_vouchers("Delivery Note", deliveries["names"])
+    )
+    purchase_invoices["invalid"].extend(
+        _invalid_gl_vouchers("Purchase Invoice", purchase_invoices["names"])
+    )
+    sales_invoices["invalid"].extend(
+        _invalid_gl_vouchers("Sales Invoice", sales_invoices["names"])
+    )
     return {
         "purchase_orders": purchase_orders,
         "purchase_receipts": purchase_receipts,
@@ -599,6 +666,32 @@ def _invalid_sales_invoice_delivery_links(invoice_names: list[str], delivery_nam
         for invoice_name in invoice_names
         if not linked_by_invoice.get(invoice_name, set()).intersection(allowed)
     ]
+
+
+def _invalid_stock_ledger_vouchers(doctype: str, names: list[str]) -> list[str]:
+    if not names:
+        return []
+    posted = set(
+        frappe.get_all(
+            "Stock Ledger Entry",
+            filters={"voucher_type": doctype, "voucher_no": ["in", names], "is_cancelled": 0},
+            pluck="voucher_no",
+        )
+    )
+    return [name for name in names if name not in posted]
+
+
+def _invalid_gl_vouchers(doctype: str, names: list[str]) -> list[str]:
+    if not names:
+        return []
+    posted = set(
+        frappe.get_all(
+            "GL Entry",
+            filters={"voucher_type": doctype, "voucher_no": ["in", names], "is_cancelled": 0},
+            pluck="voucher_no",
+        )
+    )
+    return [name for name in names if name not in posted]
 
 
 def _ensure_fiscal_year_coverage(company: str, dates: list[date]) -> None:
@@ -927,6 +1020,7 @@ def _challan(masters: dict, item: str, posting_date, marker: str) -> tuple[str, 
     )
     if existing:
         _submit_if_draft("DSR Challan", existing)
+        _assert_challan_stock_transfer(existing, masters, posting_date)
         return existing, False
     doc = frappe.get_doc(
         {
@@ -952,7 +1046,29 @@ def _challan(masters: dict, item: str, posting_date, marker: str) -> tuple[str, 
     )
     doc.insert(ignore_permissions=True)
     doc.submit()
+    _assert_challan_stock_transfer(doc.name, masters, posting_date)
     return doc.name, True
+
+
+def _assert_challan_stock_transfer(challan_name: str, masters: dict, posting_date) -> None:
+    """Fail early if a submitted challan did not post its required stock movement."""
+    stock_entry = frappe.db.get_value("DSR Challan", challan_name, "stock_entry")
+    if not stock_entry:
+        frappe.throw(_("RD Demo DSR Challan {0} did not create a stock transfer.").format(challan_name))
+    entry = frappe.db.get_value(
+        "Stock Entry", stock_entry, ["docstatus", "posting_date", "to_warehouse"], as_dict=True
+    )
+    if (
+        not entry
+        or cint(entry.docstatus) != 1
+        or getdate(entry.posting_date) != getdate(posting_date)
+        or entry.to_warehouse != masters["van_warehouse"]
+    ):
+        frappe.throw(
+            _("RD Demo DSR Challan {0} has an invalid linked stock transfer {1}.").format(
+                challan_name, stock_entry
+            )
+        )
 
 
 def _delivery(
@@ -963,13 +1079,14 @@ def _delivery(
     posting_date,
     marker: str,
     quantity: int,
+    posting_time: str,
 ) -> tuple[str, bool]:
     existing = frappe.db.get_value("Delivery Note", {"rd_idempotency_key": marker}, "name")
     if existing:
         _submit_if_draft("Delivery Note", existing)
         return existing, False
     challan_name = challan[0]
-    _ensure_delivery_stock(masters, item, posting_date, marker, quantity)
+    _assert_delivery_stock(masters, item, posting_date, marker, quantity, posting_time)
     rate = _selling_rate(masters["price_list"], item)
     doc = frappe.get_doc(
         {
@@ -977,7 +1094,7 @@ def _delivery(
             "company": masters["company"],
             "customer": customer,
             "posting_date": posting_date,
-            "posting_time": "12:00:00",
+            "posting_time": posting_time,
             "set_posting_time": 1,
             "set_warehouse": masters["van_warehouse"],
             "selling_price_list": masters["price_list"],
@@ -1010,52 +1127,28 @@ def _delivery(
     return doc.name, True
 
 
-def _ensure_delivery_stock(masters: dict, item: str, posting_date, marker: str, quantity: int) -> None:
-    """Ensure the van ledger can support a demo delivery at its posting time.
-
-    A submitted DSR Challan normally supplies this stock.  A corrective transfer
-    is needed only when a tenant's historical stock reposting has not made the
-    challan transfer available yet.  It is deliberately marker-tagged so the
-    rollback reverses it along with the rest of the demo lifecycle.
-    """
+def _assert_delivery_stock(
+    masters: dict, item: str, posting_date, marker: str, quantity: int, posting_time: str
+) -> None:
+    """Verify that the linked challan stock is available before creating a delivery."""
     from erpnext.stock.utils import get_stock_balance
 
     available_qty = flt(
-        get_stock_balance(item, masters["van_warehouse"], posting_date, posting_time="11:30:00")
+        get_stock_balance(item, masters["van_warehouse"], posting_date, posting_time=posting_time)
     )
-    missing_qty = flt(quantity) - available_qty
-    if missing_qty <= 0:
+    if available_qty + 0.000001 >= flt(quantity):
         return
 
-    entry = frappe.get_doc(
-        {
-            "doctype": "Stock Entry",
-            "stock_entry_type": "Material Transfer",
-            "purpose": "Material Transfer",
-            "company": masters["company"],
-            "posting_date": posting_date,
-            "posting_time": "11:30:00",
-            "set_posting_time": 1,
-            "from_warehouse": masters["source_warehouse"],
-            "to_warehouse": masters["van_warehouse"],
-            "remarks": f"{marker}-STOCK van delivery safeguard",
-            "items": [
-                {
-                    "item_code": item,
-                    "qty": missing_qty,
-                    "uom": "Nos",
-                    "conversion_factor": 1,
-                    "s_warehouse": masters["source_warehouse"],
-                    "t_warehouse": masters["van_warehouse"],
-                }
-            ],
-        }
+    frappe.throw(
+        _(
+            "RD Demo delivery {0} needs {1} of Item {2} in van warehouse {3} at {4}, but only {5} is posted."
+        ).format(marker, quantity, item, masters["van_warehouse"], posting_time, available_qty)
     )
-    entry.insert(ignore_permissions=True)
-    entry.submit()
 
 
-def _sales_invoice(delivery_name: str, posting_date, marker: str, delivery_index: int) -> tuple[str, bool]:
+def _sales_invoice(
+    delivery_name: str, posting_date, marker: str, delivery_index: int, posting_time: str
+) -> tuple[str, bool]:
     """Submit one native Sales Invoice per delivery for revenue and ageing reports."""
     invoice_marker = f"{marker}-DN-{delivery_index}-SI"
     existing = frappe.db.get_value(
@@ -1070,7 +1163,7 @@ def _sales_invoice(delivery_name: str, posting_date, marker: str, delivery_index
     delivery = _submit_if_draft("Delivery Note", delivery_name)
     doc = make_sales_invoice(delivery.name)
     doc.posting_date = posting_date
-    doc.posting_time = "12:30:00"
+    doc.posting_time = posting_time
     doc.set_posting_time = 1
     doc.due_date = posting_date
     doc.update_stock = 0

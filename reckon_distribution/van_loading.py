@@ -17,6 +17,7 @@ from reckon_distribution.tenant_security import (
 
 MANAGER_ROLES = {"Reckon Distribution Admin", "Reckon Distribution Manager"}
 CHALLAN_ACTIVE_STATUSES = {"Draft", "Pending Approval", "Submitted", "Approved", "Acknowledged"}
+VAN_LOADING_POSTING_TIME = "08:45:00"
 
 
 class VanLoadingError(frappe.ValidationError):
@@ -209,6 +210,8 @@ def approve_van_loading_challan(challan: str) -> str:
             "stock_entry_type": "Material Transfer",
             "company": doc.company,
             "posting_date": doc.posting_date or nowdate(),
+            "posting_time": VAN_LOADING_POSTING_TIME,
+            "set_posting_time": 1,
             "from_warehouse": doc.distributor_warehouse,
             "to_warehouse": doc.van_warehouse,
             "rd_van_loading_challan": doc.name,
@@ -246,6 +249,8 @@ def create_van_loading_stock_entry(doc) -> str:
             "stock_entry_type": "Material Transfer",
             "company": doc.company,
             "posting_date": doc.posting_date or nowdate(),
+            "posting_time": VAN_LOADING_POSTING_TIME,
+            "set_posting_time": 1,
             "from_warehouse": doc.distributor_warehouse,
             "to_warehouse": doc.van_warehouse,
             "rd_van_loading_challan": doc.name,

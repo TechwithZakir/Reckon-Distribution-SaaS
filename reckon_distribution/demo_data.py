@@ -561,6 +561,13 @@ def _remove_demo_ledger_rows(
             warehouse_filters = {"warehouse": ["in", master_plan["Warehouse"]]}
             deleted += frappe.db.count(ledger_doctype, warehouse_filters)
             frappe.db.delete(ledger_doctype, filters=warehouse_filters)
+        if ledger_doctype == "Stock Ledger Entry" and master_plan["Item"]:
+            # Older partial seeds may have posted demo items into a company
+            # warehouse before the deterministic demo warehouse existed.
+            # These item codes are exclusive to this resettable dataset.
+            item_filters = {"item_code": ["in", master_plan["Item"]]}
+            deleted += frappe.db.count(ledger_doctype, item_filters)
+            frappe.db.delete(ledger_doctype, filters=item_filters)
         if deleted:
             removed[ledger_doctype] = deleted
     return removed

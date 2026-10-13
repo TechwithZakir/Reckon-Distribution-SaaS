@@ -41,6 +41,8 @@ DELIVERY_PLAN = (
     (18, "12:00:00", "12:30:00"),
     (22, "13:00:00", "13:30:00"),
 )
+DEMO_CHALLAN_POSTING_TIME = "08:45:00"
+DEMO_SOURCE_STOCK_TIME = "08:44:59"
 ROLLBACK_ORDER = (
     "DSR Day Settlement",
     "Office Expense",
@@ -908,7 +910,14 @@ def _ensure_challan_stock(masters: dict, item: str, posting_date, marker: str) -
     from erpnext.stock.utils import get_stock_balance
 
     required_qty = 80
-    available_qty = flt(get_stock_balance(item, masters["source_warehouse"], posting_date))
+    available_qty = flt(
+        get_stock_balance(
+            item,
+            masters["source_warehouse"],
+            posting_date,
+            posting_time=DEMO_SOURCE_STOCK_TIME,
+        )
+    )
     if available_qty >= required_qty:
         return
 
@@ -937,6 +946,21 @@ def _ensure_challan_stock(masters: dict, item: str, posting_date, marker: str) -
     )
     entry.insert(ignore_permissions=True)
     entry.submit()
+    available_qty = flt(
+        get_stock_balance(
+            item,
+            masters["source_warehouse"],
+            posting_date,
+            posting_time=DEMO_SOURCE_STOCK_TIME,
+        )
+    )
+    if available_qty + 0.000001 < required_qty:
+        frappe.throw(
+            _(
+                "RD Demo source stock safeguard could not post {0} of Item {1} in warehouse {2} "
+                "by {3}; only {4} is available."
+            ).format(required_qty, item, masters["source_warehouse"], DEMO_SOURCE_STOCK_TIME, available_qty)
+        )
 
 
 def _make_purchase_receipt(purchase_order, masters: dict, posting_date):
@@ -1045,6 +1069,7 @@ def _challan(masters: dict, item: str, posting_date, marker: str) -> tuple[str, 
         }
     )
     doc.insert(ignore_permissions=True)
+    doc.flags.rd_stock_entry_posting_time = DEMO_CHALLAN_POSTING_TIME
     doc.submit()
     _assert_challan_stock_transfer(doc.name, masters, posting_date)
     return doc.name, True

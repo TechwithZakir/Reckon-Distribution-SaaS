@@ -17,7 +17,9 @@ from reckon_distribution.tenant_security import (
 
 MANAGER_ROLES = {"Reckon Distribution Admin", "Reckon Distribution Manager"}
 CHALLAN_ACTIVE_STATUSES = {"Draft", "Pending Approval", "Submitted", "Approved", "Acknowledged"}
-VAN_LOADING_POSTING_TIME = "08:45:00"
+# Demo data needs a deterministic historical sequence.  Production challans do
+# not set this flag and retain ERPNext's normal current-time posting behaviour.
+SEED_STOCK_ENTRY_POSTING_TIME_FLAG = "rd_stock_entry_posting_time"
 
 
 class VanLoadingError(frappe.ValidationError):
@@ -210,8 +212,6 @@ def approve_van_loading_challan(challan: str) -> str:
             "stock_entry_type": "Material Transfer",
             "company": doc.company,
             "posting_date": doc.posting_date or nowdate(),
-            "posting_time": VAN_LOADING_POSTING_TIME,
-            "set_posting_time": 1,
             "from_warehouse": doc.distributor_warehouse,
             "to_warehouse": doc.van_warehouse,
             "rd_van_loading_challan": doc.name,
@@ -229,6 +229,7 @@ def approve_van_loading_challan(challan: str) -> str:
             ],
         }
     )
+    _apply_seed_stock_entry_time(doc, stock_entry)
     _submit_generated_stock_entry(stock_entry)
 
     doc.stock_entry = stock_entry.name
@@ -249,8 +250,6 @@ def create_van_loading_stock_entry(doc) -> str:
             "stock_entry_type": "Material Transfer",
             "company": doc.company,
             "posting_date": doc.posting_date or nowdate(),
-            "posting_time": VAN_LOADING_POSTING_TIME,
-            "set_posting_time": 1,
             "from_warehouse": doc.distributor_warehouse,
             "to_warehouse": doc.van_warehouse,
             "rd_van_loading_challan": doc.name,
@@ -268,6 +267,7 @@ def create_van_loading_stock_entry(doc) -> str:
             ],
         }
     )
+    _apply_seed_stock_entry_time(doc, stock_entry)
     _submit_generated_stock_entry(stock_entry)
     doc.db_set("stock_entry", stock_entry.name)
     return stock_entry.name
@@ -405,11 +405,10 @@ def _validate_available_stock(doc) -> None:
         requested[key] = requested.get(key, 0) + flt(row.qty) * flt(row.conversion_factor or 1)
 
     for (item_code, warehouse), requested_qty in requested.items():
-        available = get_stock_balance(
-            item_code,
-            warehouse,
-            doc.posting_date or nowdate(),
-        )
+        stock_kwargs = {}
+        if posting_time := _seed_stock_entry_posting_time(doc):
+            stock_kwargs["posting_time"] = posting_time
+        available = get_stock_balance(item_code, warehouse, doc.posting_date or nowdate(), **stock_kwargs)
         if requested_qty > flt(available) + 0.000001:
             frappe.throw(
                 _("Insufficient stock for {0} in {1}.").format(
@@ -417,6 +416,20 @@ def _validate_available_stock(doc) -> None:
                 ),
                 VanLoadingError,
             )
+
+
+def _seed_stock_entry_posting_time(doc) -> str | None:
+    """Return the opt-in deterministic posting time used by the demo seed only."""
+    flags = getattr(doc, "flags", None)
+    value = getattr(flags, SEED_STOCK_ENTRY_POSTING_TIME_FLAG, None) if flags else None
+    return value or None
+
+
+def _apply_seed_stock_entry_time(challan, stock_entry) -> None:
+    """Keep the seed transfer and its availability check on the same timeline."""
+    if posting_time := _seed_stock_entry_posting_time(challan):
+        stock_entry.posting_time = posting_time
+        stock_entry.set_posting_time = 1
 
 
 def _validate_status_transition(doc) -> None:

@@ -66,12 +66,15 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn("get_stock_balance", stock_check_source)
         self.assertNotIn("frappe.get_doc", stock_check_source)
 
-    def test_challan_and_settlement_stock_entries_have_fixed_daily_posting_times(self):
+    def test_seeded_challans_and_settlements_have_fixed_daily_posting_times(self):
+        demo_data = DEMO_DATA.read_text(encoding="utf-8")
         van_loading = VAN_LOADING.read_text(encoding="utf-8")
         settlement = SETTLEMENT.read_text(encoding="utf-8")
 
-        self.assertIn('VAN_LOADING_POSTING_TIME = "08:45:00"', van_loading)
-        self.assertGreaterEqual(van_loading.count('"posting_time": VAN_LOADING_POSTING_TIME'), 2)
+        self.assertIn('DEMO_CHALLAN_POSTING_TIME = "08:45:00"', demo_data)
+        self.assertIn("doc.flags.rd_stock_entry_posting_time = DEMO_CHALLAN_POSTING_TIME", demo_data)
+        self.assertIn('SEED_STOCK_ENTRY_POSTING_TIME_FLAG = "rd_stock_entry_posting_time"', van_loading)
+        self.assertIn("_apply_seed_stock_entry_time(doc, stock_entry)", van_loading)
         self.assertIn('STOCK_RECONCILIATION_POSTING_TIME = "22:45:00"', settlement)
         self.assertIn('STOCK_RETURN_POSTING_TIME = "23:00:00"', settlement)
 

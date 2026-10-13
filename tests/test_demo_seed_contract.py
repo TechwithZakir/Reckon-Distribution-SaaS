@@ -94,6 +94,7 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn("def _hard_reset_demo_transactions(", source)
         self.assertIn("def _hard_delete_demo_document(", source)
         self.assertIn('item_filters = {"item_code": ["in", master_plan["Item"]]}', source)
+        self.assertIn('"retained_warehouses": master_plan["Warehouse"]', source)
         self.assertIn("Meghna FMCG Supply Ltd.", source)
         self.assertIn("Mirpur 10 Delivery Van", source)
         self.assertIn("Bengal Harvest Mustard Oil 1 L", source)

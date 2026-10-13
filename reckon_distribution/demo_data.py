@@ -342,7 +342,11 @@ def reset_distribution_test_data(
         "transactions": removed_transactions,
         "ledger_rows": removed_ledger_rows,
         "masters": removed_masters,
-        "note": "The RD Demo dataset was reset. Company settings, accounts, and fiscal years were retained.",
+        "retained_warehouses": master_plan["Warehouse"],
+        "note": (
+            "The RD Demo transactions and reusable masters were reset. Warehouses with stock history "
+            "were retained because ERPNext does not permit their deletion."
+        ),
     }
 
 
@@ -517,7 +521,6 @@ def _remove_demo_masters(plan: dict[str, list[str]]) -> dict[str, int]:
         "Distribution Master Scope",
         "Bin",
         "Distribution Route",
-        "Warehouse",
         "Item",
         "Customer",
         "Supplier",

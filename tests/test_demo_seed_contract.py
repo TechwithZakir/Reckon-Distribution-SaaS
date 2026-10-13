@@ -91,9 +91,19 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn("confirm_reset", source)
         self.assertIn("def _demo_master_plan(", source)
         self.assertIn("def _remove_demo_ledger_rows(", source)
+        self.assertIn("def _hard_reset_demo_transactions(", source)
+        self.assertIn("def _hard_delete_demo_document(", source)
         self.assertIn("Meghna FMCG Supply Ltd.", source)
         self.assertIn("Mirpur 10 Delivery Van", source)
         self.assertIn("Bengal Harvest Mustard Oil 1 L", source)
+
+    def test_seed_is_stable_and_does_not_layer_over_a_partial_dataset(self):
+        seed = _function(self.module, "seed_distribution_test_data")
+        source = ast.unparse(seed)
+
+        self.assertIn("_require_empty_or_healthy_demo_dataset", source)
+        self.assertIn("_demo_start_date", source)
+        self.assertNotIn("add_months(getdate(nowdate())", source)
 
     def test_rollback_cancels_dependent_documents_before_their_sources(self):
         rollback_order = _assignment_value(self.module, "ROLLBACK_ORDER")

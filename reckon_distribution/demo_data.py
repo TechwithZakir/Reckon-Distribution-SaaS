@@ -120,9 +120,21 @@ def seed_distribution_test_data(company: str, records: int = DEMO_RECORD_COUNT, 
     if not frappe.db.exists("Company", company):
         frappe.throw(_("Company {0} does not exist.").format(company))
 
-    _validate_seed_preflight(company)
     token = _token(company)
-    start_date = add_months(getdate(nowdate()), -months)
+    _validate_seed_preflight(company)
+    existing_audit = _require_empty_or_healthy_demo_dataset(company, token)
+    if existing_audit:
+        return {
+            "company": company,
+            "marker": token,
+            "requested_records": DEMO_RECORD_COUNT,
+            "created": {},
+            "created_total": 0,
+            "integrity_audit": existing_audit,
+            "rerun_safe": True,
+            "note": "A healthy RD Demo dataset already exists; no duplicate records were created.",
+        }
+    start_date = _demo_start_date(months)
     dates = [_sample_date(start_date, index, 10) for index in range(10)]
     _ensure_fiscal_year_coverage(company, dates)
     masters = _ensure_demo_masters(company, token, start_date)
@@ -320,14 +332,14 @@ def reset_distribution_test_data(
     if not confirm_reset:
         frappe.throw(_("Refusing to reset data without confirm_reset=true. Run the preview first."))
 
-    rollback = rollback_distribution_test_data(company, dry_run=False, confirm_rollback=True)
     removed_ledger_rows = _remove_demo_ledger_rows(transaction_plan, master_plan)
+    removed_transactions = _hard_reset_demo_transactions(transaction_plan)
     removed_masters = _remove_demo_masters(master_plan)
     return {
         "company": company,
         "marker": _token(company),
         "writes": True,
-        "transactions": rollback.get("removed", {}),
+        "transactions": removed_transactions,
         "ledger_rows": removed_ledger_rows,
         "masters": removed_masters,
         "note": "The RD Demo dataset was reset. Company settings, accounts, and fiscal years were retained.",
@@ -469,6 +481,11 @@ def _demo_master_plan(company: str, token: str) -> dict[str, list[str]]:
     )
     assignments = _names("Retailer Route Assignment", {"route": ["in", routes]}) if routes else []
     item_prices = _names("Item Price", {"item_code": ["in", items]}) if items else []
+    bins = set()
+    if items:
+        bins.update(_names("Bin", {"item_code": ["in", items]}))
+    if warehouses:
+        bins.update(_names("Bin", {"warehouse": ["in", warehouses]}))
     scoped_masters = items + item_prices + suppliers + customers + warehouses
     scopes = (
         _names(
@@ -482,6 +499,7 @@ def _demo_master_plan(company: str, token: str) -> dict[str, list[str]]:
         "Item Price": item_prices,
         "Retailer Route Assignment": assignments,
         "Distribution Master Scope": scopes,
+        "Bin": sorted(bins),
         "Distribution Route": routes,
         "Warehouse": warehouses,
         "Item": items,
@@ -497,13 +515,19 @@ def _remove_demo_masters(plan: dict[str, list[str]]) -> dict[str, int]:
         "Item Price",
         "Retailer Route Assignment",
         "Distribution Master Scope",
+        "Bin",
         "Distribution Route",
         "Warehouse",
         "Item",
         "Customer",
         "Supplier",
     ):
-        names = plan.get(doctype, [])
+        names = list(plan.get(doctype, []))
+        if doctype == "Warehouse":
+            names.sort(
+                key=lambda name: frappe.db.get_value("Warehouse", name, "lft") or 0,
+                reverse=True,
+            )
         for name in names:
             if frappe.db.exists(doctype, name):
                 frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
@@ -597,6 +621,69 @@ def _rollback_document(doctype: str, name: str) -> None:
     frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
 
 
+def _hard_reset_demo_transactions(plan: dict[str, list[str]]) -> dict[str, int]:
+    """Clear selected demo documents even when ERPNext backlinks block cancellation.
+
+    This is intentionally reserved for ``reset_distribution_test_data`` after
+    the caller has explicitly confirmed the reset. The plan is restricted to
+    this Company's deterministic RD Demo marker, route, items, and supplier.
+    A normal cancellation is attempted first so standard reversal hooks run;
+    the direct fallback only removes a selected demo document and its child
+    rows when a partially-created legacy chain cannot be cancelled.
+    """
+    for doctype in ROLLBACK_ORDER:
+        for name in plan.get(doctype, []):
+            _try_cancel_demo_document(doctype, name)
+
+    removed = Counter()
+    for doctype in ROLLBACK_ORDER:
+        for name in plan.get(doctype, []):
+            if _hard_delete_demo_document(doctype, name):
+                removed[doctype] += 1
+    return dict(removed)
+
+
+def _try_cancel_demo_document(doctype: str, name: str) -> None:
+    if not frappe.db.exists(doctype, name):
+        return
+    try:
+        if doctype == "DSR Collection Receipt":
+            cancel_collection(name)
+            return
+        doc = frappe.get_doc(doctype, name)
+        if doc.docstatus == 1:
+            doc.flags.ignore_permissions = True
+            doc.cancel()
+    except Exception:
+        # A reset is allowed to remove only explicitly selected demo records.
+        # The controlled delete pass below handles legacy backlink chains.
+        return
+
+
+def _hard_delete_demo_document(doctype: str, name: str) -> bool:
+    if not frappe.db.exists(doctype, name):
+        return False
+
+    if doctype == "Purchase Receipt":
+        for invoice in _purchase_invoice_names([name]):
+            _hard_delete_demo_document("Purchase Invoice", invoice)
+
+    try:
+        frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
+        return True
+    except Exception:
+        meta = frappe.get_meta(doctype)
+        for table_field in meta.get_table_fields():
+            child_doctype = table_field.options
+            if child_doctype and frappe.db.exists("DocType", child_doctype):
+                frappe.db.sql(
+                    "delete from `tab{}` where parent = %s".format(child_doctype.replace("`", "")),
+                    name,
+                )
+        frappe.db.delete(doctype, {"name": name})
+        return True
+
+
 def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
     """Create only the narrowly scoped masters a blank training tenant needs."""
     run_distribution_seed(company, f"{token}-defaults")
@@ -684,6 +771,31 @@ def _validate_seed_preflight(company: str) -> None:
                 company, ", ".join(missing)
             )
         )
+
+
+def _require_empty_or_healthy_demo_dataset(company: str, token: str) -> dict | None:
+    """Prevent a new seed from being layered over a partial prior run."""
+    plan = _rollback_plan(company, token)
+    existing = {doctype: names for doctype, names in plan.items() if names}
+    if not existing:
+        return None
+
+    audit = audit_distribution_test_data(company)
+    if audit["healthy"]:
+        return audit
+
+    frappe.throw(
+        _(
+            "An incomplete RD Demo dataset already exists for {0}. "
+            "Run reset_distribution_test_data with confirm_reset=true before seeding again. Existing: {1}"
+        ).format(company, ", ".join(existing))
+    )
+
+
+def _demo_start_date(months: int):
+    """Use a stable monthly seed window so repeated runs share the same keys."""
+    current = getdate(nowdate())
+    return add_months(current.replace(day=1), -months)
 
 
 def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]]:

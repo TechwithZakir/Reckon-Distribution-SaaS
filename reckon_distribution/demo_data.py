@@ -43,6 +43,18 @@ DELIVERY_PLAN = (
 )
 DEMO_CHALLAN_POSTING_TIME = "08:45:00"
 DEMO_SOURCE_STOCK_TIME = "08:44:59"
+DEMO_CUSTOMER_NAMES = (
+    "Bismillah General Store - Mirpur 10",
+    "Maa Traders - Kazipara",
+    "Shapla Store - Shewrapara",
+    "Nababi Bazar - Agargaon",
+    "Uttara Provisions - Pallabi",
+)
+DEMO_ITEM_DETAILS = (
+    ("Bengal Harvest Mustard Oil 1 L", "MUSTARD-OIL-1L", 190),
+    ("Padma Gold Iodized Salt 1 kg", "IODIZED-SALT-1KG", 65),
+    ("Dhaka Delight Glucose Biscuits 200 g", "GLUCOSE-BISCUITS-200G", 45),
+)
 ROLLBACK_ORDER = (
     "DSR Day Settlement",
     "Office Expense",
@@ -278,6 +290,50 @@ def rollback_distribution_test_data(
     }
 
 
+def reset_distribution_test_data(
+    company: str, dry_run: bool = True, confirm_reset: bool = False
+) -> dict:
+    """Remove only this Company's RD Demo transactions and demo masters.
+
+    The default is a read-only preview. A confirmed reset reverses operational
+    documents first, then removes their item prices, route assignments, tenant
+    scopes, routes, warehouses, items, customers, and supplier. Company
+    settings, accounts, fiscal years, and every non-demo record are retained.
+    """
+    _require_system_manager()
+    if not frappe.db.exists("Company", company):
+        frappe.throw(_("Company {0} does not exist.").format(company))
+
+    dry_run = bool(cint(dry_run))
+    confirm_reset = bool(cint(confirm_reset))
+    transaction_plan = _rollback_plan(company, _token(company))
+    master_plan = _demo_master_plan(company, _token(company))
+    if dry_run:
+        return {
+            "company": company,
+            "marker": _token(company),
+            "writes": False,
+            "transactions": {doctype: len(names) for doctype, names in transaction_plan.items() if names},
+            "masters": {doctype: len(names) for doctype, names in master_plan.items() if names},
+            "note": "Preview only. Set dry_run=false and confirm_reset=true to remove this RD Demo dataset.",
+        }
+    if not confirm_reset:
+        frappe.throw(_("Refusing to reset data without confirm_reset=true. Run the preview first."))
+
+    rollback = rollback_distribution_test_data(company, dry_run=False, confirm_rollback=True)
+    removed_ledger_rows = _remove_demo_ledger_rows(transaction_plan, master_plan)
+    removed_masters = _remove_demo_masters(master_plan)
+    return {
+        "company": company,
+        "marker": _token(company),
+        "writes": True,
+        "transactions": rollback.get("removed", {}),
+        "ledger_rows": removed_ledger_rows,
+        "masters": removed_masters,
+        "note": "The RD Demo dataset was reset. Company settings, accounts, and fiscal years were retained.",
+    }
+
+
 def test_distribution_demo_data_lifecycle(company: str, confirm_cleanup: bool = False) -> dict:
     """Run a full seed, audit, and rollback test against an empty RD Demo dataset.
 
@@ -327,16 +383,13 @@ def test_distribution_demo_data_lifecycle(company: str, confirm_cleanup: bool = 
 def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
     """Select only records that carry the fixed, company-specific demo marker."""
     marker = f"{token}-%"
-    supplier = frappe.db.get_value(
-        "Supplier", {"rd_company": company, "supplier_name": f"RD Demo Supplier {token}"}, "name"
-    )
-    route = frappe.db.get_value(
-        "Distribution Route", {"company": company, "route_code": f"DEMO{token[-4:]}"}, "name"
-    )
+    masters = _demo_master_plan(company, token)
+    suppliers = masters["Supplier"]
+    routes = masters["Distribution Route"]
     purchase_receipts = _names(
         "Purchase Receipt", {"company": company, "supplier_delivery_note": ["like", f"{marker}-PR"]}
     )
-    challans = _names("DSR Challan", {"company": company, "route": route}) if route else []
+    challans = _names("DSR Challan", {"company": company, "route": ["in", routes]}) if routes else []
     settlements = _names("DSR Day Settlement", {"challan": ["in", challans]}) if challans else []
     collections = _names(
         "DSR Collection Receipt", {"company": company, "idempotency_key": ["like", f"{marker}-COL"]}
@@ -369,8 +422,8 @@ def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
         if purchase_receipts
         else [],
         "Purchase Receipt": purchase_receipts,
-        "Purchase Order": _names("Purchase Order", {"company": company, "supplier": supplier})
-        if supplier
+        "Purchase Order": _names("Purchase Order", {"company": company, "supplier": ["in", suppliers]})
+        if suppliers
         else [],
         "SR Order": _names("SR Order", {"company": company, "idempotency_key": ["like", f"{marker}-SRO"]}),
         "Outlet Visit": _names(
@@ -384,6 +437,113 @@ def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
         else [],
         "Payment Entry": _payment_entry_names(collections, expenses, settlements),
     }
+
+
+def _demo_master_plan(company: str, token: str) -> dict[str, list[str]]:
+    """Return only deterministic masters owned by this Company's RD Demo dataset."""
+    suffix = token[-6:]
+    items = _names("Item", {"item_code": ["like", f"{token}-%"]})
+    suppliers = _names(
+        "Supplier",
+        {
+            "rd_company": company,
+            "supplier_name": ["like", f"%{suffix}%"],
+        },
+    )
+    customers = _names(
+        "Customer",
+        {
+            "rd_company": company,
+            "customer_name": ["like", f"%{suffix}%"],
+        },
+    )
+    routes = _names(
+        "Distribution Route",
+        {
+            "company": company,
+            "route_code": ["in", [f"DEMO{token[-4:]}", f"DHK-MIRPUR10-{suffix}"]],
+        },
+    )
+    warehouses = _names(
+        "Warehouse",
+        {
+            "company": company,
+            "warehouse_name": ["in", _demo_warehouse_names(token)],
+        },
+    )
+    assignments = _names("Retailer Route Assignment", {"route": ["in", routes]}) if routes else []
+    item_prices = _names("Item Price", {"item_code": ["in", items]}) if items else []
+    scoped_masters = items + item_prices + suppliers + customers + warehouses
+    scopes = (
+        _names(
+            "Distribution Master Scope",
+            {"company": company, "master_name": ["in", scoped_masters]},
+        )
+        if scoped_masters
+        else []
+    )
+    return {
+        "Item Price": item_prices,
+        "Retailer Route Assignment": assignments,
+        "Distribution Master Scope": scopes,
+        "Distribution Route": routes,
+        "Warehouse": warehouses,
+        "Item": items,
+        "Customer": customers,
+        "Supplier": suppliers,
+    }
+
+
+def _remove_demo_masters(plan: dict[str, list[str]]) -> dict[str, int]:
+    """Delete demo masters after their linked transactions have been reversed."""
+    removed = {}
+    for doctype in (
+        "Item Price",
+        "Retailer Route Assignment",
+        "Distribution Master Scope",
+        "Distribution Route",
+        "Warehouse",
+        "Item",
+        "Customer",
+        "Supplier",
+    ):
+        names = plan.get(doctype, [])
+        for name in names:
+            if frappe.db.exists(doctype, name):
+                frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
+        if names:
+            removed[doctype] = len(names)
+    return removed
+
+
+def _remove_demo_ledger_rows(
+    transaction_plan: dict[str, list[str]], master_plan: dict[str, list[str]]
+) -> dict[str, int]:
+    """Remove ledger history for only the selected, deleted RD Demo vouchers.
+
+    ERPNext normally retains cancelled ledger history. That is correct for
+    business records, but it prevents a deliberately resettable demo warehouse
+    from being deleted. The plan is marker-scoped and built before rollback, so
+    this never targets a tenant's ordinary vouchers or warehouses.
+    """
+    removed = {}
+    for ledger_doctype in ("Stock Ledger Entry", "GL Entry", "Payment Ledger Entry"):
+        if not frappe.db.exists("DocType", ledger_doctype):
+            continue
+        deleted = 0
+        for voucher_type, voucher_names in transaction_plan.items():
+            if not voucher_names:
+                continue
+            filters = {"voucher_type": voucher_type, "voucher_no": ["in", voucher_names]}
+            deleted += frappe.db.count(ledger_doctype, filters)
+            frappe.db.delete(ledger_doctype, filters=filters)
+        if ledger_doctype == "Stock Ledger Entry" and master_plan["Warehouse"]:
+            warehouse_filters = {"warehouse": ["in", master_plan["Warehouse"]]}
+            deleted += frappe.db.count(ledger_doctype, warehouse_filters)
+            frappe.db.delete(ledger_doctype, filters=warehouse_filters)
+        if deleted:
+            removed[ledger_doctype] = deleted
+    return removed
 
 
 def _payment_entry_names(collections: list[str], expenses: list[str], settlements: list[str]) -> list[str]:
@@ -421,13 +581,13 @@ def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
     ensure_office_expense_defaults(company)
     currency = frappe.db.get_value("Company", company, "default_currency") or "BDT"
     price_list = get_or_create_company_sales_price_list(company)
-    source_warehouse = _leaf_warehouse(company)
+    source_warehouse = _demo_source_warehouse(company, token)
     van_warehouse = _demo_van_warehouse(company, token)
     supplier = _supplier(company, token)
     customers = [_customer(company, token, index) for index in range(1, 6)]
     items = [_item(company, token, index) for index in range(1, 4)]
     for index, item in enumerate(items, start=1):
-        _item_price(company, item, price_list, 80 + index * 15, currency)
+        _item_price(company, item, price_list, DEMO_ITEM_DETAILS[index - 1][2], currency)
 
     route = _route(company, token)
     for customer in customers:
@@ -507,15 +667,12 @@ def _validate_seed_preflight(company: str) -> None:
 def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]]:
     """Return each expected demo document with records that cannot support reports."""
     marker = f"{token}-%"
-    supplier = frappe.db.get_value(
-        "Supplier", {"rd_company": company, "supplier_name": f"RD Demo Supplier {token}"}, "name"
-    )
-    route = frappe.db.get_value(
-        "Distribution Route", {"company": company, "route_code": f"DEMO{token[-4:]}"}, "name"
-    )
+    masters = _demo_master_plan(company, token)
+    suppliers = masters["Supplier"]
+    routes = masters["Distribution Route"]
     purchase_orders = _audit_documents(
-        "Purchase Order", {"company": company, "supplier": supplier}, docstatus=1
-    ) if supplier else _empty_audit()
+        "Purchase Order", {"company": company, "supplier": ["in", suppliers]}, docstatus=1
+    ) if suppliers else _empty_audit()
     purchase_receipts = _audit_documents(
         "Purchase Receipt",
         {"company": company, "supplier_delivery_note": ["like", f"{marker}-PR"]},
@@ -527,8 +684,8 @@ def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]
         docstatus=1,
     ) if purchase_receipts["names"] else _empty_audit()
     challans = _audit_documents(
-        "DSR Challan", {"company": company, "route": route}, docstatus=1, status="Submitted"
-    ) if route else _empty_audit()
+        "DSR Challan", {"company": company, "route": ["in", routes]}, docstatus=1, status="Submitted"
+    ) if routes else _empty_audit()
     deliveries = _audit_documents(
         "Delivery Note",
         {"company": company, "rd_idempotency_key": ["like", f"{marker}-DN-%"]},
@@ -1356,7 +1513,7 @@ def _sr_order(masters: dict, customer: str, item: str, posting_date, marker: str
 
 
 def _supplier(company: str, token: str) -> str:
-    supplier_name = f"RD Demo Supplier {token}"
+    supplier_name = f"Meghna FMCG Supply Ltd. (RD Demo {token[-6:]})"
     existing = frappe.db.get_value("Supplier", {"rd_company": company, "supplier_name": supplier_name}, "name")
     if existing:
         return existing
@@ -1367,7 +1524,7 @@ def _supplier(company: str, token: str) -> str:
 
 
 def _customer(company: str, token: str, index: int) -> str:
-    customer_name = f"RD Demo Retailer {index} {token}"
+    customer_name = f"{DEMO_CUSTOMER_NAMES[index - 1]} (RD Demo {token[-6:]})"
     existing = frappe.db.get_value("Customer", {"rd_company": company, "customer_name": customer_name}, "name")
     if existing:
         return existing
@@ -1383,14 +1540,15 @@ def _customer(company: str, token: str, index: int) -> str:
 
 
 def _item(company: str, token: str, index: int) -> str:
-    item_code = f"{token}-ITEM-{index}"
+    item_name, item_suffix, _rate = DEMO_ITEM_DETAILS[index - 1]
+    item_code = f"{token}-{item_suffix}"
     if frappe.db.exists("Item", item_code):
         return item_code
     return frappe.get_doc(
         {
             "doctype": "Item",
             "item_code": item_code,
-            "item_name": f"RD Demo Product {index} {token}",
+            "item_name": item_name,
             "item_group": _first_leaf("Item Group"),
             "stock_uom": "Nos",
             "is_stock_item": 1,
@@ -1420,7 +1578,7 @@ def _item_price(company: str, item: str, price_list: str, rate: int, currency: s
 
 
 def _route(company: str, token: str) -> str:
-    code = f"DEMO{token[-4:]}"
+    code = f"DHK-MIRPUR10-{token[-6:]}"
     existing = frappe.db.get_value("Distribution Route", {"company": company, "route_code": code}, "name")
     if existing:
         return existing
@@ -1429,7 +1587,7 @@ def _route(company: str, token: str) -> str:
             "doctype": "Distribution Route",
             "company": company,
             "route_code": code,
-            "route_name": f"RD Demo Route {token}",
+            "route_name": f"Mirpur 10 Retail Route, Dhaka (RD Demo {token[-6:]})",
             "active": 1,
             "assigned_user": DEMO_USER,
         }
@@ -1456,17 +1614,24 @@ def _route_assignment(company: str, customer: str, route: str, start_date) -> st
     ).insert(ignore_permissions=True).name
 
 
-def _leaf_warehouse(company: str) -> str:
-    warehouse = frappe.db.get_value(
-        "Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name", order_by="lft asc"
+def _demo_warehouse_names(token: str) -> tuple[str, ...]:
+    """Keep the business-facing Dhaka labels deterministic and resettable."""
+    return (
+        f"RD Demo Van {token}",
+        f"Dhaka FMCG Distribution Hub (RD Demo {token[-6:]})",
+        f"Mirpur 10 Delivery Van (RD Demo {token[-6:]})",
     )
-    if not warehouse:
-        frappe.throw(_("Create one leaf Warehouse for {0} before seeding RD Demo data.").format(company))
-    return warehouse
+
+
+def _demo_source_warehouse(company: str, token: str) -> str:
+    return _demo_warehouse(company, _demo_warehouse_names(token)[1])
 
 
 def _demo_van_warehouse(company: str, token: str) -> str:
-    name = f"RD Demo Van {token}"
+    return _demo_warehouse(company, _demo_warehouse_names(token)[2])
+
+
+def _demo_warehouse(company: str, name: str) -> str:
     existing = frappe.db.get_value("Warehouse", {"company": company, "warehouse_name": name}, "name")
     if existing:
         return existing

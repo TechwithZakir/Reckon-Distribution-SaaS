@@ -111,6 +111,37 @@ bench --site distribution-test.localhost execute \
   --kwargs '{"company":"Horizon","dry_run":false,"confirm_rollback":true}'
 ```
 
+## Reset Transactions and Demo Masters
+
+Use the full reset before recreating the sample data with the current Bangladesh
+FMCG labels. It removes only records carrying this Company's `RDDEMO` marker:
+the linked transactions, their marker-scoped stock/accounting ledger rows, item
+prices, route assignments, tenant master scopes, demo route, demo warehouses,
+items, customers, and supplier. It retains Company settings, accounts, fiscal
+years, and non-demo records.
+
+Preview the reset first:
+
+```bash
+bench --site distribution-test.localhost execute \
+  reckon_distribution.demo_data.reset_distribution_test_data \
+  --kwargs "{'company':'Horizon'}"
+```
+
+Then confirm the reset:
+
+```bash
+bench --site distribution-test.localhost execute \
+  reckon_distribution.demo_data.reset_distribution_test_data \
+  --kwargs "{'company':'Horizon','dry_run':False,'confirm_reset':True}"
+```
+
+The recreated dataset uses a Dhaka FMCG distribution hub, a Mirpur 10 delivery
+van and retail route, five Dhaka-area retailers, `Meghna FMCG Supply Ltd.`, and
+sample mustard oil, iodized salt, and glucose biscuit items. Each visible master
+also carries a small `RD Demo` suffix so it is clearly test data and can be
+selected safely by a later reset.
+
 ## Lifecycle Test
 
 For QA, run a complete seed, audit, and rollback exercise. It refuses to run if

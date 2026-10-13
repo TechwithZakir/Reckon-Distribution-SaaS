@@ -84,6 +84,17 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn('status_field="visit_status"', source)
         self.assertIn("row.get(status_field) != status", source)
 
+    def test_demo_reset_and_bangladesh_fmcg_masters_are_explicitly_scoped(self):
+        source = DEMO_DATA.read_text(encoding="utf-8")
+
+        self.assertIn("def reset_distribution_test_data(", source)
+        self.assertIn("confirm_reset", source)
+        self.assertIn("def _demo_master_plan(", source)
+        self.assertIn("def _remove_demo_ledger_rows(", source)
+        self.assertIn("Meghna FMCG Supply Ltd.", source)
+        self.assertIn("Mirpur 10 Delivery Van", source)
+        self.assertIn("Bengal Harvest Mustard Oil 1 L", source)
+
     def test_rollback_cancels_dependent_documents_before_their_sources(self):
         rollback_order = _assignment_value(self.module, "ROLLBACK_ORDER")
 

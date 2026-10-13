@@ -416,11 +416,7 @@ def _rollback_plan(company: str, token: str) -> dict[str, list[str]]:
             {"company": company, "rd_idempotency_key": ["like", f"{marker}-DN-%"]},
         ),
         "DSR Challan": challans,
-        "Purchase Invoice": _names(
-            "Purchase Invoice", {"rd_source_purchase_receipt": ["in", purchase_receipts]}
-        )
-        if purchase_receipts
-        else [],
+        "Purchase Invoice": _purchase_invoice_names(purchase_receipts),
         "Purchase Receipt": purchase_receipts,
         "Purchase Order": _names("Purchase Order", {"company": company, "supplier": ["in", suppliers]})
         if suppliers
@@ -560,6 +556,32 @@ def _payment_entry_names(collections: list[str], expenses: list[str], settlement
 
 def _names(doctype: str, filters: dict) -> list[str]:
     return frappe.get_all(doctype, filters=filters, pluck="name", limit_page_length=10_000)
+
+
+def _purchase_invoice_names(receipt_names: list[str]) -> list[str]:
+    """Find every invoice generated from the demo receipts.
+
+    ERPNext maps a receipt to invoice rows through ``purchase_receipt`` while
+    Distribution also stores the source receipt in ``rd_source_purchase_receipt``.
+    Include both paths so a reset always reverses invoice dependencies before a
+    receipt is cancelled, including records created before the custom field was
+    available.
+    """
+    if not receipt_names:
+        return []
+
+    names = set(
+        _names("Purchase Invoice", {"rd_source_purchase_receipt": ["in", receipt_names]})
+    )
+    names.update(
+        frappe.get_all(
+            "Purchase Invoice Item",
+            filters={"parenttype": "Purchase Invoice", "purchase_receipt": ["in", receipt_names]},
+            pluck="parent",
+            limit_page_length=10_000,
+        )
+    )
+    return sorted(names)
 
 
 def _rollback_document(doctype: str, name: str) -> None:
@@ -1419,9 +1441,13 @@ def _settlement(challan: tuple[str, bool]) -> tuple[str, bool]:
 
 def _prepare_demo_settlement(doc) -> None:
     """Populate required reconciliation values before submitting a new or resumed draft."""
-    doc.cash_handover = 4_000
+    # Populate the source-driven fields first: the expected cash is calculated
+    # from confirmed collections and any earlier route settlement.
+    doc.run_method("validate")
+    doc.cash_handover = flt(doc.expected_cash)
     for row in doc.stock_items:
         row.closing_qty = row.expected_closing_qty
+    doc.run_method("validate")
 
 
 def _office_expense(masters: dict, posting_date, marker: str, index: int) -> tuple[str, bool]:

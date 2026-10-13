@@ -97,12 +97,23 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
 
     def test_rollback_cancels_dependent_documents_before_their_sources(self):
         rollback_order = _assignment_value(self.module, "ROLLBACK_ORDER")
+        source = DEMO_DATA.read_text(encoding="utf-8")
 
         self.assertLess(rollback_order.index("DSR Day Settlement"), rollback_order.index("DSR Challan"))
         self.assertLess(rollback_order.index("Sales Invoice"), rollback_order.index("Delivery Note"))
         self.assertLess(rollback_order.index("Delivery Note"), rollback_order.index("DSR Challan"))
         self.assertLess(rollback_order.index("Purchase Invoice"), rollback_order.index("Purchase Receipt"))
         self.assertLess(rollback_order.index("Purchase Receipt"), rollback_order.index("Purchase Order"))
+        self.assertIn("def _purchase_invoice_names(", source)
+        self.assertIn('"Purchase Invoice Item"', source)
+
+    def test_demo_settlement_uses_calculated_cash_handover(self):
+        settlement = _function(self.module, "_prepare_demo_settlement")
+        source = ast.unparse(settlement)
+
+        self.assertIn("doc.run_method", source)
+        self.assertIn("doc.cash_handover = flt(doc.expected_cash)", source)
+        self.assertNotIn("doc.cash_handover = 4_000", source)
 
     def test_lifecycle_test_runs_seed_audit_and_confirmed_rollback(self):
         lifecycle = _function(self.module, "test_distribution_demo_data_lifecycle")

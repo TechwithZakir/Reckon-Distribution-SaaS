@@ -78,6 +78,12 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn('STOCK_RECONCILIATION_POSTING_TIME = "22:45:00"', settlement)
         self.assertIn('STOCK_RETURN_POSTING_TIME = "23:00:00"', settlement)
 
+    def test_outlet_visit_audit_uses_its_actual_status_field(self):
+        source = DEMO_DATA.read_text(encoding="utf-8")
+
+        self.assertIn('status_field="visit_status"', source)
+        self.assertIn("row.get(status_field) != status", source)
+
     def test_rollback_cancels_dependent_documents_before_their_sources(self):
         rollback_order = _assignment_value(self.module, "ROLLBACK_ORDER")
 

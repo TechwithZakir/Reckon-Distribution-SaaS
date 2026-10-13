@@ -552,7 +552,10 @@ def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]
         status="Submitted",
     )
     visits = _audit_documents(
-        "Outlet Visit", {"company": company, "idempotency_key": ["like", f"{marker}-VIS"]}, status="Completed"
+        "Outlet Visit",
+        {"company": company, "idempotency_key": ["like", f"{marker}-VIS"]},
+        status="Completed",
+        status_field="visit_status",
     )
     orders = _audit_documents(
         "SR Order", {"company": company, "idempotency_key": ["like", f"{marker}-SRO"]}, status="Draft"
@@ -608,17 +611,24 @@ def _seed_audit_plan(company: str, token: str) -> dict[str, dict[str, list[str]]
     }
 
 
-def _audit_documents(doctype: str, filters: dict, *, docstatus: int | None = None, status: str | None = None) -> dict:
+def _audit_documents(
+    doctype: str,
+    filters: dict,
+    *,
+    docstatus: int | None = None,
+    status: str | None = None,
+    status_field: str = "status",
+) -> dict:
     fields = ["name", "docstatus"]
-    if frappe.get_meta(doctype).has_field("status"):
-        fields.append("status")
+    if status is not None and frappe.get_meta(doctype).has_field(status_field):
+        fields.append(status_field)
     rows = frappe.get_all(doctype, filters=filters, fields=fields, order_by="name")
     invalid = []
     for row in rows:
         if docstatus is not None and cint(row.docstatus) != docstatus:
             invalid.append(row.name)
             continue
-        if status is not None and row.get("status") != status:
+        if status is not None and row.get(status_field) != status:
             invalid.append(row.name)
     return {"names": [row.name for row in rows], "invalid": invalid}
 

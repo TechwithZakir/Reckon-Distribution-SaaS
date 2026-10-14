@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -43,22 +44,63 @@ def _app_name_from_hooks(hooks_file: Path) -> str | None:
     return None
 
 
+APP_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
 def discover_app_names(apps_directory: Path) -> list[str]:
-    """Build the canonical bench registry from importable app packages."""
+    """Build a candidate registry from the app names declared in hooks.py."""
     app_names = {
         app_name
         for hooks_file in apps_directory.glob("*/*/hooks.py")
         if (app_name := _app_name_from_hooks(hooks_file))
     }
 
-    required = {"frappe", "erpnext", "reckon_saas_platform", "reckon_distribution", "naidapa_theme"}
-    missing = sorted(required - app_names)
-    if missing:
-        raise RuntimeError(
-            "Required app package(s) are missing or invalid under apps/: " + ", ".join(missing)
-        )
+    invalid = sorted(app_name for app_name in app_names if not APP_NAME_PATTERN.fullmatch(app_name))
+    if invalid:
+        raise RuntimeError("Invalid app_name value(s) in hooks.py: " + ", ".join(invalid))
 
     return ["frappe", "erpnext", *sorted(app_names - {"frappe", "erpnext"})]
+
+
+def importable_app_names(app_names: list[str], bench_python: Path) -> list[str]:
+    """Keep only applications the Bench interpreter can actually import."""
+    if not bench_python.is_file():
+        raise RuntimeError(f"Bench Python executable was not found: {bench_python}")
+
+    importable = []
+    unavailable = []
+    for app_name in app_names:
+        result = subprocess.run(
+            [str(bench_python), "-c", f"import importlib; importlib.import_module({app_name!r})"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode:
+            unavailable.append(app_name)
+        else:
+            importable.append(app_name)
+
+    if unavailable:
+        print("Ignoring non-importable app folder(s): " + ", ".join(unavailable))
+
+    required = {"frappe", "erpnext", "reckon_saas_platform", "reckon_distribution", "naidapa_theme"}
+    missing = sorted(required - set(importable))
+    if missing:
+        raise RuntimeError(
+            "Required app package(s) cannot be imported by Bench Python: " + ", ".join(missing)
+        )
+
+    return importable
+
+
+def bench_python_executable(bench_directory: Path) -> Path:
+    """Return the virtual-environment interpreter used by Bench on Linux or Windows."""
+    candidates = (bench_directory / "env" / "bin" / "python", bench_directory / "env" / "Scripts" / "python.exe")
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError("Bench Python executable was not found under env/.")
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -121,7 +163,9 @@ def repair_registry(bench_directory: Path, site: str, apply: bool, skip_database
     if not site_config_file.is_file():
         raise RuntimeError(f"Site configuration was not found: {site_config_file}")
 
-    app_names = discover_app_names(apps_directory)
+    app_names = importable_app_names(
+        discover_app_names(apps_directory), bench_python_executable(bench_directory)
+    )
     config = _read_json(site_config_file)
     updated_config = dict(config)
     if "installed_apps" in updated_config:

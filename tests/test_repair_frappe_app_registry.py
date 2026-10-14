@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "repair_frappe_app_registry.py"
 SPEC = importlib.util.spec_from_file_location("repair_frappe_app_registry", SCRIPT)
@@ -32,13 +33,37 @@ class AppRegistryRecoveryTests(unittest.TestCase):
                 ["frappe", "erpnext", "naidapa_theme", "reckon_distribution", "reckon_saas_platform"],
             )
 
-    def test_discovery_refuses_to_repair_a_bench_missing_required_packages(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            apps = Path(temporary) / "apps"
-            self._app(apps, "frappe", "frappe", "frappe")
-
+    def test_import_verification_refuses_to_repair_without_required_packages(self):
+        with patch.object(Path, "is_file", return_value=True), patch.object(
+            REPAIR.subprocess, "run", return_value=Mock(returncode=0)
+        ):
             with self.assertRaisesRegex(RuntimeError, "reckon_distribution"):
-                REPAIR.discover_app_names(apps)
+                REPAIR.importable_app_names(["frappe"], Path("/bench/env/bin/python"))
+
+    def test_non_importable_stale_theme_is_excluded_from_registry(self):
+        candidates = [
+            "frappe",
+            "erpnext",
+            "easyai_theme",
+            "naidapa_theme",
+            "reckon_distribution",
+            "reckon_saas_platform",
+        ]
+        result = Mock()
+        result.returncode = 1
+
+        def subprocess_result(command, **_kwargs):
+            if command[-1].endswith("'easyai_theme')"):
+                return result
+            return Mock(returncode=0)
+
+        with patch.object(Path, "is_file", return_value=True), patch.object(
+            REPAIR.subprocess, "run", side_effect=subprocess_result
+        ):
+            self.assertEqual(
+                REPAIR.importable_app_names(candidates, Path("/bench/env/bin/python")),
+                ["frappe", "erpnext", "naidapa_theme", "reckon_distribution", "reckon_saas_platform"],
+            )
 
 
 if __name__ == "__main__":

@@ -43,17 +43,19 @@ DELIVERY_PLAN = (
 )
 DEMO_CHALLAN_POSTING_TIME = "08:45:00"
 DEMO_SOURCE_STOCK_TIME = "08:44:59"
-DEMO_CUSTOMER_NAMES = (
-    "Bismillah General Store - Mirpur 10",
-    "Maa Traders - Kazipara",
-    "Shapla Store - Shewrapara",
-    "Nababi Bazar - Agargaon",
-    "Uttara Provisions - Pallabi",
+DEMO_CUSTOMER_DETAILS = (
+    ("Bismillah General Store", "Mirpur 10, Dhaka"),
+    ("Mayer Doa Store", "Kazipara, Dhaka"),
+    ("Shapla Bazar", "Shewrapara, Dhaka"),
+    ("Nababi General Store", "Agargaon, Dhaka"),
+    ("Uttara Provisions", "Pallabi, Dhaka"),
 )
 DEMO_ITEM_DETAILS = (
-    ("Bengal Harvest Mustard Oil 1 L", "MUSTARD-OIL-1L", 190),
-    ("Padma Gold Iodized Salt 1 kg", "IODIZED-SALT-1KG", 65),
-    ("Dhaka Delight Glucose Biscuits 200 g", "GLUCOSE-BISCUITS-200G", 45),
+    ("Fresh Refined Soybean Oil 1 L", "FRESH-SOYBEAN-OIL-1L", 205),
+    ("ACI Pure Iodized Salt 1 kg", "ACI-IODIZED-SALT-1KG", 65),
+    ("Olympic Energy Plus Biscuit 200 g", "OLYMPIC-BISCUIT-200G", 50),
+    ("PRAN Mango Bar 20 g", "PRAN-MANGO-BAR-20G", 15),
+    ("Wheel Washing Powder 500 g", "WHEEL-POWDER-500G", 90),
 )
 ROLLBACK_ORDER = (
     "DSR Day Settlement",
@@ -703,8 +705,8 @@ def _ensure_demo_masters(company: str, token: str, start_date) -> dict:
     source_warehouse = _demo_source_warehouse(company, token)
     van_warehouse = _demo_van_warehouse(company, token)
     supplier = _supplier(company, token)
-    customers = [_customer(company, token, index) for index in range(1, 6)]
-    items = [_item(company, token, index) for index in range(1, 4)]
+    customers = [_customer(company, token, index) for index in range(1, len(DEMO_CUSTOMER_DETAILS) + 1)]
+    items = [_item(company, token, index) for index in range(1, len(DEMO_ITEM_DETAILS) + 1)]
     for index, item in enumerate(items, start=1):
         _item_price(company, item, price_list, DEMO_ITEM_DETAILS[index - 1][2], currency)
 
@@ -1661,7 +1663,7 @@ def _sr_order(masters: dict, customer: str, item: str, posting_date, marker: str
 
 
 def _supplier(company: str, token: str) -> str:
-    supplier_name = f"Meghna FMCG Supply Ltd. (RD Demo {token[-6:]})"
+    supplier_name = f"Sundarban FMCG Distributors Ltd. (RD Demo {token[-6:]})"
     existing = frappe.db.get_value("Supplier", {"rd_company": company, "supplier_name": supplier_name}, "name")
     if existing:
         return existing
@@ -1672,7 +1674,8 @@ def _supplier(company: str, token: str) -> str:
 
 
 def _customer(company: str, token: str, index: int) -> str:
-    customer_name = f"{DEMO_CUSTOMER_NAMES[index - 1]} (RD Demo {token[-6:]})"
+    outlet_name, location = DEMO_CUSTOMER_DETAILS[index - 1]
+    customer_name = f"{outlet_name}, {location} (RD Demo {token[-6:]})"
     existing = frappe.db.get_value("Customer", {"rd_company": company, "customer_name": customer_name}, "name")
     if existing:
         return existing
@@ -1735,7 +1738,7 @@ def _route(company: str, token: str) -> str:
             "doctype": "Distribution Route",
             "company": company,
             "route_code": code,
-            "route_name": f"Mirpur 10 Retail Route, Dhaka (RD Demo {token[-6:]})",
+            "route_name": f"Mirpur 10 - Kazipara Retail Route, Dhaka (RD Demo {token[-6:]})",
             "active": 1,
             "assigned_user": DEMO_USER,
         }
@@ -1763,20 +1766,24 @@ def _route_assignment(company: str, customer: str, route: str, start_date) -> st
 
 
 def _demo_warehouse_names(token: str) -> tuple[str, ...]:
-    """Keep the business-facing Dhaka labels deterministic and resettable."""
+    """Return current and legacy warehouse labels for a resettable Dhaka demo."""
+    suffix = token[-6:]
     return (
         f"RD Demo Van {token}",
-        f"Dhaka FMCG Distribution Hub (RD Demo {token[-6:]})",
-        f"Mirpur 10 Delivery Van (RD Demo {token[-6:]})",
+        f"Dhaka North FMCG Distribution Hub - Tejgaon (RD Demo {suffix})",
+        f"Mirpur 10 DSR Sales Van (RD Demo {suffix})",
+        # Kept for reset discovery after a tenant upgrades from the prior seed.
+        f"Dhaka FMCG Distribution Hub (RD Demo {suffix})",
+        f"Mirpur 10 Delivery Van (RD Demo {suffix})",
     )
 
 
 def _demo_source_warehouse(company: str, token: str) -> str:
-    return _demo_warehouse(company, _demo_warehouse_names(token)[1])
+    return _demo_warehouse(company, f"Dhaka North FMCG Distribution Hub - Tejgaon (RD Demo {token[-6:]})")
 
 
 def _demo_van_warehouse(company: str, token: str) -> str:
-    return _demo_warehouse(company, _demo_warehouse_names(token)[2])
+    return _demo_warehouse(company, f"Mirpur 10 DSR Sales Van (RD Demo {token[-6:]})")
 
 
 def _demo_warehouse(company: str, name: str) -> str:

@@ -95,9 +95,23 @@ class DistributionDemoSeedContractTests(unittest.TestCase):
         self.assertIn("def _hard_delete_demo_document(", source)
         self.assertIn('item_filters = {"item_code": ["in", master_plan["Item"]]}', source)
         self.assertIn('"retained_warehouses": master_plan["Warehouse"]', source)
-        self.assertIn("Meghna FMCG Supply Ltd.", source)
-        self.assertIn("Mirpur 10 Delivery Van", source)
-        self.assertIn("Bengal Harvest Mustard Oil 1 L", source)
+        self.assertIn("Sundarban FMCG Distributors Ltd.", source)
+        self.assertIn("Mirpur 10 DSR Sales Van", source)
+        self.assertIn("Fresh Refined Soybean Oil 1 L", source)
+        self.assertIn("Bismillah General Store", source)
+
+    def test_demo_catalog_contains_realistic_local_fmcg_masters(self):
+        customers = _assignment_value(self.module, "DEMO_CUSTOMER_DETAILS")
+        items = _assignment_value(self.module, "DEMO_ITEM_DETAILS")
+        warehouses = _function(self.module, "_demo_warehouse_names")
+        warehouse_source = ast.unparse(warehouses)
+
+        self.assertEqual(len(customers), 5)
+        self.assertTrue(all("Dhaka" in location for _, location in customers))
+        self.assertEqual(len(items), 5)
+        self.assertTrue(all(rate > 0 for _, _, rate in items))
+        self.assertIn("Dhaka North FMCG Distribution Hub - Tejgaon", warehouse_source)
+        self.assertIn("Mirpur 10 DSR Sales Van", warehouse_source)
 
     def test_seed_is_stable_and_does_not_layer_over_a_partial_dataset(self):
         seed = _function(self.module, "seed_distribution_test_data")

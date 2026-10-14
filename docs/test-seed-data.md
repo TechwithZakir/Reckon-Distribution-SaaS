@@ -136,11 +136,12 @@ bench --site distribution-test.localhost execute \
   --kwargs "{'company':'Horizon','dry_run':False,'confirm_reset':True}"
 ```
 
-The recreated dataset uses a Dhaka FMCG distribution hub, a Mirpur 10 delivery
-van and retail route, five Dhaka-area retailers, `Meghna FMCG Supply Ltd.`, and
-sample mustard oil, iodized salt, and glucose biscuit items. Each visible master
-also carries a small `RD Demo` suffix so it is clearly test data and can be
-selected safely by a later reset.
+The recreated dataset uses `Dhaka North FMCG Distribution Hub - Tejgaon`, a
+`Mirpur 10 DSR Sales Van`, and the Mirpur 10 - Kazipara retail route. It creates
+five named Dhaka retailers, `Sundarban FMCG Distributors Ltd.`, and recognizable
+Bangladesh FMCG packs: soybean oil, iodized salt, biscuits, mango bars, and
+washing powder. Each visible master also carries a small `RD Demo` suffix so it
+is clearly test data and can be selected safely by a later reset.
 
 ## Lifecycle Test
 

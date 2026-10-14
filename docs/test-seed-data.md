@@ -116,9 +116,10 @@ bench --site distribution-test.localhost execute \
 Use the full reset before recreating the sample data with the current Bangladesh
 FMCG labels. It removes only records carrying this Company's `RDDEMO` marker:
 the linked transactions, their marker-scoped stock/accounting ledger rows, item
-prices, route assignments, tenant master scopes, demo route, demo warehouses,
-items, customers, and supplier. It retains Company settings, accounts, fiscal
-years, and non-demo records.
+prices, route assignments, tenant master scopes, demo route, items, customers,
+and supplier. Demo warehouses with stock history are retained but disabled, so
+the replacement active warehouses are the only ones available to workflows. It
+retains Company settings, accounts, fiscal years, and non-demo records.
 
 Preview the reset first:
 

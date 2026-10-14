@@ -311,7 +311,8 @@ def reset_distribution_test_data(
 
     The default is a read-only preview. A confirmed reset reverses operational
     documents first, then removes their item prices, route assignments, tenant
-    scopes, routes, warehouses, items, customers, and supplier. Company
+    scopes, routes, items, customers, and supplier. Warehouses with stock
+    history are retained but disabled. Company
     settings, accounts, fiscal years, and every non-demo record are retained.
     """
     _require_system_manager()
@@ -337,6 +338,7 @@ def reset_distribution_test_data(
     removed_ledger_rows = _remove_demo_ledger_rows(transaction_plan, master_plan)
     removed_transactions = _hard_reset_demo_transactions(transaction_plan)
     removed_masters = _remove_demo_masters(master_plan)
+    retired_warehouses = _retire_demo_warehouses(master_plan["Warehouse"])
     return {
         "company": company,
         "marker": _token(company),
@@ -344,10 +346,10 @@ def reset_distribution_test_data(
         "transactions": removed_transactions,
         "ledger_rows": removed_ledger_rows,
         "masters": removed_masters,
-        "retained_warehouses": master_plan["Warehouse"],
+        "retired_warehouses": retired_warehouses,
         "note": (
             "The RD Demo transactions and reusable masters were reset. Warehouses with stock history "
-            "were retained because ERPNext does not permit their deletion."
+            "were retained in ERPNext but disabled so they do not appear in the next operational workflow."
         ),
     }
 
@@ -539,6 +541,16 @@ def _remove_demo_masters(plan: dict[str, list[str]]) -> dict[str, int]:
         if names:
             removed[doctype] = len(names)
     return removed
+
+
+def _retire_demo_warehouses(names: list[str]) -> list[str]:
+    """Hide old demo warehouses without violating ERPNext stock history rules."""
+    retired = []
+    for name in names:
+        if frappe.db.exists("Warehouse", name) and not cint(frappe.db.get_value("Warehouse", name, "disabled")):
+            frappe.db.set_value("Warehouse", name, "disabled", 1, update_modified=False)
+            retired.append(name)
+    return retired
 
 
 def _remove_demo_ledger_rows(
@@ -1789,6 +1801,8 @@ def _demo_van_warehouse(company: str, token: str) -> str:
 def _demo_warehouse(company: str, name: str) -> str:
     existing = frappe.db.get_value("Warehouse", {"company": company, "warehouse_name": name}, "name")
     if existing:
+        if cint(frappe.db.get_value("Warehouse", existing, "disabled")):
+            frappe.db.set_value("Warehouse", existing, "disabled", 0, update_modified=False)
         return existing
     parent = frappe.db.get_value(
         "Warehouse", {"company": company, "is_group": 1, "disabled": 0}, "name", order_by="lft asc"

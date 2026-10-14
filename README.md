@@ -37,6 +37,21 @@ bench --site distribution.reckon.tech install-app reckon_saas_platform
 bench --site distribution.reckon.tech install-app reckon_distribution
 ```
 
+If Bench cannot start because an app repository title or deleted app is still
+registered, repair the registry before running `migrate`, `build`, or any cache
+command. The recovery tool is intentionally independent of Frappe imports:
+
+```bash
+cd ~/frappe-bench
+python apps/reckon_distribution/scripts/repair_frappe_app_registry.py \
+  --site distribution.reckon.tech
+python apps/reckon_distribution/scripts/repair_frappe_app_registry.py \
+  --site distribution.reckon.tech --apply
+```
+
+It creates timestamped backups under `sites/.app-registry-backups/` and rebuilds
+the registry from the `app_name` values in the installed apps' `hooks.py` files.
+
 For an existing site that already has `reckon_distribution`, pull the code first,
 install `reckon_saas_platform`, then migrate. The SaaS DocTypes are owned by the
 platform app; `reckon_distribution` depends on it and registers itself as a SaaS

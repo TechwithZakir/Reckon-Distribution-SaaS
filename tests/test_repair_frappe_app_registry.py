@@ -65,6 +65,12 @@ class AppRegistryRecoveryTests(unittest.TestCase):
                 ["frappe", "erpnext", "naidapa_theme", "reckon_distribution", "reckon_saas_platform"],
             )
 
+    def test_distribution_site_registry_does_not_install_a_bench_theme_implicitly(self):
+        self.assertEqual(
+            REPAIR.DEFAULT_DISTRIBUTION_SITE_APPS,
+            ["frappe", "erpnext", "reckon_saas_platform", "reckon_distribution"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

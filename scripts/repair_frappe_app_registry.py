@@ -45,6 +45,7 @@ def _app_name_from_hooks(hooks_file: Path) -> str | None:
 
 
 APP_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+DEFAULT_DISTRIBUTION_SITE_APPS = ["frappe", "erpnext", "reckon_saas_platform", "reckon_distribution"]
 
 
 def discover_app_names(apps_directory: Path) -> list[str]:
@@ -118,7 +119,7 @@ def _backup(path: Path, backup_directory: Path) -> None:
         shutil.copy2(path, backup_directory / path.name)
 
 
-def _database_registry_command(config: dict[str, Any], app_names: list[str]) -> list[str]:
+def _database_registry_command(config: dict[str, Any], installed_apps: list[str]) -> list[str]:
     db_type = config.get("db_type", "mariadb")
     if db_type not in {"mariadb", "mysql"}:
         raise RuntimeError(f"This recovery utility supports MariaDB/MySQL only, not {db_type!r}.")
@@ -131,7 +132,7 @@ def _database_registry_command(config: dict[str, Any], app_names: list[str]) -> 
     if not isinstance(db_name, str) or not db_name:
         raise RuntimeError("site_config.json does not contain a database name.")
 
-    registry = json.dumps(app_names, separators=(",", ":"))
+    registry = json.dumps(installed_apps, separators=(",", ":"))
     escaped_registry = registry.replace("\\", "\\\\").replace("'", "\\'")
     sql = (
         "UPDATE `tabDefaultValue` "
@@ -152,7 +153,13 @@ def _database_registry_command(config: dict[str, Any], app_names: list[str]) -> 
     return command
 
 
-def repair_registry(bench_directory: Path, site: str, apply: bool, skip_database: bool) -> list[str]:
+def repair_registry(
+    bench_directory: Path,
+    site: str,
+    apply: bool,
+    skip_database: bool,
+    site_apps: list[str],
+) -> list[str]:
     apps_directory = bench_directory / "apps"
     sites_directory = bench_directory / "sites"
     apps_file = sites_directory / "apps.txt"
@@ -166,13 +173,21 @@ def repair_registry(bench_directory: Path, site: str, apply: bool, skip_database
     app_names = importable_app_names(
         discover_app_names(apps_directory), bench_python_executable(bench_directory)
     )
+    unavailable_site_apps = sorted(set(site_apps) - set(app_names))
+    if unavailable_site_apps:
+        raise RuntimeError(
+            "Site app package(s) cannot be imported by Bench Python: " + ", ".join(unavailable_site_apps)
+        )
+
     config = _read_json(site_config_file)
     updated_config = dict(config)
     if "installed_apps" in updated_config:
-        updated_config["installed_apps"] = app_names
+        updated_config["installed_apps"] = site_apps
 
     print("Canonical app registry:")
     print("\n".join(f"  - {app_name}" for app_name in app_names))
+    print("\nSite-installed app registry:")
+    print("\n".join(f"  - {app_name}" for app_name in site_apps))
     print(f"\nBench registry: {apps_file}")
     print(f"Site configuration: {site_config_file}")
     print("Database installed-app registry: " + ("skipped" if skip_database else "will be repaired"))
@@ -186,7 +201,8 @@ def repair_registry(bench_directory: Path, site: str, apply: bool, skip_database
     _backup(apps_file, backup_directory)
     _backup(site_config_file, backup_directory)
     (backup_directory / "registry.json").write_text(
-        json.dumps({"app_names": app_names, "site": site}, indent=2) + "\n", encoding="utf-8"
+        json.dumps({"app_names": app_names, "site": site, "site_apps": site_apps}, indent=2) + "\n",
+        encoding="utf-8",
     )
 
     apps_file.write_text("\n".join(app_names) + "\n", encoding="utf-8")
@@ -194,7 +210,7 @@ def repair_registry(bench_directory: Path, site: str, apply: bool, skip_database
 
     if not skip_database:
         result = subprocess.run(
-            _database_registry_command(config, app_names), text=True, capture_output=True, check=False
+            _database_registry_command(config, site_apps), text=True, capture_output=True, check=False
         )
         if result.returncode:
             raise RuntimeError(
@@ -217,10 +233,19 @@ def main() -> int:
     parser.add_argument("--bench", type=Path, default=Path.cwd(), help="Bench directory; defaults to current directory")
     parser.add_argument("--apply", action="store_true", help="Write the repaired registry and timestamped backups")
     parser.add_argument("--skip-database", action="store_true", help="Repair only files, not Frappe's database registry")
+    parser.add_argument(
+        "--site-app",
+        action="append",
+        dest="site_apps",
+        help="Importable app installed on this site; repeat for additional installed apps",
+    )
     args = parser.parse_args()
 
+    # These are the confirmed application dependencies of the Distribution site.
+    site_apps = args.site_apps or DEFAULT_DISTRIBUTION_SITE_APPS
+
     try:
-        repair_registry(args.bench.resolve(), args.site, args.apply, args.skip_database)
+        repair_registry(args.bench.resolve(), args.site, args.apply, args.skip_database, site_apps)
     except RuntimeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

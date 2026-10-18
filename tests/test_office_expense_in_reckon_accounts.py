@@ -65,6 +65,77 @@ class OfficeExpenseOwnershipTests(unittest.TestCase):
         self.assertIn('"link_to": "Office Expense"', sidebar)
 
 
+class OfficeExpenseDefaultsSeedTests(unittest.TestCase):
+    """The default Office Expense Settings seed now lives in reckon_accounts."""
+
+    def setUp(self):
+        frappe = ModuleType("frappe")
+        frappe._ = lambda text: text
+        frappe.throw = Mock(side_effect=AssertionError)
+        frappe.db = SimpleNamespace(exists=Mock(return_value=True))
+        frappe.get_doc = Mock()
+        frappe.get_all = Mock(return_value=[])
+        setup = ModuleType("reckon_accounts.office_expense_setup")
+        setup.ensure_office_expense_defaults = Mock(return_value=["Office Expense Settings"])
+        master_data = ModuleType("reckon_distribution.master_data")
+        master_data.get_or_create_company_sales_price_list = Mock()
+        self.frappe, self.setup = frappe, setup
+        self.modules = {
+            "frappe": frappe,
+            "frappe.permissions": ModuleType("frappe.permissions"),
+            "reckon_accounts": ModuleType("reckon_accounts"),
+            "reckon_accounts.office_expense_setup": setup,
+            "reckon_distribution.master_data": master_data,
+        }
+
+    def test_distribution_no_longer_defines_the_seed(self):
+        helpers = {
+            "_get_or_create_account",
+            "_get_or_create_cost_center",
+            "_get_or_create_cash_account",
+            "_get_or_create_cash_mode_of_payment",
+        }
+        for name in ("seed.py", "install.py", "demo_data.py"):
+            tree = ast.parse((APP / name).read_text(encoding="utf-8"))
+            defined = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
+            with self.subTest(module=name):
+                self.assertTrue(defined.isdisjoint(helpers))
+        seed_source = (APP / "seed.py").read_text(encoding="utf-8")
+        self.assertNotIn("def ensure_office_expense_defaults", seed_source)
+        self.assertNotIn("OFFICE_EXPENSE_CATEGORIES", seed_source)
+
+    def test_demo_data_uses_the_reckon_accounts_seed(self):
+        source = (APP / "demo_data.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "from reckon_accounts.office_expense_setup import ensure_office_expense_defaults", source
+        )
+        self.assertIn("ensure_office_expense_defaults(company)", source)
+
+    def test_tenant_seed_creates_office_expense_defaults(self):
+        with patch.dict(sys.modules, self.modules):
+            seed = _load(APP / "seed.py", "reckon_distribution.seed")
+            result = seed.run_distribution_seed("Acme", "v1")
+
+        self.setup.ensure_office_expense_defaults.assert_called_once_with("Acme")
+        self.assertIn("Office Expense Settings", result["created"])
+
+    def test_migrate_backfills_every_tenant_with_the_reckon_accounts_seed(self):
+        self.frappe.get_all.side_effect = lambda doctype, **kwargs: {
+            "Distribution Settings": ["Beta", "Acme"],
+            "Tenant User Assignment": ["Acme", None, "Gamma"],
+        }[doctype]
+        with patch.dict(sys.modules, self.modules):
+            constants = _load(APP / "constants.py", "reckon_distribution.constants")
+            with patch.dict(sys.modules, {"reckon_distribution.constants": constants}):
+                install = _load(APP / "install.py", "reckon_distribution.install")
+            install.ensure_office_expense_defaults()
+
+        self.assertEqual(
+            [call.args[0] for call in self.setup.ensure_office_expense_defaults.call_args_list],
+            ["Acme", "Beta", "Gamma"],
+        )
+
+
 class OfficeExpensePermissionTests(unittest.TestCase):
     def setUp(self):
         frappe = ModuleType("frappe")

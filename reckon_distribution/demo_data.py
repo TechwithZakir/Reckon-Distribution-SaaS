@@ -14,10 +14,11 @@ from datetime import date, timedelta
 import frappe
 from frappe import _
 from frappe.utils import add_days, add_months, cint, flt, getdate, nowdate
+from reckon_accounts.office_expense_setup import ensure_office_expense_defaults
 
 from reckon_distribution.collection import cancel_collection, confirm_collection
 from reckon_distribution.master_data import get_or_create_company_sales_price_list
-from reckon_distribution.seed import ensure_office_expense_defaults, run_distribution_seed
+from reckon_distribution.seed import run_distribution_seed
 from reckon_distribution.settlement import create_day_settlement
 
 DEMO_RECORD_COUNT = 100

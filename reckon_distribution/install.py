@@ -114,7 +114,7 @@ def ensure_office_expense_defaults() -> None:
     """Backfill the additive office-expense seed for all provisioned tenants."""
     if not frappe.db.exists("DocType", "Office Expense Settings"):
         return
-    from reckon_distribution.seed import ensure_office_expense_defaults as seed_defaults
+    from reckon_accounts.office_expense_setup import ensure_office_expense_defaults as seed_defaults
 
     companies = set(frappe.get_all("Distribution Settings", pluck="company"))
     if frappe.db.exists("DocType", "Tenant User Assignment"):

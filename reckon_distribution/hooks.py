@@ -16,7 +16,9 @@ app_icon_url = app_logo_url
 app_icon_title = app_title
 app_icon_route = "/desk/distribution"
 
-required_apps = ["erpnext", "reckon_saas_platform"]
+# Office Expense (doctypes, workflow and its Payment Entry controller) lives in
+# reckon_accounts; Distribution only adds tenant scope, menus and demo data.
+required_apps = ["erpnext", "reckon_saas_platform", "reckon_accounts"]
 
 add_to_apps_screen = [
     {
@@ -200,10 +202,6 @@ has_permission = {
 override_whitelisted_methods = {
     "frappe.desk.desk_page.getpage": "reckon_distribution.desk_guard.getpage",
     "erpnext.stock.doctype.warehouse.warehouse.get_children": "reckon_distribution.warehouse.get_children",
-}
-
-override_doctype_class = {
-    "Payment Entry": "reckon_distribution.overrides.payment_entry.DistributionPaymentEntry",
 }
 
 # Load this controller only on the Distribution-owned forms listed above.

@@ -135,7 +135,7 @@ def migrate_office_expense_category_links() -> None:
     ):
         return
 
-    from reckon_distribution.office_expense import _category_map
+    from reckon_accounts.office_expense import _category_map
 
     category_maps: dict[str, dict] = {}
     rows = frappe.db.sql(
@@ -379,17 +379,6 @@ def ensure_purchase_receipt_fields() -> None:
         },
         {
             "dt": "Payment Entry",
-            "fieldname": "rd_office_expense",
-            "label": "Office Expense",
-            "fieldtype": "Link",
-            "options": "Office Expense",
-            "hidden": 1,
-            "read_only": 1,
-            "no_copy": 1,
-            "insert_after": "rd_collection_receipt",
-        },
-        {
-            "dt": "Payment Entry",
             "fieldname": "rd_dsr_day_settlement",
             "label": "DSR Day Settlement",
             "fieldtype": "Link",
@@ -397,6 +386,7 @@ def ensure_purchase_receipt_fields() -> None:
             "hidden": 1,
             "read_only": 1,
             "no_copy": 1,
+            # rd_office_expense is a reckon_accounts fixture.
             "insert_after": "rd_office_expense",
         },
         {
@@ -1129,6 +1119,7 @@ def ensure_distribution_permissions() -> None:
     ensure_native_master_permissions()
     ensure_distribution_report_roles()
     ensure_distribution_transaction_permissions()
+    ensure_office_expense_permissions()
 
 
 def ensure_tenant_user_permissions() -> None:
@@ -1533,6 +1524,58 @@ def ensure_distribution_transaction_permissions() -> None:
                         permissions.add_permission(doctype, role, 0)
                     if hasattr(permissions, "update_permission_property"):
                         permissions.update_permission_property(doctype, role, 0, right, 1)
+        frappe.clear_cache(doctype=doctype)
+
+
+_OFFICE_EXPENSE_FULL = frozenset(
+    {"read", "write", "create", "delete", "submit", "cancel", "amend", "print", "email", "report", "export"}
+)
+_OFFICE_EXPENSE_MANAGER = _OFFICE_EXPENSE_FULL - {"delete"}
+_OFFICE_EXPENSE_SETUP_FULL = frozenset({"read", "write", "create", "delete", "print"})
+# Office Expense now ships with reckon_accounts, whose doctype permissions name
+# only Accounts roles. Distribution keeps the access its admins and managers had;
+# SR, DSR and Distribution User still get none.
+OFFICE_EXPENSE_ROLE_RIGHTS = {
+    "Office Expense": {
+        "Reckon Distribution Admin": _OFFICE_EXPENSE_FULL,
+        "Company Admin": _OFFICE_EXPENSE_FULL,
+        "Reckon Distribution Manager": _OFFICE_EXPENSE_MANAGER,
+        "Company Manager": _OFFICE_EXPENSE_MANAGER,
+    },
+    "Office Expense Settings": {
+        "Reckon Distribution Admin": _OFFICE_EXPENSE_SETUP_FULL,
+        "Company Admin": _OFFICE_EXPENSE_SETUP_FULL,
+        "Reckon Distribution Manager": frozenset({"read"}),
+        "Company Manager": frozenset({"read"}),
+    },
+}
+_PERMISSION_FLAGS = (
+    "read", "write", "create", "delete", "submit", "cancel", "amend",
+    "print", "email", "export", "report", "share",
+)
+
+
+def ensure_office_expense_permissions() -> None:
+    """Grant Distribution roles their Office Expense rights as Custom DocPerm rows."""
+    for doctype, role_rights in OFFICE_EXPENSE_ROLE_RIGHTS.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        # Copies the standard (Accounts) rows first, so adding ours keeps theirs.
+        permissions.setup_custom_perms(doctype)
+        for role, rights in role_rights.items():
+            if not frappe.db.exists("Role", role):
+                continue
+            filters = {"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0}
+            name = frappe.db.exists("Custom DocPerm", filters)
+            if name:
+                perm = frappe.get_doc("Custom DocPerm", name)
+            else:
+                perm = frappe.get_doc(
+                    {"doctype": "Custom DocPerm", "parenttype": "DocType", "parentfield": "permissions", **filters}
+                )
+                perm.insert(ignore_permissions=True)
+            for right in _PERMISSION_FLAGS:
+                perm.db_set(right, int(right in rights))
         frappe.clear_cache(doctype=doctype)
 
 

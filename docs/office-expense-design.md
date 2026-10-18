@@ -1,5 +1,12 @@
 # Office Expense Design
 
+> **Ownership:** the Office Expense doctypes, the posting workflow
+> (`reckon_accounts/office_expense.py`) and the Payment Entry controller now ship
+> with **Reckon Accounts**, which Distribution requires. Distribution keeps tenant
+> scope (query/permission hooks and form company binding), its sidebar and
+> dashboard links, the seeded setup and demo data, and the Custom DocPerm rows
+> that give its admin and manager roles access (`ensure_office_expense_permissions`).
+
 ## Purpose
 
 `Office Expense` is a compact, Company-scoped entry form for ordinary expenses

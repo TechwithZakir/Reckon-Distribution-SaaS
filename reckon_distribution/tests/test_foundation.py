@@ -18,6 +18,11 @@ from reckon_distribution.constants import (
 )
 
 
+def _accounts_doctypes() -> Path:
+    """Office Expense doctypes ship with reckon_accounts."""
+    return Path(frappe.get_app_path("reckon_accounts", "reckon_accounts", "doctype"))
+
+
 class TestFoundation(FrappeTestCase):
     def test_required_app_does_not_include_hrms(self):
         self.assertIn("erpnext", hooks.required_apps)
@@ -158,44 +163,37 @@ class TestFoundation(FrappeTestCase):
 
     def test_office_expense_posts_through_a_pay_payment_entry(self):
         expense = json.loads(
-            (
-                Path(__file__).parents[1]
-                / "distribution"
-                / "doctype"
-                / "office_expense"
-                / "office_expense.json"
-            ).read_text()
+            (_accounts_doctypes() / "office_expense" / "office_expense.json").read_text()
         )
         payment_entry = next(
             field for field in expense["fields"] if field["fieldname"] == "payment_entry"
         )
         self.assertEqual(payment_entry["options"], "Payment Entry")
-        self.assertIn("override_doctype_class", Path(hooks.__file__).read_text())
-        source = (Path(__file__).parents[1] / "office_expense.py").read_text()
+        # One Payment Entry controller, owned by reckon_accounts.
+        self.assertNotIn("override_doctype_class", Path(hooks.__file__).read_text())
+        self.assertEqual(
+            frappe.get_hooks("override_doctype_class")["Payment Entry"][-1],
+            "reckon_accounts.overrides.payment_entry.PaymentEntry",
+        )
+        source = Path(frappe.get_app_path("reckon_accounts", "office_expense.py")).read_text()
         self.assertIn('"payment_type": "Pay"', source)
         self.assertNotIn("create_office_expense_journal_entry", source)
 
     def test_office_expense_uses_scoped_link_fields(self):
-        doctype_root = Path(__file__).parents[1] / "distribution" / "doctype"
+        doctype_root = _accounts_doctypes()
         expense = json.loads((doctype_root / "office_expense" / "office_expense.json").read_text())
         item = json.loads((doctype_root / "office_expense_item" / "office_expense_item.json").read_text())
         payment_method = next(field for field in expense["fields"] if field["fieldname"] == "payment_method")
         category = next(field for field in item["fields"] if field["fieldname"] == "expense_category")
         self.assertEqual((payment_method["fieldtype"], payment_method["options"]), ("Link", "Mode of Payment"))
         self.assertEqual((category["fieldtype"], category["options"]), ("Link", "Account"))
-        source = (Path(__file__).parents[1] / "office_expense.py").read_text()
+        source = Path(frappe.get_app_path("reckon_accounts", "office_expense.py")).read_text()
         self.assertIn("get_office_expense_payment_methods", source)
         self.assertIn("get_office_expense_categories", source)
 
     def test_office_expense_item_description_is_optional(self):
         metadata = json.loads(
-            (
-                Path(__file__).parents[1]
-                / "distribution"
-                / "doctype"
-                / "office_expense_item"
-                / "office_expense_item.json"
-            ).read_text()
+            (_accounts_doctypes() / "office_expense_item" / "office_expense_item.json").read_text()
         )
         description = next(field for field in metadata["fields"] if field["fieldname"] == "description")
         self.assertFalse(description.get("reqd"))

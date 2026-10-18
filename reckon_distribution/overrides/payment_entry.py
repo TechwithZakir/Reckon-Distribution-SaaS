@@ -1,54 +1,45 @@
+"""Payment Entry controller registered through ``override_doctype_class``.
+
+Frappe keeps one controller class per doctype: the hook of the last installed app
+wins. Reckon Accounts also overrides Payment Entry, so this class includes its
+direct income/expense voucher mixin whenever that app is on the bench. Its controller
+does the same with ``OfficeExpensePaymentMixin``, so both behaviours apply whichever
+hook wins. Each mixin is inert unless its own fields are set on the document.
+"""
+
 from __future__ import annotations
 
-import frappe
-from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry, get_account_details
-from frappe import _
-from frappe.utils import flt
+import importlib
+
+from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
+
+from reckon_distribution.overrides.office_expense_payment import OfficeExpensePaymentMixin
 
 
-class DistributionPaymentEntry(PaymentEntry):
-    """Allow the Office Expense workflow to create a balanced, no-party Pay entry."""
+def _optional_mixin(module_path: str, name: str):
+    """Return ``name`` from ``module_path``, or None when that module is not installed."""
+    try:
+        module = importlib.import_module(module_path)
+    except ModuleNotFoundError as exc:
+        # Only a missing app (or an older version without this module) is optional;
+        # a broken import inside an installed module must still fail loudly.
+        if exc.name and (module_path == exc.name or module_path.startswith(f"{exc.name}.")):
+            return None
+        raise
+    return getattr(module, name)
 
-    def set_missing_values(self) -> None:
-        if not self._is_office_expense_payment():
-            return super().set_missing_values()
 
-        if self.party or self.party_type:
-            frappe.throw(_("Office Expense payments cannot be linked to a party."))
-        if self.paid_from != self.paid_to:
-            frappe.throw(_("Office Expense payments must use one cash or bank account."))
-        if not self.deductions:
-            frappe.throw(_("Office Expense payments require expense deductions."))
-        if flt(sum(flt(row.amount) for row in self.deductions)) != flt(self.paid_amount):
-            frappe.throw(_("Office Expense deductions must equal the paid amount."))
+# Same base order as Reckon Accounts' controller, so the MRO does not depend on
+# which app's hook Frappe picks.
+_MIXINS = tuple(
+    mixin
+    for mixin in (
+        OfficeExpensePaymentMixin,
+        _optional_mixin("reckon_accounts.overrides.direct_voucher", "DirectVoucherPaymentMixin"),
+    )
+    if mixin
+)
 
-        # ERPNext normally obtains these values from the customer or supplier
-        # account. For this controlled payment they come from the cash/bank
-        # account on both sides; only the deductions create the expense debits.
-        account = get_account_details(self.paid_from, self.posting_date, self.cost_center)
-        self.paid_from_account_currency = account.account_currency
-        self.paid_from_account_type = account.account_type
-        self.paid_to_account_currency = account.account_currency
-        self.paid_to_account_type = account.account_type
-        if self.meta.has_field("paid_from_account_balance"):
-            self.paid_from_account_balance = account.account_balance
-        if self.meta.has_field("paid_to_account_balance"):
-            self.paid_to_account_balance = account.account_balance
-        self.party_account = None
-        self.party_account_currency = account.account_currency
-        self.references = []
 
-    def _is_office_expense_payment(self) -> bool:
-        if self.payment_type != "Pay" or not self.get("rd_office_expense"):
-            return False
-
-        expense = frappe.db.get_value(
-            "Office Expense", self.rd_office_expense, ["company", "payment_entry"], as_dict=True
-        )
-        if not expense or expense.company != self.company:
-            frappe.throw(_("Office Expense payment must belong to the same Company."))
-
-        return bool(
-            self.flags.get("reckon_office_expense_payment")
-            or expense.payment_entry == self.name
-        )
+class DistributionPaymentEntry(*_MIXINS, PaymentEntry):
+    """ERPNext Payment Entry with Office Expense and, when present, direct vouchers."""

@@ -74,6 +74,6 @@ jobs:
           from pathlib import Path
 
           distribution_hooks = Path("reckon_distribution/hooks.py").read_text()
-          assert 'required_apps = ["erpnext", "reckon_saas_platform"]' in distribution_hooks
+          assert 'required_apps = ["erpnext", "reckon_saas_platform", "reckon_accounts"]' in distribution_hooks
           assert '"hrms"' not in distribution_hooks.lower()
           PY

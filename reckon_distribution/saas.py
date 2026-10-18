@@ -3,15 +3,20 @@
 import frappe
 from reckon_saas_platform.saas import (
     PaymentGatewayAdapter,
+    SignupConflictError,
+    SignupValidationError,
     SubscriptionGateError,
     assert_operational_access,
+    confirm_registration_email,
     create_registration,
     ensure_tenant_seed_job,
     get_company_subscription,
     get_subscription_summary,
     get_user_home_page,
     get_vendor_saas_summary,
+    has_operational_access,
     is_subscription_active,
+    provision_registration,
     public_signup,
 )
 from reckon_saas_platform.saas import (
@@ -24,15 +29,20 @@ from reckon_saas_platform.saas_security import is_vendor_user
 
 __all__ = [
     "PaymentGatewayAdapter",
+    "SignupConflictError",
+    "SignupValidationError",
     "SubscriptionGateError",
     "assert_operational_access",
+    "confirm_registration_email",
     "create_registration",
     "ensure_tenant_seed_job",
     "get_company_subscription",
     "get_subscription_summary",
     "get_user_home_page",
     "get_vendor_saas_summary",
+    "has_operational_access",
     "is_subscription_active",
+    "provision_registration",
     "public_signup",
     "retry_tenant_seed_job",
     "run_tenant_seed_job",

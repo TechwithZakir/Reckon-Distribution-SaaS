@@ -5,8 +5,13 @@ from urllib.parse import quote, unquote
 
 import frappe
 from frappe import _
+from reckon_saas_platform.saas_gate import is_user_gated
 
-from reckon_distribution.constants import OPERATIONAL_ROLES, TENANT_ROLE_NAMES
+from reckon_distribution.constants import (
+    OPERATIONAL_ROLES,
+    TENANT_PROFILE_ROLE_MAP,
+    TENANT_ROLE_NAMES,
+)
 
 DISTRIBUTION_DESK_ROUTE = "desk/distribution"
 DISTRIBUTION_PAGE = "distribution"
@@ -227,19 +232,23 @@ ALLOWED_WEBSITE_PREFIXES = (
 
 def get_user_home_page(user: str):
     if _is_distribution_only_user(user):
+        if is_user_gated(user):
+            return "reckonerp-subscription"
         return "desk/distribution"
     return None
 
 
 def restrict_distribution_desk_request() -> None:
-    _ensure_current_distribution_role()
-    _ensure_current_user_metadata_access()
+    """Read-only Desk boundary for tenant users; it must not write or clear caches."""
+    if getattr(frappe.flags, "saas_gate_blocked", False):
+        # The SaaS subscription gate has already rejected or redirected this request.
+        return
     if not _is_distribution_only_user():
         return
 
-    from reckon_distribution.warehouse import ensure_current_user_company_permission
+    from reckon_distribution.warehouse import assert_single_company_assignment
 
-    ensure_current_user_company_permission()
+    assert_single_company_assignment()
 
     path = _request_path()
     if path.startswith("/api/"):
@@ -391,90 +400,31 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     return profile in TENANT_ROLE_NAMES
 
 
-def _ensure_current_distribution_role() -> None:
-    """Repair the Frappe role from the active tenant assignment before checks."""
-    user = frappe.session.user
-    if not user or user in {"Guest", "Administrator"}:
-        return
-    role_map = {
-        "Company Admin": "Reckon Distribution Admin",
-        "Company Manager": "Reckon Distribution Manager",
-        "Master Data Manager": "Reckon Master Data Manager",
-        "SR": "Reckon Distribution User",
-        "DSR": "Reckon Distribution User",
-    }
-    if not frappe.db.exists("DocType", "Tenant User Assignment"):
-        return
-    profile = frappe.db.get_value(
-        "Tenant User Assignment",
-        {"user": user, "active": 1, "is_default": 1},
-        "role_profile",
-    )
-    if not profile:
-        profile = frappe.db.get_value(
-            "Tenant User Assignment",
-            {"user": user, "active": 1},
-            "role_profile",
-        )
-    role = role_map.get(profile)
-    if not role or role in frappe.get_roles(user):
-        return
-    frappe.get_doc("User", user).add_roles(role)
-    frappe.clear_cache(user=user)
+def sync_tenant_user_access(doc, method=None) -> None:
+    """Grant the Frappe role and DocType metadata access for a tenant assignment.
 
-
-def _ensure_current_user_metadata_access() -> None:
-    """Repair the native metadata permission before Desk loads a Distribution list.
-
-    Frappe's native list boot calls permission checks for the ``DocType`` metadata
-    record before it can load the requested document. Older tenant users may have
-    received their Distribution role before this permission was introduced, so a
-    migration alone is not enough for an already-open production site. This is an
-    idempotent backfill for the current Distribution role only.
+    Runs from the Tenant User Assignment ``on_update`` hook; ``after_migrate``
+    backfills existing users. Requests never repair access themselves, so they do
+    not write to ``tabDocPerm``/``tabHas Role`` or clear caches.
     """
-    user = frappe.session.user
-    if not user or user in {"Guest", "Administrator"}:
+    user = doc.get("user")
+    if not doc.get("active") or not user or user in {"Guest", "Administrator"}:
         return
-    if not frappe.db.exists("DocType", "DocType"):
-        return
-
-    roles = set(frappe.get_roles(user))
-    # Resolve the assignment directly as well as the cached User roles. This
-    # closes the first-request gap immediately after a tenant user is created
-    # or after an older site receives the role backfill during migration.
-    role_map = {
-        "Company Admin": "Reckon Distribution Admin",
-        "Company Manager": "Reckon Distribution Manager",
-        "Master Data Manager": "Reckon Master Data Manager",
-        "SR": "Reckon Distribution User",
-        "DSR": "Reckon Distribution User",
-    }
-    profile = frappe.db.get_value(
-        "Tenant User Assignment",
-        {"user": user, "active": 1, "is_default": 1},
-        "role_profile",
-    )
-    if not profile:
-        profile = frappe.db.get_value(
-            "Tenant User Assignment", {"user": user, "active": 1}, "role_profile"
-        )
-    if profile:
-        roles.add(profile)
-        if role_map.get(profile):
-            roles.add(role_map[profile])
-
-    distribution_roles = {role.name for role in OPERATIONAL_ROLES} | TENANT_ROLE_NAMES
-    applicable_roles = roles.intersection(distribution_roles)
-    if not applicable_roles:
-        return
+    profile = doc.get("role_profile")
+    role = TENANT_PROFILE_ROLE_MAP.get(profile)
+    distribution_roles = {row.name for row in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
 
     from reckon_distribution.install import ensure_standard_doc_type_read_permission
 
-    for role in applicable_roles:
-        ensure_standard_doc_type_read_permission(role)
+    metadata_changed = False
+    for name in {profile, role}.intersection(distribution_roles):
+        metadata_changed = ensure_standard_doc_type_read_permission(name) or metadata_changed
+    if metadata_changed:
+        frappe.clear_cache(doctype="DocType")
 
-    frappe.clear_cache(doctype="DocType")
-    frappe.clear_cache(user=user)
+    if role and frappe.db.exists("User", user) and role not in frappe.get_roles(user):
+        # add_roles saves the User, which clears that user's cache.
+        frappe.get_doc("User", user).add_roles(role)
 
 
 def _request_path() -> str:
@@ -502,6 +452,9 @@ def _redirect_to_distribution_report(report_name: str) -> None:
 def redirect_distribution_desk_response(response, request) -> None:
     """Turn a scheduled tenant-entry redirect into a normal HTTP response."""
     location = getattr(frappe.flags, "distribution_redirect", None)
+    if getattr(frappe.flags, "saas_gate_redirect", None):
+        # The subscription gate's redirect wins over workspace routing.
+        return
     if not location or response is None:
         return
     response.status_code = 302

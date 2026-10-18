@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, nowdate
@@ -7,8 +9,10 @@ from frappe.utils import add_days, nowdate
 from reckon_distribution.saas import (
     SubscriptionGateError,
     assert_operational_access,
+    confirm_registration_email,
     create_registration,
     ensure_tenant_seed_job,
+    provision_registration,
     run_tenant_seed_job,
     verify_payment,
 )
@@ -16,10 +20,12 @@ from reckon_distribution.saas_security import (
     get_vendor_only_query,
     has_vendor_only_permission,
 )
+from reckon_distribution.tests.signup_settings import use_signup_settings
 
 
 class TestSaaSRegistrationAndGate(FrappeTestCase):
     def setUp(self):
+        use_signup_settings(self)
         self.plan = "_Test Distribution Plan"
         self.company = "_Test SaaS Tenant"
         self.email = "tenant-admin@example.com"
@@ -67,12 +73,17 @@ class TestSaaSRegistrationAndGate(FrappeTestCase):
             frappe.delete_doc("Company", self.company, ignore_permissions=True, force=True)
 
     def _registration(self):
-        return create_registration(
+        """Signup, verify the email and run the provisioning job synchronously."""
+        registration = create_registration(
             business_name=self.company,
             owner_email=self.email,
             owner_name="Tenant Admin",
             plan=self.plan,
         )
+        with patch("frappe.enqueue"):
+            confirm_registration_email(registration.flags.verification_token)
+        with patch("reckon_saas_platform.saas.get_seed_handlers", return_value=[]):
+            return provision_registration(registration.name)
 
     def test_public_signup_creates_pending_company_admin_subscription_payment_and_seed_job(self):
         registration = self._registration()

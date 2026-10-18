@@ -11,11 +11,13 @@ from reckon_distribution.saas import (
     verify_payment_manual,
 )
 from reckon_distribution.saas_security import has_vendor_only_permission
+from reckon_distribution.tests.signup_settings import use_signup_settings
 from reckon_distribution.www import reckonerp_signup
 
 
 class TestSaaSPagesAndActions(FrappeTestCase):
     def setUp(self):
+        use_signup_settings(self)
         self.plan = "_Test Page Plan"
         self.company = "_Test Page Tenant"
         self.email = "page-tenant@example.com"
@@ -64,14 +66,22 @@ class TestSaaSPagesAndActions(FrappeTestCase):
         self.assertIn(self.plan, {plan.name for plan in context.plans})
 
     def test_unpaid_tenant_home_page_is_subscription_page(self):
-        from reckon_distribution.saas import create_registration
+        from reckon_distribution.saas import (
+            confirm_registration_email,
+            create_registration,
+            provision_registration,
+        )
 
-        create_registration(
+        registration = create_registration(
             business_name=self.company,
             owner_email=self.email,
             owner_name="Page Tenant",
             plan=self.plan,
         )
+        with patch("frappe.enqueue"):
+            confirm_registration_email(registration.flags.verification_token)
+        with patch("reckon_saas_platform.saas.get_seed_handlers", return_value=[]):
+            provision_registration(registration.name)
 
         self.assertEqual(get_user_home_page(self.email), "reckonerp-subscription")
 

@@ -142,11 +142,11 @@ def sync_user_company_permission(user: str | None, expected_company: str | None 
     frappe.clear_cache(user=user)
 
 
-def ensure_current_user_company_permission(user: str | None = None) -> None:
-    """Repair a missing or stale Company permission when a tenant opens Desk."""
+def assert_single_company_assignment(user: str | None = None) -> str | None:
+    """Read-only request check: a tenant user has exactly one active Company."""
     user = user or frappe.session.user
     if not user or user in {"Guest", "Administrator"}:
-        return
+        return None
     active = frappe.get_all(
         "Tenant User Assignment",
         filters={"user": user, "active": 1},
@@ -163,8 +163,15 @@ def ensure_current_user_company_permission(user: str | None = None) -> None:
             _("User {0} has no active Company assignment.").format(user),
             frappe.PermissionError,
         )
+    return next(iter(companies))
 
-    company = next(iter(companies))
+
+def ensure_current_user_company_permission(user: str | None = None) -> None:
+    """Repair a missing or stale Company permission (explicit repair, not per request)."""
+    user = user or frappe.session.user
+    company = assert_single_company_assignment(user)
+    if not company:
+        return
     permissions = frappe.get_all(
         "User Permission",
         filters={"user": user, "allow": "Company"},

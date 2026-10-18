@@ -474,13 +474,9 @@ class TestFoundation(FrappeTestCase):
 
         for path in ("/", "/desk/"):
             with self.subTest(path=path), patch(
-                "reckon_distribution.desk_guard._ensure_current_distribution_role"
-            ), patch(
-                "reckon_distribution.desk_guard._ensure_current_user_metadata_access"
-            ), patch(
                 "reckon_distribution.desk_guard._is_distribution_only_user", return_value=True
             ), patch(
-                "reckon_distribution.warehouse.ensure_current_user_company_permission"
+                "reckon_distribution.warehouse.assert_single_company_assignment"
             ), patch("reckon_distribution.desk_guard._request_path", return_value=path):
                 frappe.flags.pop("distribution_redirect", None)
                 restrict_distribution_desk_request()

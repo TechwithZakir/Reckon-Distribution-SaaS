@@ -3,7 +3,9 @@ set -euo pipefail
 
 usage() {
     echo "Usage: $0 --site <dedicated-test-site>"
-    echo "Runs the Frappe multi-company isolation integration class."
+    echo "Runs the tenant-isolation release gate: multi-company isolation, the P0"
+    echo "go-live blocker tests (signup, subscription gate, desk guard, platform"
+    echo "roles, seed job) and the SaaS onboarding tests."
 }
 
 if [[ "${1:-}" != "--site" || -z "${2:-}" || -n "${3:-}" ]]; then
@@ -26,6 +28,14 @@ if ! command -v bench >/dev/null 2>&1; then
     exit 127
 fi
 
-exec bench --site "$site_name" run-tests \
-    --app reckon_distribution \
-    --module reckon_distribution.tests.test_multi_company_isolation
+modules=(
+    reckon_distribution.tests.test_multi_company_isolation
+    reckon_distribution.tests.test_go_live_blockers
+    reckon_distribution.tests.test_saas
+    reckon_distribution.tests.test_saas_pages
+)
+
+for module in "${modules[@]}"; do
+    echo "==> $module"
+    bench --site "$site_name" run-tests --app reckon_distribution --module "$module"
+done

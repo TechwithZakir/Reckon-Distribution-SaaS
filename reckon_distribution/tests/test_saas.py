@@ -20,10 +20,12 @@ from reckon_distribution.saas_security import (
     get_vendor_only_query,
     has_vendor_only_permission,
 )
+from reckon_distribution.tests.signup_settings import use_signup_settings
 
 
 class TestSaaSRegistrationAndGate(FrappeTestCase):
     def setUp(self):
+        use_signup_settings(self)
         self.plan = "_Test Distribution Plan"
         self.company = "_Test SaaS Tenant"
         self.email = "tenant-admin@example.com"

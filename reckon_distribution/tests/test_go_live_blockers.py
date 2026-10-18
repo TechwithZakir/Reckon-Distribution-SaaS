@@ -15,6 +15,16 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days, add_to_date, now_datetime, nowdate
+from reckon_saas_platform.saas import (
+    InvalidOTPError,
+    OTPThrottledError,
+    SignupUnavailableError,
+    confirm_registration_phone,
+    resend_registration_phone_otp,
+    retry_registration_provisioning,
+    send_registration_verification,
+)
+from reckon_saas_platform.sms import SMSDeliveryError
 
 from reckon_distribution.saas import (
     SignupConflictError,
@@ -30,6 +40,7 @@ from reckon_distribution.saas import (
     verify_payment,
 )
 from reckon_distribution.tenant_security import get_tenant_owned_query, user_can_bypass_tenant
+from reckon_distribution.tests.signup_settings import use_signup_settings
 
 SEED_FAILURE_UOM = "_P0 Seed Rollback UOM"
 
@@ -58,6 +69,7 @@ class P0TestCase(FrappeTestCase):
     def setUp(self):
         super().setUp()
         frappe.set_user("Administrator")
+        use_signup_settings(self)
         self.token = frappe.generate_hash(length=8).lower()
         self.plan = f"_P0 Plan {self.token}"
         self.companies: list[str] = []
@@ -674,3 +686,218 @@ class TestTenantUsersCannotHoldPlatformRoles(P0TestCase):
         self._user(email, ["System Manager"])
 
         self.assertTrue(user_can_bypass_tenant(email))
+
+
+def _gateway_response(code: int = 202):
+    response = SimpleNamespace(status_code=200, text="")
+    response.json = lambda: {"response_code": code, "message_id": 1}
+    return response
+
+
+class TestSignupPhoneVerification(P0TestCase):
+    def setUp(self):
+        super().setUp()
+        use_signup_settings(
+            self,
+            require_phone_verification=1,
+            bulksmsbd_api_key="test-bulksmsbd-key",
+            bulksmsbd_sender_id="8809600000000",
+        )
+        self.phone = "0171" + str(int(frappe.generate_hash(length=8), 16) % 10**7).zfill(7)
+
+    def _phone_signup(self, label: str):
+        return create_registration(
+            business_name=self._company_name(label),
+            owner_email=self._email(label),
+            owner_name="P0 Owner",
+            plan=self.plan,
+            owner_phone=self.phone,
+        )
+
+    def test_signup_requires_mobile_and_sends_otp_by_sms(self):
+        with self.assertRaises(SignupValidationError):
+            create_registration(
+                business_name=self._company_name("NoPhone"),
+                owner_email=self._email("nophone"),
+                owner_name="P0 Owner",
+                plan=self.plan,
+            )
+
+        registration = self._phone_signup("Sms")
+        with patch("reckon_saas_platform.sms.requests.post", return_value=_gateway_response()) as post:
+            send_registration_verification(registration)
+
+        data = post.call_args.kwargs["data"]
+        self.assertEqual(data["number"], f"88{self.phone}")
+        self.assertEqual(data["senderid"], "8809600000000")
+        self.assertIn(registration.flags.phone_otp, data["message"])
+        stored = frappe.db.get_value("SaaS Registration", registration.name, "phone_otp_hash")
+        self.assertNotIn(registration.flags.phone_otp, stored)
+
+    def test_gateway_failure_is_reported_as_502(self):
+        registration = self._phone_signup("SmsDown")
+        with patch(
+            "reckon_saas_platform.sms.requests.post", return_value=_gateway_response(1007)
+        ), self.assertRaises(SMSDeliveryError) as raised:
+            send_registration_verification(registration)
+        self.assertEqual(raised.exception.http_status_code, 502)
+
+    def test_signup_is_refused_while_sms_is_not_configured(self):
+        use_signup_settings(self, require_phone_verification=1)
+        with self.assertRaises(SignupUnavailableError) as raised:
+            self._phone_signup("NoGateway")
+        self.assertEqual(raised.exception.http_status_code, 503)
+
+    def test_provisioning_waits_for_both_email_and_phone(self):
+        registration = self._phone_signup("Both")
+
+        with patch("frappe.enqueue") as enqueue:
+            confirm_registration_email(registration.flags.verification_token)
+        enqueue.assert_not_called()
+        self.assertEqual(frappe.db.get_value("SaaS Registration", registration.name, "status"), "Pending Verification")
+        untouched = self._provision(registration.name)
+        self.assertEqual(untouched.status, "Pending Verification")
+        self.assertFalse(frappe.db.exists("Company", untouched.business_name))
+
+        with patch("frappe.enqueue") as enqueue:
+            confirm_registration_phone(registration.name, registration.flags.phone_otp)
+        enqueue.assert_called_once()
+        done = self._provision(registration.name)
+
+        self.assertEqual(done.status, "Pending Payment")
+        self.assertEqual(frappe.db.get_value("User", done.company_admin, "mobile_no"), f"88{self.phone}")
+
+    def test_wrong_codes_are_limited(self):
+        registration = self._phone_signup("Wrong")
+        wrong = "000000" if registration.flags.phone_otp != "000000" else "111111"
+        for _attempt in range(5):
+            with self.assertRaises(InvalidOTPError):
+                confirm_registration_phone(registration.name, wrong)
+        with self.assertRaises(OTPThrottledError):
+            confirm_registration_phone(registration.name, registration.flags.phone_otp)
+        self.assertFalse(frappe.db.get_value("SaaS Registration", registration.name, "phone_verified"))
+
+    def test_resend_is_throttled_then_issues_a_new_code(self):
+        registration = self._phone_signup("Resend")
+        with self.assertRaises(OTPThrottledError):
+            resend_registration_phone_otp(registration.name)
+
+        frappe.db.set_value(
+            "SaaS Registration", registration.name, "phone_otp_sent_on", add_to_date(now_datetime(), minutes=-2)
+        )
+        with patch("reckon_saas_platform.sms.requests.post", return_value=_gateway_response()) as post:
+            resend_registration_phone_otp(registration.name)
+        new_code = post.call_args.kwargs["data"]["message"].split("code is ")[1][:6]
+
+        if new_code != registration.flags.phone_otp:
+            with self.assertRaises(InvalidOTPError):
+                confirm_registration_phone(registration.name, registration.flags.phone_otp)
+        confirm_registration_phone(registration.name, new_code)
+        self.assertTrue(frappe.db.get_value("SaaS Registration", registration.name, "phone_verified"))
+
+    def test_mobile_already_used_by_a_user_is_refused(self):
+        existing = self._email("mobile-owner")
+        frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": existing,
+                "first_name": "P0",
+                "send_welcome_email": 0,
+                "mobile_no": self.phone,
+            }
+        ).insert(ignore_permissions=True)
+
+        with self.assertRaises(SignupConflictError):
+            self._phone_signup("MobileTaken")
+
+
+class TestSignupRecaptcha(P0TestCase):
+    def setUp(self):
+        super().setUp()
+        use_signup_settings(
+            self,
+            require_captcha=1,
+            recaptcha_site_key="test-site-key",
+            recaptcha_secret_key="test-secret-key",
+        )
+
+    def test_google_rejection_blocks_signup(self):
+        email = self._email("robot")
+        response = SimpleNamespace(json=lambda: {"success": False, "error-codes": ["invalid-input-response"]})
+        with patch("reckon_saas_platform.recaptcha.requests.post", return_value=response) as post:
+            with self.assertRaises(SignupValidationError):
+                public_signup(self._company_name("Robot"), email, "Owner", self.plan, captcha_token="bad")
+
+        self.assertEqual(post.call_args.kwargs["data"]["secret"], "test-secret-key")
+        self.assertEqual(post.call_args.kwargs["data"]["response"], "bad")
+        self.assertFalse(frappe.db.exists("SaaS Registration", {"owner_email": email}))
+
+    def test_google_success_allows_signup(self):
+        email = self._email("human")
+        response = SimpleNamespace(json=lambda: {"success": True})
+        with patch("reckon_saas_platform.recaptcha.requests.post", return_value=response), patch(
+            "frappe.sendmail"
+        ):
+            result = public_signup(self._company_name("Human"), email, "Owner", self.plan, captcha_token="ok")
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(frappe.db.exists("SaaS Registration", {"owner_email": email}))
+
+    def test_missing_token_is_rejected_without_calling_google(self):
+        with patch("reckon_saas_platform.recaptcha.requests.post") as post, self.assertRaises(
+            SignupValidationError
+        ):
+            public_signup(self._company_name("NoToken"), self._email("notoken"), "Owner", self.plan)
+        post.assert_not_called()
+
+    def test_signup_page_renders_site_key_only(self):
+        from reckon_saas_platform.www import reckonerp_signup as signup_page
+
+        context = frappe._dict()
+        signup_page.get_context(context)
+
+        self.assertEqual(context.recaptcha_site_key, "test-site-key")
+        self.assertNotIn("test-secret-key", repr(dict(context)))
+
+
+class TestVendorRegistrationRetry(P0TestCase):
+    def _failed_registration(self):
+        company = self._company_name("RetryUI")
+        registration = self._signup(company, self._email("retryui"))
+        self._verify(registration)
+        with patch(
+            "reckon_saas_platform.saas._create_registration_subscription",
+            side_effect=RuntimeError("billing down"),
+        ):
+            return self._provision(registration.name)
+
+    def test_vendor_admin_page_lists_failed_registration_with_error(self):
+        from reckon_saas_platform.www import reckon_saas_admin as admin_page
+
+        failed = self._failed_registration()
+        context = frappe._dict()
+        admin_page.get_context(context)
+
+        row = next(row for row in context.registrations if row.name == failed.name)
+        self.assertEqual(row.status, "Failed")
+        self.assertIn("billing down", row.error)
+
+    def test_retry_requeues_failed_registration_and_completes(self):
+        failed = self._failed_registration()
+
+        with patch("frappe.enqueue") as enqueue:
+            self.assertEqual(retry_registration_provisioning(failed.name), failed.name)
+        self.assertEqual(enqueue.call_args.kwargs["registration"], failed.name)
+        self.assertEqual(frappe.db.get_value("SaaS Registration", failed.name, "status"), "Provisioning")
+
+        done = self._provision(failed.name)
+        self.assertEqual(done.status, "Pending Payment")
+
+    def test_retry_refuses_non_failed_and_non_vendor(self):
+        registration = self._signup(self._company_name("RetryNo"), self._email("retryno"))
+        with self.assertRaises(SignupValidationError):
+            retry_registration_provisioning(registration.name)
+
+        _company, tenant_user = self._tenant("RetryTenant", active=True)
+        with self._as_user(tenant_user), self.assertRaises(frappe.PermissionError):
+            retry_registration_provisioning(registration.name)

@@ -11,11 +11,13 @@ from reckon_distribution.saas import (
     verify_payment_manual,
 )
 from reckon_distribution.saas_security import has_vendor_only_permission
+from reckon_distribution.tests.signup_settings import use_signup_settings
 from reckon_distribution.www import reckonerp_signup
 
 
 class TestSaaSPagesAndActions(FrappeTestCase):
     def setUp(self):
+        use_signup_settings(self)
         self.plan = "_Test Page Plan"
         self.company = "_Test Page Tenant"
         self.email = "page-tenant@example.com"

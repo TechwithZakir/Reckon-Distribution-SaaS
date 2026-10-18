@@ -28,6 +28,7 @@ from reckon_distribution.saas import (
 )
 from reckon_distribution.team_access import create_team_access
 from reckon_distribution.tenant_security import CrossCompanyAccessError
+from reckon_distribution.tests.signup_settings import use_signup_settings
 from reckon_distribution.warehouse import sync_user_company_permission
 
 
@@ -95,6 +96,7 @@ class TestMultiCompanyIsolation(FrappeTestCase):
         super().tearDown()
 
     def test_saas_onboarding_creates_one_company_permission(self):
+        use_signup_settings(self)
         plan = f"_RD Isolation Plan {frappe.generate_hash(length=8)}"
         company = f"_RD SaaS Isolation {frappe.generate_hash(length=8)}"
         email = f"rd-saas-{frappe.generate_hash(length=8)}@example.com"

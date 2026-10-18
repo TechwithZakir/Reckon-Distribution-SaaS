@@ -18,6 +18,13 @@ The runner is:
 scripts/test_multi_company.sh
 ```
 
+The runner is the tenant-isolation release gate. Besides the class above it runs
+`reckon_distribution.tests.test_go_live_blockers` (signup cannot reuse an
+existing Company or User, the subscription/provisioning request gate, the
+read-only Desk guard, platform roles for tenant users, seed-job failure and
+retry), `test_saas` and `test_saas_pages`. Each module runs as its own
+`bench run-tests` call and the script stops at the first failing module.
+
 ## Safety boundary
 
 Run this only on a dedicated test or staging site. The runner accepts only site

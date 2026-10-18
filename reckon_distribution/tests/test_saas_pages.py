@@ -64,14 +64,22 @@ class TestSaaSPagesAndActions(FrappeTestCase):
         self.assertIn(self.plan, {plan.name for plan in context.plans})
 
     def test_unpaid_tenant_home_page_is_subscription_page(self):
-        from reckon_distribution.saas import create_registration
+        from reckon_distribution.saas import (
+            confirm_registration_email,
+            create_registration,
+            provision_registration,
+        )
 
-        create_registration(
+        registration = create_registration(
             business_name=self.company,
             owner_email=self.email,
             owner_name="Page Tenant",
             plan=self.plan,
         )
+        with patch("frappe.enqueue"):
+            confirm_registration_email(registration.flags.verification_token)
+        with patch("reckon_saas_platform.saas.get_seed_handlers", return_value=[]):
+            provision_registration(registration.name)
 
         self.assertEqual(get_user_home_page(self.email), "reckonerp-subscription")
 

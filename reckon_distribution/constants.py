@@ -25,6 +25,15 @@ OPERATIONAL_ROLES = (
 # receive the internal Reckon Distribution roles above.
 TENANT_ROLE_NAMES = frozenset({"Company Admin", "Company Manager", "DSR", "SR", "Master Data Manager"})
 
+# Frappe role granted for each Tenant User Assignment role profile.
+TENANT_PROFILE_ROLE_MAP = {
+    "Company Admin": "Reckon Distribution Admin",
+    "Company Manager": "Reckon Distribution Manager",
+    "Master Data Manager": "Reckon Master Data Manager",
+    "SR": "Reckon Distribution User",
+    "DSR": "Reckon Distribution User",
+}
+
 HRMS_APP_NAME = "hrms"
 
 TENANT_BYPASS_ROLES = frozenset({"Administrator", "System Manager", "Reckon Vendor Superuser"})

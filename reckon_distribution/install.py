@@ -7,6 +7,7 @@ from reckon_distribution.constants import (
     DISTRIBUTION_SIDEBAR,
     DISTRIBUTION_WORKSPACE,
     OPERATIONAL_ROLES,
+    TENANT_PROFILE_ROLE_MAP,
     TENANT_ROLE_NAMES,
 )
 
@@ -1155,20 +1156,13 @@ def ensure_tenant_user_permissions() -> None:
 def ensure_assigned_user_roles() -> None:
     if not frappe.db.exists("DocType", "Tenant User Assignment"):
         return
-    role_map = {
-        "Company Admin": "Reckon Distribution Admin",
-        "Company Manager": "Reckon Distribution Manager",
-        "Master Data Manager": "Reckon Master Data Manager",
-        "SR": "Reckon Distribution User",
-        "DSR": "Reckon Distribution User",
-    }
     assignments = frappe.get_all(
         "Tenant User Assignment",
         filters={"active": 1},
         fields=["user", "role_profile"],
     )
     for assignment in assignments:
-        role = role_map.get(assignment.role_profile)
+        role = TENANT_PROFILE_ROLE_MAP.get(assignment.role_profile)
         if not role or not frappe.db.exists("User", assignment.user):
             continue
         user = frappe.get_doc("User", assignment.user)
@@ -1404,15 +1398,15 @@ def ensure_distribution_report_roles() -> None:
         frappe.clear_cache(doctype="Report")
 
 
-def ensure_standard_doc_type_read_permission(role: str) -> None:
+def ensure_standard_doc_type_read_permission(role: str) -> bool:
     """Grant metadata read access using DocPerm, not Custom DocPerm.
 
     ``DocType`` is one of the few doctypes for which Frappe ignores custom
     permission rows. Native Desk list/form boot therefore requires a standard
-    ``tabDocPerm`` row for each Distribution role.
+    ``tabDocPerm`` row for each Distribution role. Returns True when it wrote.
     """
     if not frappe.db.exists("Role", role):
-        return
+        return False
 
     existing = frappe.db.exists(
         "DocPerm", {"parent": "DocType", "role": role, "permlevel": 0, "if_owner": 0}
@@ -1420,7 +1414,8 @@ def ensure_standard_doc_type_read_permission(role: str) -> None:
     if existing:
         if not frappe.db.get_value("DocPerm", existing, "read"):
             frappe.db.set_value("DocPerm", existing, "read", 1, update_modified=False)
-        return
+            return True
+        return False
 
     idx = frappe.db.sql(
         """
@@ -1440,6 +1435,7 @@ def ensure_standard_doc_type_read_permission(role: str) -> None:
         """,
         (frappe.generate_hash(length=10), now, now, frappe.session.user, frappe.session.user, idx, role),
     )
+    return True
 
 
 def ensure_distribution_transaction_permissions() -> None:

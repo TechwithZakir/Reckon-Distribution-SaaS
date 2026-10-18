@@ -103,7 +103,12 @@ doc_events = {
     "Tenant User Assignment": {
         "validate": "reckon_distribution.warehouse.validate_tenant_assignment",
         "after_insert": "reckon_distribution.warehouse.sync_tenant_user_permission",
-        "on_update": "reckon_distribution.warehouse.sync_tenant_user_permission",
+        "on_update": [
+            "reckon_distribution.warehouse.sync_tenant_user_permission",
+            # Role and DocType metadata repair lives here and in after_migrate,
+            # never in the per-request Desk guard.
+            "reckon_distribution.desk_guard.sync_tenant_user_access",
+        ],
     },
 }
 get_website_user_home_page = "reckon_distribution.desk_guard.get_user_home_page"

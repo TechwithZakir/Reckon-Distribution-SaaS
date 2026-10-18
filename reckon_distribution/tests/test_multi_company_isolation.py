@@ -21,7 +21,11 @@ from reckon_distribution.master_data import (
     search_company_master,
     validate_shared_master_change,
 )
-from reckon_distribution.saas import create_registration
+from reckon_distribution.saas import (
+    confirm_registration_email,
+    create_registration,
+    provision_registration,
+)
 from reckon_distribution.team_access import create_team_access
 from reckon_distribution.tenant_security import CrossCompanyAccessError
 from reckon_distribution.warehouse import sync_user_company_permission
@@ -112,6 +116,10 @@ class TestMultiCompanyIsolation(FrappeTestCase):
                 owner_name="SaaS Isolation Admin",
                 plan=plan,
             )
+            with patch("frappe.enqueue"):
+                confirm_registration_email(registration.flags.verification_token)
+            with patch("reckon_saas_platform.saas.get_seed_handlers", return_value=[]):
+                registration = provision_registration(registration.name)
             permissions = frappe.get_all(
                 "User Permission",
                 filters={"user": email, "allow": "Company"},

@@ -10,8 +10,14 @@ APP = Path(__file__).parents[1] / "reckon_distribution"
 
 
 def _load(path: Path, name: str):
+    """Execute a source file as module ``name``.
+
+    Callers wrap this in ``patch.dict(sys.modules, ...)``, which removes the
+    registration again. Python < 3.12 dataclasses need the module registered.
+    """
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 

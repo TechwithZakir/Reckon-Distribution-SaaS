@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import frappe
 from frappe import _, permissions
 
@@ -10,6 +13,9 @@ from reckon_distribution.constants import (
     TENANT_PROFILE_ROLE_MAP,
     TENANT_ROLE_NAMES,
 )
+
+# Frappe looks for the file at <app>/workspace_sidebar/<frappe.scrub(name)>.json.
+DISTRIBUTION_SIDEBAR_FILE = Path(__file__).parent / "workspace_sidebar" / "distribution.json"
 
 
 def after_install() -> None:
@@ -1571,99 +1577,26 @@ def ensure_workspace_sidebar() -> None:
 
 
 def _workspace_sidebar_doc(sidebar_name: str = DISTRIBUTION_SIDEBAR) -> dict:
-    """Return the native left-rail definition used by the active Desk shell."""
-    def section(label: str, icon: str) -> dict:
-        return {
-            "label": label,
-            "type": "Section Break",
-            "icon": icon,
-            "child": 0,
-            "indent": 0,
-            "collapsible": 1,
-            "keep_closed": 0,
-            "show_arrow": 0,
-        }
+    """Return the native left rail shipped in ``workspace_sidebar/distribution.json``.
 
-    def link(
-        label: str, link_to: str, link_type: str, icon: str, *, child: bool = False
-    ) -> dict:
-        return {
-            "label": label,
-            "link_to": link_to,
-            "link_type": link_type,
-            "type": "Link",
-            "icon": icon,
-            "child": int(child),
-            "indent": 0,
-            "collapsible": 1,
-            "show_arrow": 0,
-        }
-
-    items = [
-        link("Distribution Home", "distribution", "Page", "house"),
-        section("Sales & Delivery", "shopping-bag"),
-        link("SR Sales", "field-sales", "Page", "map-pin", child=True),
-        link("DSR Delivery & Collection", "dsr-delivery", "Page", "truck", child=True),
-        link("DSR Challan", "DSR Challan", "DocType", "package-check", child=True),
-        link("DSR Day Settlement", "DSR Day Settlement", "DocType", "calculator", child=True),
-        section("Purchase", "package-plus"),
-        link("Purchase Orders", "Purchase Order", "DocType", "clipboard-list", child=True),
-        link("Purchase Received", "Purchase Receipt", "DocType", "package-check", child=True),
-        link("Purchase Invoices", "Purchase Invoice", "DocType", "file-text", child=True),
-        link("Supplier Payments", "Payment Entry", "DocType", "landmark", child=True),
-        section("Office Expenses", "wallet-cards"),
-        link("Office Expenses", "Office Expense", "DocType", "receipt-text", child=True),
-        section("Reports", "chart-no-axes-combined"),
-        link("Stock Ledger", "Stock Ledger", "Report", "book-open", child=True),
-        link("Stock Balance", "Stock Balance", "Report", "boxes", child=True),
-        link("Sales Register", "Distribution Sales Register", "Report", "receipt-text", child=True),
-        link(
-            "Purchase Register",
-            "Distribution Purchase Register",
-            "Report",
-            "clipboard-list",
-            child=True,
-        ),
-        link(
-            "Accounting Ledger",
-            "Accounting Ledger",
-            "Report",
-            "calendar-days",
-            child=True,
-        ),
-        link("Day Book", "Day Book", "Report", "book-open-check", child=True),
-        link("Cash Book", "Cash Book", "Report", "wallet-cards", child=True),
-        link("Supplier Ledger", "Supplier Ledger", "Report", "contact-round", child=True),
-        link("Supplier Aging Report", "Supplier Aging Report", "Report", "clock-3", child=True),
-        link("Customer Aging Report", "Customer Aging Report", "Report", "clock-3", child=True),
-        link("DSR Wise Ledger", "DSR Wise Ledger", "Report", "users-round", child=True),
-        link("Ledger Summary", "Ledger Summary", "Report", "list-tree", child=True),
-        link("Profit & Loss", "Profit & Loss", "Report", "chart-no-axes-combined", child=True),
-        section("Setup & Access", "settings"),
-        link("Office Expense Setup", "Office Expense Settings", "DocType", "wallet-cards", child=True),
-        link("Distribution Master Setup", "distribution-master-setup", "Page", "settings-2", child=True),
-        link("Company Team & Access", "distribution-team-access", "Page", "users", child=True),
-    ]
+    The file is the single source of truth. Frappe v16 imports it on migrate, and its orphan
+    sweep deletes a standard Workspace Sidebar whose app has no
+    ``<app>/workspace_sidebar/<scrubbed name>.json``, so the rail must not live only in code.
+    """
+    definition = json.loads(DISTRIBUTION_SIDEBAR_FILE.read_text(encoding="utf-8"))
+    definition.pop("modified", None)
+    definition["name"] = sidebar_name
     # ERPNext standard DocTypes can be unavailable during app installation
     # ordering. Do not make the whole install fail; after_migrate will append
     # the links once the native modules are present.
-    items = [
+    definition["items"] = [
         item
-        for item in items
+        for item in definition["items"]
         if item.get("type") != "Link"
         or item.get("link_type") not in {"DocType", "Report"}
         or frappe.db.exists(item.get("link_type"), item.get("link_to"))
     ]
-    return {
-        "doctype": "Workspace Sidebar",
-        "name": sidebar_name,
-        "app": "reckon_distribution",
-        "module": "Distribution",
-        "title": "Distribution",
-        "header_icon": "package-check",
-        "standard": 1,
-        "items": items,
-    }
+    return definition
 
 
 def _workspace_doc(update: bool = False) -> dict:

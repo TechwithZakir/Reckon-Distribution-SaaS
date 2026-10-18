@@ -1156,14 +1156,18 @@ def ensure_tenant_user_permissions() -> None:
 def ensure_assigned_user_roles() -> None:
     if not frappe.db.exists("DocType", "Tenant User Assignment"):
         return
+    from reckon_distribution.desk_guard import company_uses_distribution
+
     assignments = frappe.get_all(
         "Tenant User Assignment",
         filters={"active": 1},
-        fields=["user", "role_profile"],
+        fields=["user", "role_profile", "company"],
     )
     for assignment in assignments:
         role = TENANT_PROFILE_ROLE_MAP.get(assignment.role_profile)
         if not role or not frappe.db.exists("User", assignment.user):
+            continue
+        if not company_uses_distribution(assignment.company):
             continue
         user = frappe.get_doc("User", assignment.user)
         if role not in frappe.get_roles(assignment.user):

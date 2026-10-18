@@ -13,6 +13,7 @@ from reckon_distribution.constants import (
     TENANT_ROLE_NAMES,
 )
 
+DISTRIBUTION_MODULE_KEY = "distribution"
 DISTRIBUTION_DESK_ROUTE = "desk/distribution"
 DISTRIBUTION_PAGE = "distribution"
 DISTRIBUTION_USER_ROLES = frozenset(
@@ -378,6 +379,12 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     roles = set(frappe.get_roles(user))
     if roles.intersection(DESK_BYPASS_ROLES):
         return False
+    # Other SaaS modules can share this site. A tenant whose companies subscribe
+    # to another module is not Distribution-only: either it is not ours, or it
+    # subscribes to several modules and the multi-module guard governs it.
+    modules = _user_module_keys(user)
+    if modules and set(modules) != {DISTRIBUTION_MODULE_KEY}:
+        return False
     # A Distribution tenant admin may also have System Manager for operational
     # setup. Their tenant role must take precedence for root and Desk routing.
     if roles.intersection(DISTRIBUTION_USER_ROLES):
@@ -400,6 +407,30 @@ def _is_distribution_only_user(user: str | None = None) -> bool:
     return profile in TENANT_ROLE_NAMES
 
 
+def _user_module_keys(user: str) -> list[str]:
+    try:
+        from reckon_saas_platform.saas import get_user_module_keys
+    except ImportError:  # platform without multi-module support
+        return []
+    return get_user_module_keys(user)
+
+
+def company_uses_distribution(company: str | None) -> bool:
+    """True unless the company is known to subscribe only to other modules.
+
+    Companies without any module record (tenants created before modules) stay
+    Distribution companies.
+    """
+    if not company:
+        return True
+    try:
+        from reckon_saas_platform.saas import get_company_module_keys
+    except ImportError:
+        return True
+    modules = get_company_module_keys(company)
+    return not modules or DISTRIBUTION_MODULE_KEY in modules
+
+
 def sync_tenant_user_access(doc, method=None) -> None:
     """Grant the Frappe role and DocType metadata access for a tenant assignment.
 
@@ -410,6 +441,8 @@ def sync_tenant_user_access(doc, method=None) -> None:
     user = doc.get("user")
     if not doc.get("active") or not user or user in {"Guest", "Administrator"}:
         return
+    if not company_uses_distribution(doc.get("company")):
+        return  # another module's tenant; that module grants its own roles
     profile = doc.get("role_profile")
     role = TENANT_PROFILE_ROLE_MAP.get(profile)
     distribution_roles = {row.name for row in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)

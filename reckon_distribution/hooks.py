@@ -194,6 +194,7 @@ has_permission = {
     "Warehouse": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Project": "reckon_saas_platform.tenant_security.has_tenant_owned_permission",
     "Company": "reckon_distribution.warehouse.has_company_permission",
+    "Buying Settings": "reckon_distribution.warehouse.has_read_only_permission",
     "Customer": "reckon_distribution.master_data.has_shared_master_permission",
     "Supplier": "reckon_distribution.master_data.has_shared_master_permission",
     "Item": "reckon_distribution.master_data.has_shared_master_permission",

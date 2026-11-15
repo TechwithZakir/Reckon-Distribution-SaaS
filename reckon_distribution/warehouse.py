@@ -39,6 +39,13 @@ def has_company_permission(doc, user=None, ptype=None, permission_type=None, deb
     return bool(doc and doc.name == tenant.company)
 
 
+def has_read_only_permission(doc, user=None, ptype=None, permission_type=None, debug=False) -> bool:
+    """Vendor-wide settings (Buying Settings): tenants read them, only vendor staff change them."""
+    if user_can_bypass_tenant(user):
+        return True
+    return (ptype or permission_type) not in {"create", "write", "delete", "submit", "cancel", "amend"}
+
+
 @frappe.whitelist()
 def get_children(
     doctype, parent=None, company=None, is_root=False, include_disabled=False, **kwargs

@@ -34,5 +34,7 @@ def get_module_definition() -> dict:
         # guards allow the union of every subscribed module's lists.
         "desk_pages": sorted(ALLOWED_DISTRIBUTION_PAGES),
         "desk_doctypes": sorted(ALLOWED_DISTRIBUTION_DOCTYPES),
+        # Vendor-wide settings: read-only for tenants (warehouse.has_read_only_permission).
+        "desk_reference_doctypes": ["Buying Settings"],
         "desk_reports": sorted(DISTRIBUTION_QUERY_REPORTS),
     }

@@ -58,13 +58,15 @@ jobs:
           bench get-app --skip-assets --branch version-16 erpnext https://github.com/frappe/erpnext
           bench get-app --skip-assets --branch main reckon_saas_platform https://github.com/TechwithZakir/Reckon-SaaS-Platform
           bench get-app --skip-assets --branch main reckon_accounts https://github.com/TechwithZakir/Reckon-Accounts
+          # Distribution's accounting doctypes (Account, Cost Center, Mode of Payment...) are scoped by Accounts SaaS's hooks.
+          bench get-app --skip-assets --branch main reckon_accounts_saas https://github.com/TechwithZakir/Reckon-Accounts-SaaS
           bench get-app --skip-assets reckon_distribution "$GITHUB_WORKSPACE/app"
       - name: Create a site, install and migrate
         run: |
           cd ~/frappe-bench
           run() { echo "+ $*"; "$@" 2>&1 | tee -a ~/ci.log; return ${PIPESTATUS[0]}; }
           run bench new-site --db-root-password root --admin-password admin --mariadb-user-host-login-scope='%' ci.local
-          for app in erpnext reckon_saas_platform reckon_accounts reckon_distribution; do run bench --site ci.local install-app "$app"; done
+          for app in erpnext reckon_saas_platform reckon_accounts reckon_accounts_saas reckon_distribution; do run bench --site ci.local install-app "$app"; done
           # No migrate: a patch of reckon_accounts fails on a fresh site, and the audit reads installed hooks only.
       - name: Tenant scoping audit
         run: |

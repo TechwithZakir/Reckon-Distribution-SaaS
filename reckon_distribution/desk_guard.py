@@ -267,6 +267,10 @@ def restrict_distribution_desk_request() -> None:
     if path.startswith("/desk/"):
         desk_path = path.removeprefix("/desk/")
         desk_route = desk_path.split("/", 1)[0]
+        # /desk/<workspace>/<page>: the workspace only picks the sidebar, so the page is what is checked.
+        parts = desk_path.split("/")
+        if desk_route not in ALLOWED_DISTRIBUTION_PAGES and len(parts) > 1 and parts[1] in ALLOWED_DISTRIBUTION_PAGES:
+            desk_route = parts[1]
         if desk_route not in ALLOWED_DISTRIBUTION_PAGES:
             _redirect_to_distribution()
         if desk_route == "query-report":

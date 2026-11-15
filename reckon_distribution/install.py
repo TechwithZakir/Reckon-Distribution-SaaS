@@ -478,10 +478,7 @@ def ensure_purchase_receipt_fields() -> None:
                 custom_field.options = field.get("options")
                 custom_field.save(ignore_permissions=True)
             continue
-        custom_field = frappe.get_doc({"doctype": "Custom Field", **field})
-        # ERPNext's own Payment Entry Series field fails the form check on a fresh site; ours are plain additions.
-        custom_field.flags.ignore_validate = True
-        custom_field.insert(ignore_permissions=True)
+        _insert_custom_field({"doctype": "Custom Field", **field})
 
 
 def ensure_procurement_setting_defaults() -> None:
@@ -905,7 +902,7 @@ def ensure_company_owned_master_fields() -> None:
         if not frappe.db.exists(
             "Custom Field", {"dt": field["dt"], "fieldname": "rd_company"}
         ):
-            frappe.get_doc(
+            _insert_custom_field(
                 {
                     "doctype": "Custom Field",
                     "dt": field["dt"],
@@ -917,7 +914,7 @@ def ensure_company_owned_master_fields() -> None:
                     "in_list_view": 1,
                     "insert_after": field["insert_after"],
                 }
-            ).insert(ignore_permissions=True)
+            )
         _set_property(field["dt"], "rd_company", "read_only", "1", "Check")
         frappe.clear_cache(doctype=field["dt"])
 
@@ -1098,9 +1095,20 @@ def ensure_dense_layout_fields() -> None:
             }
             if field.get("label"):
                 values["label"] = field["label"]
-            frappe.get_doc(values).insert(ignore_permissions=True)
+            _insert_custom_field(values)
             existing.add(field["fieldname"])
         frappe.clear_cache(doctype=doctype)
+
+
+def _insert_custom_field(values: dict) -> None:
+    """Add one Custom Field without re-checking the whole target DocType.
+
+    ERPNext's own DocTypes can fail that check on a fresh site (a hidden mandatory Series, a title field), which
+    would stop the install over a plain field of ours.
+    """
+    custom_field = frappe.get_doc(values)
+    custom_field.flags.ignore_validate = True
+    custom_field.insert(ignore_permissions=True)
 
 
 def setup_roles() -> None:

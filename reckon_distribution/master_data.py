@@ -227,7 +227,7 @@ def auto_scope_shared_master(doc, method=None) -> None:
                 "access_scope": "Manage",
                 "active": 1,
             }
-        ).insert()
+        ).insert(ignore_permissions=True)  # bookkeeping for a master the user may already create; the user may not hold this doctype
 
 
 def normalize_item_code(doc, method=None) -> None:

@@ -12,9 +12,6 @@ jobs:
     name: Tenant scoping audit on Frappe v16
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    # Installing Distribution on a fresh site currently fails in after_install (a Payment Entry custom field), so this
-    # job reports and does not block until that is fixed.
-    continue-on-error: true
     services:
       mariadb:
         image: mariadb:11.8

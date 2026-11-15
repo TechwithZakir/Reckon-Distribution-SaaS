@@ -478,7 +478,10 @@ def ensure_purchase_receipt_fields() -> None:
                 custom_field.options = field.get("options")
                 custom_field.save(ignore_permissions=True)
             continue
-        frappe.get_doc({"doctype": "Custom Field", **field}).insert(ignore_permissions=True)
+        custom_field = frappe.get_doc({"doctype": "Custom Field", **field})
+        # ERPNext's own Payment Entry Series field fails the form check on a fresh site; ours are plain additions.
+        custom_field.flags.ignore_validate = True
+        custom_field.insert(ignore_permissions=True)
 
 
 def ensure_procurement_setting_defaults() -> None:

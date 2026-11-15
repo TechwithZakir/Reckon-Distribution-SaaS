@@ -32,6 +32,9 @@ def get_company_query(user=None, doctype=None) -> str:
 def has_company_permission(doc, user=None, ptype=None, permission_type=None, debug=False) -> bool:
     if user_can_bypass_tenant(user):
         return True
+    # A tenant reads its own Company; creating or changing it is vendor work.
+    if (ptype or permission_type) in {"create", "write", "delete", "submit", "cancel", "amend"}:
+        return False
     tenant = require_tenant(user=user)
     return bool(doc and doc.name == tenant.company)
 

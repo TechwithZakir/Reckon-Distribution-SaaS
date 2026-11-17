@@ -32,11 +32,20 @@ def get_company_query(user=None, doctype=None) -> str:
 def has_company_permission(doc, user=None, ptype=None, permission_type=None, debug=False) -> bool:
     if user_can_bypass_tenant(user):
         return True
-    # A tenant reads its own Company; creating or changing it is vendor work.
-    if (ptype or permission_type) in {"create", "write", "delete", "submit", "cancel", "amend"}:
-        return False
+    kind = ptype or permission_type
     tenant = require_tenant(user=user)
-    return bool(doc and doc.name == tenant.company)
+    own = bool(doc and doc.name == tenant.company)
+    if kind == "write":
+        # The company admin may save changes to their own Company. Which fields they may change is decided on save by the
+        # SaaS platform (contact and registration details only); creating or deleting it stays vendor work.
+        return own and bool(
+            frappe.db.exists(
+                "Tenant User Assignment", {"user": user or frappe.session.user, "company": tenant.company, "active": 1, "role_profile": "Company Admin"}
+            )
+        )
+    if kind in {"create", "delete", "submit", "cancel", "amend"}:
+        return False
+    return own
 
 
 def has_read_only_permission(doc, user=None, ptype=None, permission_type=None, debug=False) -> bool:

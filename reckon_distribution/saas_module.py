@@ -11,7 +11,7 @@ def get_module_definition() -> dict:
     return {
         "key": "distribution",
         "label": "Distribution SaaS",
-        "description": "Bangla-first SR/DSR distribution for FMCG businesses: routes, "
+        "description": "Multi-language SR/DSR distribution for FMCG businesses: routes, "
         "deliveries, collections and stock in one place.",
         "workspace": "desk/distribution/distribution",
         "home_route": "/desk/distribution/distribution",

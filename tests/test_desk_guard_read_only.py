@@ -95,7 +95,7 @@ class DeskGuardReadOnlyTests(unittest.TestCase):
         self.gate.is_user_gated.return_value = True
         self.assertEqual(self.guard.get_user_home_page("dsr@tenant.example"), "reckonerp-subscription")
         self.gate.is_user_gated.return_value = False
-        self.assertEqual(self.guard.get_user_home_page("dsr@tenant.example"), "desk/distribution")
+        self.assertEqual(self.guard.get_user_home_page("dsr@tenant.example"), "desk/distribution/distribution")
 
     def test_assignment_sync_grants_role_and_metadata_once(self):
         self.frappe.get_roles.return_value = []

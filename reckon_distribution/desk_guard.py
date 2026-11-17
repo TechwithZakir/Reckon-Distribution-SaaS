@@ -15,6 +15,8 @@ from reckon_distribution.constants import (
 
 DISTRIBUTION_MODULE_KEY = "distribution"
 DISTRIBUTION_DESK_ROUTE = "desk/distribution"
+# Where login and the Apps screen open Distribution: the sidebar is named, or Desk shows it inside Reckon Accounts.
+DISTRIBUTION_HOME_ROUTE = "desk/distribution/distribution"
 DISTRIBUTION_PAGE = "distribution"
 DISTRIBUTION_USER_ROLES = frozenset(
     {role.name for role in OPERATIONAL_ROLES} | set(TENANT_ROLE_NAMES)
@@ -235,7 +237,7 @@ def get_user_home_page(user: str):
     if _is_distribution_only_user(user):
         if is_user_gated(user):
             return "reckonerp-subscription"
-        return "desk/distribution"
+        return DISTRIBUTION_HOME_ROUTE
     return None
 
 
@@ -372,7 +374,7 @@ def getpage(page: str | None = None, name: str | None = None):
 def get_restricted_desk_context() -> dict:
     return {
         "restricted": _is_distribution_only_user(),
-        "route": DISTRIBUTION_DESK_ROUTE,
+        "route": DISTRIBUTION_HOME_ROUTE,
     }
 
 

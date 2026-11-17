@@ -453,14 +453,14 @@ class TestFoundation(FrappeTestCase):
         from reckon_distribution.desk_guard import get_user_home_page
 
         with patch("frappe.get_roles", return_value=["Reckon Distribution User"]):
-            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
+            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution/distribution")
 
     def test_tenant_profile_home_page_is_distribution_workspace(self):
         from reckon_distribution.desk_guard import get_user_home_page
 
         for role in ("Company Admin", "Company Manager", "DSR", "SR"):
             with self.subTest(role=role), patch("frappe.get_roles", return_value=[role]):
-                self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
+                self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution/distribution")
 
     def test_root_and_desk_requests_redirect_tenant_profiles_to_distribution(self):
         from werkzeug.wrappers import Response
@@ -506,7 +506,7 @@ class TestFoundation(FrappeTestCase):
         with patch("frappe.get_roles", return_value=[]), patch(
             "reckon_distribution.desk_guard.frappe.db.exists", return_value=True
         ), patch("reckon_distribution.desk_guard.frappe.db.get_value", return_value="DSR"):
-            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution")
+            self.assertEqual(get_user_home_page("field@example.com"), "desk/distribution/distribution")
 
     def test_distribution_user_cannot_load_other_desk_page(self):
         from reckon_distribution.desk_guard import getpage

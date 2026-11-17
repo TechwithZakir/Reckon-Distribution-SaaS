@@ -13,8 +13,8 @@ def get_module_definition() -> dict:
         "label": "Distribution SaaS",
         "description": "Bangla-first SR/DSR distribution for FMCG businesses: routes, "
         "deliveries, collections and stock in one place.",
-        "workspace": "app/distribution",
-        "home_route": "/desk/distribution",
+        "workspace": "desk/distribution/distribution",
+        "home_route": "/desk/distribution/distribution",
         "admin_role": "Reckon Distribution Admin",
         "roles": [
             "Reckon Distribution Admin",

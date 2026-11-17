@@ -639,7 +639,7 @@ class TestFoundation(FrappeTestCase):
     def test_distribution_module_uses_app_workspace_route(self):
         from reckon_distribution.saas_module import get_module_definition
 
-        self.assertEqual(get_module_definition()["workspace"], "app/distribution")
+        self.assertEqual(get_module_definition()["workspace"], "desk/distribution/distribution")
 
     def test_distribution_does_not_register_global_desk_assets(self):
         hooks = (Path(__file__).parents[1] / "hooks.py").read_text()
